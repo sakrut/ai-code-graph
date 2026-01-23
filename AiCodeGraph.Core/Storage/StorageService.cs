@@ -23,11 +23,11 @@ public class StorageService : IAsyncDisposable, IDisposable
                 Directory.CreateDirectory(dir);
         }
 
-        _connection = new SqliteConnection($"Data Source={_dbPath}");
+        _connection = new SqliteConnection($"Data Source={_dbPath};Foreign Keys=False");
         await _connection.OpenAsync(cancellationToken);
 
         using var pragmaCmd = _connection.CreateCommand();
-        pragmaCmd.CommandText = "PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;";
+        pragmaCmd.CommandText = "PRAGMA journal_mode=WAL; PRAGMA foreign_keys=OFF;";
         await pragmaCmd.ExecuteNonQueryAsync(cancellationToken);
 
         foreach (var drop in SchemaDefinition.DropTables)
@@ -90,7 +90,7 @@ public class StorageService : IAsyncDisposable, IDisposable
     {
         using var cmd = _connection!.CreateCommand();
         cmd.Transaction = transaction;
-        cmd.CommandText = "INSERT INTO Namespaces (Id, FullName, ProjectId) VALUES (@id, @name, @pid)";
+        cmd.CommandText = "INSERT OR IGNORE INTO Namespaces (Id, FullName, ProjectId) VALUES (@id, @name, @pid)";
         cmd.Parameters.AddWithValue("@id", ns.Id);
         cmd.Parameters.AddWithValue("@name", ns.FullName);
         cmd.Parameters.AddWithValue("@pid", projectId);
@@ -108,7 +108,7 @@ public class StorageService : IAsyncDisposable, IDisposable
         using var cmd = _connection!.CreateCommand();
         cmd.Transaction = transaction;
         cmd.CommandText = """
-            INSERT INTO Types (Id, Name, FullName, Kind, NamespaceId, IsStatic, IsAbstract, IsSealed)
+            INSERT OR IGNORE INTO Types (Id, Name, FullName, Kind, NamespaceId, IsStatic, IsAbstract, IsSealed)
             VALUES (@id, @name, @fullName, @kind, @nsId, @isStatic, @isAbstract, @isSealed)
             """;
         cmd.Parameters.AddWithValue("@id", type.Id);
@@ -143,7 +143,7 @@ public class StorageService : IAsyncDisposable, IDisposable
         using var cmd = _connection!.CreateCommand();
         cmd.Transaction = transaction;
         cmd.CommandText = """
-            INSERT INTO Methods (Id, Name, FullName, ReturnType, TypeId, StartLine, EndLine, FilePath, IsStatic, IsAsync, IsVirtual, IsOverride, IsAbstract)
+            INSERT OR IGNORE INTO Methods (Id, Name, FullName, ReturnType, TypeId, StartLine, EndLine, FilePath, IsStatic, IsAsync, IsVirtual, IsOverride, IsAbstract)
             VALUES (@id, @name, @fullName, @ret, @tid, @start, @end, @path, @isStatic, @isAsync, @isVirtual, @isOverride, @isAbstract)
             """;
         cmd.Parameters.AddWithValue("@id", method.Id);
@@ -200,7 +200,7 @@ public class StorageService : IAsyncDisposable, IDisposable
         {
             using var cmd = _connection!.CreateCommand();
             cmd.Transaction = transaction;
-            cmd.CommandText = "INSERT OR REPLACE INTO Metrics (MethodId, CognitiveComplexity, LinesOfCode, NestingDepth) VALUES (@id, @cc, @loc, @nd)";
+            cmd.CommandText = "INSERT OR IGNORE INTO Metrics (MethodId, CognitiveComplexity, LinesOfCode, NestingDepth) VALUES (@id, @cc, @loc, @nd)";
             var idParam = cmd.Parameters.Add("@id", SqliteType.Text);
             var ccParam = cmd.Parameters.Add("@cc", SqliteType.Integer);
             var locParam = cmd.Parameters.Add("@loc", SqliteType.Integer);
@@ -303,7 +303,7 @@ public class StorageService : IAsyncDisposable, IDisposable
         {
             using var cmd = _connection!.CreateCommand();
             cmd.Transaction = transaction;
-            cmd.CommandText = "INSERT OR REPLACE INTO Embeddings (MethodId, Vector, ModelVersion) VALUES (@id, @vec, @model)";
+            cmd.CommandText = "INSERT OR IGNORE INTO Embeddings (MethodId, Vector, ModelVersion) VALUES (@id, @vec, @model)";
             var idParam = cmd.Parameters.Add("@id", SqliteType.Text);
             var vecParam = cmd.Parameters.Add("@vec", SqliteType.Blob);
             var modelParam = cmd.Parameters.Add("@model", SqliteType.Text);
@@ -365,7 +365,7 @@ public class StorageService : IAsyncDisposable, IDisposable
         {
             using var cmd = _connection!.CreateCommand();
             cmd.Transaction = transaction;
-            cmd.CommandText = "INSERT OR REPLACE INTO NormalizedMethods (MethodId, StructuralSignature, SemanticPayload) VALUES (@id, @sig, @payload)";
+            cmd.CommandText = "INSERT OR IGNORE INTO NormalizedMethods (MethodId, StructuralSignature, SemanticPayload) VALUES (@id, @sig, @payload)";
             var idParam = cmd.Parameters.Add("@id", SqliteType.Text);
             var sigParam = cmd.Parameters.Add("@sig", SqliteType.Text);
             var payloadParam = cmd.Parameters.Add("@payload", SqliteType.Text);
@@ -389,7 +389,7 @@ public class StorageService : IAsyncDisposable, IDisposable
 
     public async Task OpenAsync(CancellationToken cancellationToken = default)
     {
-        _connection = new SqliteConnection($"Data Source={_dbPath}");
+        _connection = new SqliteConnection($"Data Source={_dbPath};Foreign Keys=False");
         await _connection.OpenAsync(cancellationToken);
     }
 
