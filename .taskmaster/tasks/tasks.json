@@ -9,7 +9,7 @@
         "testStrategy": "Verify solution builds successfully with `dotnet build`. Verify the CLI project can be packed as a global tool with `dotnet pack`. Run `dotnet test` to confirm test project executes. Verify all NuGet packages resolve correctly.",
         "priority": "high",
         "dependencies": [],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -57,9 +57,10 @@
               3
             ],
             "details": "1. Add `Microsoft.Extensions.DependencyInjection` and `Microsoft.Extensions.Hosting` packages to the CLI project.\n2. Create the initial `Program.cs` in AiCodeGraph.Cli with:\n   - A `ServiceCollection` setup registering core services (placeholder registrations for now)\n   - A `RootCommand` from System.CommandLine with description\n   - Basic command structure with an `analyze` subcommand accepting a solution path argument\n   - Wire up DI container to command handlers\n3. Create placeholder service interfaces in Core:\n   - `IWorkspaceLoader` \n   - `ICodeGraphStorage`\n4. Register services in the DI container\n5. Ensure `Program.cs` follows the pattern:\n```csharp\nvar services = new ServiceCollection();\n// Register services\nvar serviceProvider = services.BuildServiceProvider();\nvar rootCommand = new RootCommand(\"AI Code Graph - Static analysis tool\");\n// Add commands\nawait rootCommand.InvokeAsync(args);\n```",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run the CLI with `dotnet run --project AiCodeGraph.Cli -- --help` and verify it outputs help text with the tool description. Verify the analyze command appears in help output. Ensure `dotnet build` succeeds with no DI configuration errors.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T20:50:41.449Z"
           },
           {
             "id": 5,
@@ -69,15 +70,16 @@
               1
             ],
             "details": "1. **Fix .gitignore**: The existing `.gitignore` contains `*.sln` which incorrectly excludes the solution file. Remove the `*.sln` line or replace it with more specific exclusions (e.g., `*.suo`, `*.user`).\n2. **Add .NET build artifact exclusions** (if not already present):\n   ```\n   bin/\n   obj/\n   *.user\n   *.suo\n   .vs/\n   nupkg/\n   ```\n3. **Add output directory exclusion**:\n   ```\n   ai-code-graph/\n   ```\n4. **Create output directory convention**: Add a brief comment or note in the project that the default output path is `./ai-code-graph/` relative to the analyzed solution. This directory will hold the SQLite database and any generated reports.\n5. Ensure the `.sln` file is properly tracked by git after fixing .gitignore (`git add AiCodeGraph.sln`).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Verify `git status` shows the .sln file as tracked after the fix. Verify `ai-code-graph/` directory would be ignored by running `git check-ignore ai-code-graph/`. Verify build artifacts (bin/, obj/) are ignored. Confirm no essential files are accidentally excluded by the updated .gitignore.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T20:47:32.562Z"
           }
         ],
         "complexity": 3,
         "recommendedSubtasks": 5,
         "expansionPrompt": "Break down the .NET solution initialization into subtasks covering: 1) Solution and project creation (sln, console, classlib, xunit), 2) Global tool configuration in CLI csproj, 3) NuGet package references for Core project (Roslyn, SQLite, System.CommandLine, MSBuild.Locator), 4) Dependency injection setup and project references, 5) .gitignore updates and output directory conventions. Note: the existing .gitignore excludes *.sln which needs to be fixed.",
-        "updatedAt": "2026-01-23T20:46:31.949Z"
+        "updatedAt": "2026-01-23T20:50:41.449Z"
       },
       {
         "id": "2",
@@ -1241,9 +1243,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-23T20:46:31.950Z",
+      "lastModified": "2026-01-23T20:50:41.450Z",
       "taskCount": 15,
-      "completedCount": 0,
+      "completedCount": 1,
       "tags": [
         "master"
       ]
