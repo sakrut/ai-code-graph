@@ -18,8 +18,17 @@ node_modules/
 *.suo
 *.ntvs*
 *.njsproj
-*.sln
 *.sw?
+*.user
+.vs/
 
 # OS specific
 .DS_Store
+
+# .NET build artifacts
+bin/
+obj/
+nupkg/
+
+# AI Code Graph output
+ai-code-graph/
