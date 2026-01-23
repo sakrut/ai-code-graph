@@ -467,7 +467,7 @@
           "2",
           "3"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -475,9 +475,10 @@
             "description": "Create the CognitiveComplexityCalculator class extending CSharpSyntaxWalker with nesting level tracking infrastructure. Implement the visitor pattern skeleton with _complexity and _nestingLevel fields, entry/exit methods for nesting-incrementing constructs (if, else if, else, switch, for, foreach, while, do, catch, lambda, local function), and the public API to compute complexity for a given method syntax node.",
             "dependencies": [],
             "details": "Create `CognitiveComplexityCalculator : CSharpSyntaxWalker` in the Core/Metrics directory. Include:\n- Private fields: `_complexity` (int), `_nestingLevel` (int)\n- Public method: `int Calculate(MethodDeclarationSyntax node)` and overload for `LocalFunctionStatementSyntax`\n- Helper method `IncrementWithNesting()` that adds `1 + _nestingLevel` to complexity\n- Helper method `IncrementWithoutNesting()` that adds just `1` to complexity\n- Nesting management: override `Visit*` methods for nesting-incrementing constructs, incrementing `_nestingLevel` before visiting children and decrementing after\n- Handle the distinction between `if` and `else if`: when an `else` clause contains a single `if` statement, treat it as `else if` (no additional nesting increment)\n- Reference SonarSource cognitive complexity specification for correct nesting behavior\n- Reset state between calculations to allow reuse of the calculator instance",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test with a trivial method (empty body) expecting complexity 0. Test a method with a single if-statement expecting complexity 1. Test the calculator can be reused across multiple method nodes without state leakage. Verify nesting level resets correctly after visiting nested structures.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T21:06:50.075Z"
           },
           {
             "id": 2,
@@ -487,9 +488,10 @@
               1
             ],
             "details": "Override the following visitor methods in CognitiveComplexityCalculator:\n- `VisitIfStatement`: +1 (base increment, not nesting increment here - nesting handled separately)\n- `VisitElseClause`: +1 for `else`, but if the else contains only an `if`, treat as `else if` (+1 for the if, no extra nesting)\n- `VisitSwitchStatement`: +1\n- `VisitForStatement`, `VisitForEachStatement`: +1 each\n- `VisitWhileStatement`, `VisitDoStatement`: +1 each\n- `VisitCatchClause`: +1\n- `VisitGotoStatement`: +1\n- `VisitConditionalExpression` (ternary ?:): +1\n- `VisitBinaryExpression`: +1 for `&&` (LogicalAndExpression) and `||` (LogicalOrExpression), but only count sequences of the same operator once per change in operator type (e.g., `a && b && c` = +1, `a && b || c` = +2)\n- `VisitBreakStatement`/`VisitContinueStatement`: +1 only when targeting a label\n- Handle `??` (CoalesceExpression): +1 per SonarSource rules\n- Handle pattern matching `is` expressions and switch expressions as appropriate",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Create test methods with known complexity: single if (+1), if-else (+2), if-else if-else (+3), for loop (+1), while with && condition (+2), try-catch (+1 for catch), goto (+1), ternary (+1). Test logical operator sequences: `a && b && c` should be +1, `a && b || c && d` should be +3. Compare results against SonarSource reference examples.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T21:06:50.110Z"
           },
           {
             "id": 3,
@@ -500,9 +502,10 @@
               2
             ],
             "details": "Modify the visitor methods to apply the nesting increment pattern:\n- When entering a nesting-incrementing construct, the complexity added is `1 + _nestingLevel` (base +1, plus nesting bonus)\n- After adding complexity, increment `_nestingLevel` before visiting child nodes, then decrement after\n- Nesting-incrementing constructs: if, else if, else, switch, for, foreach, while, do, catch\n- Lambda expressions (`SimpleLambdaExpression`, `ParenthesizedLambdaExpression`): increment nesting but do NOT add base +1 for the lambda itself\n- Local functions (`LocalFunctionStatement`): increment nesting but do NOT add base +1 for the declaration itself (they reset nesting context in some interpretations - follow SonarSource spec)\n- `else if` special case: the `if` inside an `else` should NOT increment nesting (it's at the same conceptual level as the parent if)\n- Ternary expressions nested inside other structures should receive nesting increment\n- Handle deeply nested structures (3+ levels) correctly: if { if { if {} } } should produce 1 + 2 + 3 = 6",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test nested if statements: `if { if { } }` = 1 + 2 = 3. Test triple nesting: `if { for { while {} } }` = 1 + 2 + 3 = 6. Test lambda nesting: method with lambda containing if should show increased nesting. Test else-if chains don't compound nesting: `if {} else if {} else if {}` = 1 + 1 + 1 = 3, not escalating. Test local function resets or increments nesting per SonarSource spec.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T21:06:50.128Z"
           },
           {
             "id": 4,
@@ -510,9 +513,10 @@
             "description": "Implement two utility metric calculators: a LinesOfCode counter that counts non-empty, non-comment lines within a method body, and a MaxNestingDepth tracker that determines the deepest control structure nesting level within a method.",
             "dependencies": [],
             "details": "Create two calculator classes or static methods:\n\n**LinesOfCodeCalculator:**\n- Accept a `MethodDeclarationSyntax` or `BaseMethodDeclarationSyntax` node\n- Get the full text of the method body (or expression body for `=>`)\n- Split into lines and count lines that are:\n  - Not empty/whitespace-only\n  - Not single-line comments (`//`)\n  - Not part of multi-line comments (`/* */`)\n  - Not XML doc comments (`///`)\n- Handle mixed lines (code + trailing comment): count as code line\n- Handle expression-bodied members: count the expression as 1+ lines\n- Use Roslyn trivia API to identify comment trivia rather than string parsing for accuracy\n\n**MaxNestingDepthCalculator (CSharpSyntaxWalker):**\n- Track `_currentDepth` and `_maxDepth`\n- Increment depth when entering: if, else, for, foreach, while, do, switch, try, catch, finally, lock, using statement\n- Record max depth as `Math.Max(_currentDepth, _maxDepth)`\n- Decrement depth when exiting\n- Handle nested lambdas and local functions (they contribute to nesting)\n- Expression-bodied members have depth 0 (no block nesting)",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "LOC tests: empty method = 0 (or 2 for braces depending on spec), method with 5 statements = 5, method with comments interspersed should exclude comment lines, method with blank lines should exclude them. Multi-line comment blocks properly excluded. MaxNesting tests: flat method = 0, single if = 1, if-inside-if = 2, for-while-if = 3. Expression-bodied member has depth 0.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T21:06:50.136Z"
           },
           {
             "id": 5,
@@ -525,14 +529,16 @@
               4
             ],
             "details": "Create `MetricsEngine` class:\n```csharp\npublic record MethodMetrics(string MethodId, int CognitiveComplexity, int LinesOfCode, int MaxNestingDepth);\n\npublic class MetricsEngine\n{\n    public List<MethodMetrics> ComputeMetrics(LoadedWorkspace workspace, List<MethodModel> methods);\n}\n```\n\nImplementation details:\n- For each `MethodModel`, locate the corresponding `SyntaxNode` from the workspace's compilation\n- Use the `MethodModel.Id` (stable symbol ID from Task 3) to find the syntax node via semantic model\n- Instantiate and run all three calculators: CognitiveComplexityCalculator, LinesOfCodeCalculator, MaxNestingDepthCalculator\n- **Expression-bodied members** (`=>`): These have no block body; treat the expression as the body. Cognitive complexity should still analyze the expression (may contain ternary, null-coalescing, etc.)\n- **Switch expressions** (`x switch { pattern => value, ... }`): Each arm adds +1 complexity (similar to case), and the switch expression itself adds +1. Nesting applies if inside another structure.\n- **Switch statements**: Traditional +1 per case with nesting\n- Handle `ArrowExpressionClauseSyntax` for expression-bodied members\n- Handle methods that can't be found (removed between extraction and analysis): skip with warning\n- Return results as a list of `MethodMetrics` records\n- Consider parallel computation for large codebases using `Parallel.ForEach` or async patterns",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Integration test: create a test workspace with methods of known complexity, LOC, and nesting. Verify MetricsEngine produces correct MethodMetrics for each. Test expression-bodied member: `int Foo() => x > 0 ? 1 : -1;` should have complexity 1 (ternary). Test switch expression with 3 arms. Test switch statement with 3 cases. Test method not found scenario returns graceful skip. Test with LoadedWorkspace from Task 2's test fixtures.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T21:06:50.143Z"
           }
         ],
         "complexity": 6,
         "recommendedSubtasks": 5,
-        "expansionPrompt": "Break down the Cognitive Complexity Metrics Engine into subtasks: 1) Implement CognitiveComplexityCalculator as a CSharpSyntaxWalker with nesting level tracking, 2) Implement base increment rules (+1 for control flow breaks: if, else, switch, for, foreach, while, do, catch, goto, ternary, &&, ||), 3) Implement nesting increment rules (+nesting for nested control structures and lambdas), 4) Implement LinesOfCode counter (non-empty, non-comment lines) and MaxNestingDepth tracker, 5) Create MetricsEngine class that computes all metrics for method lists, handling expression-bodied members and switch expressions. Reference the SonarSource specification for cognitive complexity rules."
+        "expansionPrompt": "Break down the Cognitive Complexity Metrics Engine into subtasks: 1) Implement CognitiveComplexityCalculator as a CSharpSyntaxWalker with nesting level tracking, 2) Implement base increment rules (+1 for control flow breaks: if, else, switch, for, foreach, while, do, catch, goto, ternary, &&, ||), 3) Implement nesting increment rules (+nesting for nested control structures and lambdas), 4) Implement LinesOfCode counter (non-empty, non-comment lines) and MaxNestingDepth tracker, 5) Create MetricsEngine class that computes all metrics for method lists, handling expression-bodied members and switch expressions. Reference the SonarSource specification for cognitive complexity rules.",
+        "updatedAt": "2026-01-23T21:06:50.143Z"
       },
       {
         "id": "7",
@@ -1270,9 +1276,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-23T21:04:10.367Z",
+      "lastModified": "2026-01-23T21:06:50.144Z",
       "taskCount": 15,
-      "completedCount": 5,
+      "completedCount": 6,
       "tags": [
         "master"
       ]
