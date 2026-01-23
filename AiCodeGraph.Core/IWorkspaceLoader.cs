@@ -4,5 +4,8 @@ namespace AiCodeGraph.Core;
 
 public interface IWorkspaceLoader : IDisposable
 {
-    Task<LoadedWorkspace> LoadSolutionAsync(string solutionPath, CancellationToken cancellationToken = default);
+    Task<LoadedWorkspace> LoadSolutionAsync(
+        string solutionPath,
+        IProgress<WorkspaceLoadProgress>? progress = null,
+        CancellationToken cancellationToken = default);
 }

@@ -33,7 +33,14 @@ analyzeCommand.SetAction(async (parseResult, cancellationToken) =>
     Console.WriteLine($"Analyzing solution: {solutionPath}");
 
     await storage.InitializeAsync(cancellationToken);
-    var workspace = await loader.LoadSolutionAsync(solutionPath, cancellationToken);
+
+    var progress = new Progress<AiCodeGraph.Core.Models.WorkspaceLoadProgress>(p =>
+    {
+        if (p.ProjectName != null)
+            Console.WriteLine($"  [{p.CurrentProject}/{p.TotalProjects}] {p.Phase}: {p.ProjectName}");
+    });
+
+    var workspace = await loader.LoadSolutionAsync(solutionPath, progress, cancellationToken);
 
     Console.WriteLine($"Loaded {workspace.Compilations.Count} projects.");
 

@@ -22,7 +22,10 @@ public class WorkspaceLoader : IWorkspaceLoader
         }
     }
 
-    public async Task<LoadedWorkspace> LoadSolutionAsync(string solutionPath, CancellationToken cancellationToken = default)
+    public async Task<LoadedWorkspace> LoadSolutionAsync(
+        string solutionPath,
+        IProgress<WorkspaceLoadProgress>? progress = null,
+        CancellationToken cancellationToken = default)
     {
         if (!File.Exists(solutionPath))
             throw new FileNotFoundException($"Solution file not found: {solutionPath}", solutionPath);
@@ -40,12 +43,20 @@ public class WorkspaceLoader : IWorkspaceLoader
                 null));
         });
 
+        progress?.Report(new WorkspaceLoadProgress("Loading", null, 0, 0));
         var solution = await _workspace.OpenSolutionAsync(solutionPath, cancellationToken: cancellationToken);
 
+        var projects = solution.Projects.ToList();
+        var totalProjects = projects.Count;
+        progress?.Report(new WorkspaceLoadProgress("Loaded", null, 0, totalProjects));
+
         var compilations = new Dictionary<ProjectId, Compilation>();
-        foreach (var project in solution.Projects)
+        for (var i = 0; i < projects.Count; i++)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            var project = projects[i];
+            progress?.Report(new WorkspaceLoadProgress("Compiling", project.Name, i + 1, totalProjects));
+
             try
             {
                 var compilation = await project.GetCompilationAsync(cancellationToken);
@@ -61,6 +72,7 @@ public class WorkspaceLoader : IWorkspaceLoader
             }
         }
 
+        progress?.Report(new WorkspaceLoadProgress("Complete", null, totalProjects, totalProjects));
         return new LoadedWorkspace(solution, compilations.AsReadOnly(), diagnostics.AsReadOnly());
     }
 
