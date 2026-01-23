@@ -1,0 +1,1118 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Initialize .NET Solution and Project Structure",
+        "description": "Create the .NET solution with a CLI tool project (global tool), a core library project for analysis logic, and a test project. Set up the foundational project structure following .NET conventions.",
+        "details": "1. Create solution: `dotnet new sln -n AiCodeGraph`\n2. Create projects:\n   - `dotnet new console -n AiCodeGraph.Cli` (the global tool)\n   - `dotnet new classlib -n AiCodeGraph.Core` (analysis engine)\n   - `dotnet new xunit -n AiCodeGraph.Tests` (unit tests)\n3. Add projects to solution\n4. Configure `AiCodeGraph.Cli.csproj` as a .NET Global Tool:\n   ```xml\n   <PackAsTool>true</PackAsTool>\n   <ToolCommandName>ai-code-graph</ToolCommandName>\n   ```\n5. Add NuGet references to Core project:\n   - `Microsoft.CodeAnalysis.CSharp.Workspaces` (Roslyn)\n   - `Microsoft.CodeAnalysis.Workspaces.MSBuild` (MSBuild workspace)\n   - `Microsoft.Build.Locator` (MSBuild discovery)\n   - `Microsoft.Data.Sqlite` (SQLite storage)\n   - `System.CommandLine` (CLI parsing)\n6. Set up dependency injection in CLI project\n7. Create output directory convention: `./ai-code-graph/`\n8. Add `.gitignore` entries for build artifacts and `ai-code-graph/` output directory",
+        "testStrategy": "Verify solution builds successfully with `dotnet build`. Verify the CLI project can be packed as a global tool with `dotnet pack`. Run `dotnet test` to confirm test project executes. Verify all NuGet packages resolve correctly.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Solution and Projects with dotnet CLI",
+            "description": "Create the AiCodeGraph solution file and three projects (console CLI, class library Core, xunit Tests) using dotnet CLI templates, then add all projects to the solution.",
+            "dependencies": [],
+            "details": "Run the following commands in sequence:\n1. `dotnet new sln -n AiCodeGraph` to create the solution file\n2. `dotnet new console -n AiCodeGraph.Cli` to create the CLI console project\n3. `dotnet new classlib -n AiCodeGraph.Core` to create the core analysis library\n4. `dotnet new xunit -n AiCodeGraph.Tests` to create the test project\n5. `dotnet sln AiCodeGraph.sln add AiCodeGraph.Cli/AiCodeGraph.Cli.csproj`\n6. `dotnet sln AiCodeGraph.sln add AiCodeGraph.Core/AiCodeGraph.Core.csproj`\n7. `dotnet sln AiCodeGraph.sln add AiCodeGraph.Tests/AiCodeGraph.Tests.csproj`\n8. Add project references: CLI references Core, Tests references Core\n   - `dotnet add AiCodeGraph.Cli reference AiCodeGraph.Core`\n   - `dotnet add AiCodeGraph.Tests reference AiCodeGraph.Core`\n9. Verify the solution builds with `dotnet build AiCodeGraph.sln`",
+            "status": "pending",
+            "testStrategy": "Run `dotnet build AiCodeGraph.sln` and verify it completes with no errors. Verify all three projects are listed in the solution with `dotnet sln list`. Verify project references are correctly set by inspecting csproj files."
+          },
+          {
+            "id": 2,
+            "title": "Configure CLI Project as .NET Global Tool",
+            "description": "Modify AiCodeGraph.Cli.csproj to configure it as a packable .NET global tool with the command name 'ai-code-graph'.",
+            "dependencies": [
+              1
+            ],
+            "details": "Edit `AiCodeGraph.Cli/AiCodeGraph.Cli.csproj` to add the following properties inside the main `<PropertyGroup>`:\n```xml\n<PackAsTool>true</PackAsTool>\n<ToolCommandName>ai-code-graph</ToolCommandName>\n<PackageOutputPath>./nupkg</PackageOutputPath>\n```\nAlso set a reasonable `<Version>` (e.g., `0.1.0`), `<Description>`, and `<Authors>` for NuGet packaging metadata. Ensure the `<OutputType>Exe</OutputType>` is present (should be from the console template). Verify the tool can be packed with `dotnet pack AiCodeGraph.Cli/AiCodeGraph.Cli.csproj`.",
+            "status": "pending",
+            "testStrategy": "Run `dotnet pack AiCodeGraph.Cli/AiCodeGraph.Cli.csproj` and verify it produces a .nupkg file. Optionally install locally with `dotnet tool install --global --add-source ./AiCodeGraph.Cli/nupkg AiCodeGraph.Cli` and verify `ai-code-graph --help` runs."
+          },
+          {
+            "id": 3,
+            "title": "Add NuGet Package References to Core Project",
+            "description": "Add all required NuGet package references to AiCodeGraph.Core for Roslyn analysis, MSBuild workspace loading, SQLite storage, and CLI command parsing.",
+            "dependencies": [
+              1
+            ],
+            "details": "Add the following NuGet packages to `AiCodeGraph.Core/AiCodeGraph.Core.csproj`:\n```bash\ndotnet add AiCodeGraph.Core package Microsoft.CodeAnalysis.CSharp.Workspaces\ndotnet add AiCodeGraph.Core package Microsoft.CodeAnalysis.Workspaces.MSBuild\ndotnet add AiCodeGraph.Core package Microsoft.Build.Locator\ndotnet add AiCodeGraph.Core package Microsoft.Data.Sqlite\ndotnet add AiCodeGraph.Cli package System.CommandLine\n```\nNote: `System.CommandLine` goes in the CLI project since it handles CLI parsing. Ensure version compatibility between the Roslyn packages (use the same major version for all Microsoft.CodeAnalysis.* packages). Also add `Microsoft.Extensions.DependencyInjection` to Core for DI abstractions. Run `dotnet restore` to verify all packages resolve correctly.",
+            "status": "pending",
+            "testStrategy": "Run `dotnet restore AiCodeGraph.sln` and verify no package resolution errors. Run `dotnet build AiCodeGraph.sln` to confirm packages are compatible and the project compiles. Check that Roslyn packages are on compatible versions."
+          },
+          {
+            "id": 4,
+            "title": "Set Up Dependency Injection and Program.cs Structure",
+            "description": "Configure dependency injection in the CLI project's Program.cs with a service collection, register core services, and set up the System.CommandLine root command structure.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "1. Add `Microsoft.Extensions.DependencyInjection` and `Microsoft.Extensions.Hosting` packages to the CLI project.\n2. Create the initial `Program.cs` in AiCodeGraph.Cli with:\n   - A `ServiceCollection` setup registering core services (placeholder registrations for now)\n   - A `RootCommand` from System.CommandLine with description\n   - Basic command structure with an `analyze` subcommand accepting a solution path argument\n   - Wire up DI container to command handlers\n3. Create placeholder service interfaces in Core:\n   - `IWorkspaceLoader` \n   - `ICodeGraphStorage`\n4. Register services in the DI container\n5. Ensure `Program.cs` follows the pattern:\n```csharp\nvar services = new ServiceCollection();\n// Register services\nvar serviceProvider = services.BuildServiceProvider();\nvar rootCommand = new RootCommand(\"AI Code Graph - Static analysis tool\");\n// Add commands\nawait rootCommand.InvokeAsync(args);\n```",
+            "status": "pending",
+            "testStrategy": "Run the CLI with `dotnet run --project AiCodeGraph.Cli -- --help` and verify it outputs help text with the tool description. Verify the analyze command appears in help output. Ensure `dotnet build` succeeds with no DI configuration errors."
+          },
+          {
+            "id": 5,
+            "title": "Update .gitignore and Create Output Directory Convention",
+            "description": "Fix the existing .gitignore to not exclude .sln files, add entries for build artifacts and the ai-code-graph output directory, and establish the output directory convention.",
+            "dependencies": [
+              1
+            ],
+            "details": "1. **Fix .gitignore**: The existing `.gitignore` contains `*.sln` which incorrectly excludes the solution file. Remove the `*.sln` line or replace it with more specific exclusions (e.g., `*.suo`, `*.user`).\n2. **Add .NET build artifact exclusions** (if not already present):\n   ```\n   bin/\n   obj/\n   *.user\n   *.suo\n   .vs/\n   nupkg/\n   ```\n3. **Add output directory exclusion**:\n   ```\n   ai-code-graph/\n   ```\n4. **Create output directory convention**: Add a brief comment or note in the project that the default output path is `./ai-code-graph/` relative to the analyzed solution. This directory will hold the SQLite database and any generated reports.\n5. Ensure the `.sln` file is properly tracked by git after fixing .gitignore (`git add AiCodeGraph.sln`).",
+            "status": "pending",
+            "testStrategy": "Verify `git status` shows the .sln file as tracked after the fix. Verify `ai-code-graph/` directory would be ignored by running `git check-ignore ai-code-graph/`. Verify build artifacts (bin/, obj/) are ignored. Confirm no essential files are accidentally excluded by the updated .gitignore."
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Implement Roslyn Workspace Loader",
+        "description": "Build the component that loads a .NET solution file using MSBuildWorkspace, compiles all projects, and produces semantic models for analysis. This is the foundation for all subsequent analysis steps.",
+        "details": "1. Create `WorkspaceLoader` class in Core project:\n   ```csharp\n   public class WorkspaceLoader : IDisposable\n   {\n       public async Task<LoadedWorkspace> LoadSolutionAsync(string solutionPath, CancellationToken ct)\n       {\n           MSBuildLocator.RegisterDefaults();\n           var workspace = MSBuildWorkspace.Create();\n           var solution = await workspace.OpenSolutionAsync(solutionPath, ct);\n           // Compile all projects, collect diagnostics\n           // Return LoadedWorkspace with Solution + Compilations\n       }\n   }\n   ```\n2. Create `LoadedWorkspace` record holding Solution and per-project Compilation objects\n3. Handle workspace diagnostics and failed project loads gracefully (log warnings, continue)\n4. Implement solution file discovery: search current directory and parent directories for `.sln` files\n5. Register MSBuild instance using `MSBuildLocator.RegisterDefaults()` before any workspace operations\n6. Support passing explicit solution path or auto-discovery\n7. Add progress reporting for large solutions (project count, compilation status)",
+        "testStrategy": "Create a minimal test solution fixture (2 projects, 3-4 classes) in the test project. Verify WorkspaceLoader can open the solution, compile projects, and return valid Compilation objects. Test error handling when solution file doesn't exist. Test auto-discovery logic.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create LoadedWorkspace Model and WorkspaceLoader Class Skeleton with MSBuildLocator Registration",
+            "description": "Define the LoadedWorkspace record type to hold Solution and per-project Compilation objects, and create the WorkspaceLoader class skeleton with proper MSBuildLocator.RegisterDefaults() initialization that must occur before any Roslyn/MSBuild types are loaded.",
+            "dependencies": [],
+            "details": "1. Create `LoadedWorkspace` record in the Core project:\n   ```csharp\n   public record LoadedWorkspace(\n       Solution Solution,\n       IReadOnlyDictionary<ProjectId, Compilation> Compilations,\n       IReadOnlyList<WorkspaceDiagnostic> Diagnostics\n   );\n   ```\n   Include a `WorkspaceDiagnostic` record to capture project-level warnings/errors.\n\n2. Create `WorkspaceLoader` class implementing `IDisposable`:\n   - Add a static initializer or guard that calls `MSBuildLocator.RegisterDefaults()` exactly once before any MSBuild/Roslyn workspace types are referenced.\n   - Use a static bool flag (`_msbuildRegistered`) to prevent double-registration.\n   - CRITICAL: The MSBuildLocator call must happen in a method that does NOT reference any `Microsoft.CodeAnalysis.MSBuild` types directly, to avoid assembly load failures. Use a separate initialization method or static constructor pattern.\n   - Add NuGet references: `Microsoft.Build.Locator`, `Microsoft.CodeAnalysis.Workspaces.MSBuild`, `Microsoft.CodeAnalysis.CSharp`.\n\n3. Define the public API surface:\n   ```csharp\n   public class WorkspaceLoader : IDisposable\n   {\n       private MSBuildWorkspace? _workspace;\n       public async Task<LoadedWorkspace> LoadSolutionAsync(string solutionPath, CancellationToken ct = default);\n       public void Dispose();\n   }\n   ```",
+            "status": "pending",
+            "testStrategy": "Unit test that WorkspaceLoader can be instantiated without throwing. Verify MSBuildLocator registration doesn't throw on repeated instantiation (guard flag works). Test that LoadedWorkspace record correctly holds null/empty collections."
+          },
+          {
+            "id": 2,
+            "title": "Implement Solution Loading with MSBuildWorkspace and Project Compilation",
+            "description": "Implement the core LoadSolutionAsync method that opens a solution file using MSBuildWorkspace.OpenSolutionAsync, iterates all projects, compiles each one, and populates the LoadedWorkspace with Solution and Compilation objects.",
+            "dependencies": [
+              1
+            ],
+            "details": "1. Implement `LoadSolutionAsync`:\n   ```csharp\n   public async Task<LoadedWorkspace> LoadSolutionAsync(string solutionPath, CancellationToken ct)\n   {\n       EnsureMSBuildRegistered();\n       _workspace = MSBuildWorkspace.Create();\n       var solution = await _workspace.OpenSolutionAsync(solutionPath, ct);\n       \n       var compilations = new Dictionary<ProjectId, Compilation>();\n       var diagnostics = new List<WorkspaceDiagnostic>();\n       \n       foreach (var project in solution.Projects)\n       {\n           ct.ThrowIfCancellationRequested();\n           var compilation = await project.GetCompilationAsync(ct);\n           if (compilation != null)\n               compilations[project.Id] = compilation;\n       }\n       \n       return new LoadedWorkspace(solution, compilations.AsReadOnly(), diagnostics.AsReadOnly());\n   }\n   ```\n\n2. Handle the workspace's `WorkspaceFailed` event to capture MSBuild diagnostic messages during solution load.\n\n3. Validate the solution path exists before attempting to open (throw `FileNotFoundException` with clear message).\n\n4. Ensure proper disposal of MSBuildWorkspace in the `Dispose` method.\n\n5. Consider topological ordering of projects for compilation (respecting project references), though Roslyn generally handles this internally via `GetCompilationAsync`.",
+            "status": "pending",
+            "testStrategy": "Integration test using a minimal test solution fixture (2 projects with a project reference between them). Verify that LoadSolutionAsync returns a LoadedWorkspace with correct project count. Verify each project has a non-null Compilation. Test that FileNotFoundException is thrown for non-existent solution path."
+          },
+          {
+            "id": 3,
+            "title": "Implement Diagnostics Handling and Graceful Error Recovery for Failed Project Loads",
+            "description": "Add comprehensive diagnostics collection from MSBuildWorkspace events and handle failed project compilations gracefully by logging warnings and continuing with available projects rather than throwing.",
+            "dependencies": [
+              2
+            ],
+            "details": "1. Subscribe to `MSBuildWorkspace.WorkspaceFailed` event before opening the solution:\n   ```csharp\n   _workspace.WorkspaceFailed += (sender, args) =>\n   {\n       diagnostics.Add(new WorkspaceDiagnostic(\n           args.Diagnostic.Kind,\n           args.Diagnostic.Message,\n           projectName: null\n       ));\n   };\n   ```\n\n2. Wrap individual project compilation in try-catch:\n   ```csharp\n   foreach (var project in solution.Projects)\n   {\n       try\n       {\n           var compilation = await project.GetCompilationAsync(ct);\n           if (compilation != null)\n           {\n               // Check for critical compilation errors\n               var errors = compilation.GetDiagnostics()\n                   .Where(d => d.Severity == DiagnosticSeverity.Error)\n                   .ToList();\n               if (errors.Any())\n                   diagnostics.Add(new WorkspaceDiagnostic(...));\n               compilations[project.Id] = compilation;\n           }\n       }\n       catch (Exception ex)\n       {\n           diagnostics.Add(new WorkspaceDiagnostic(\n               WorkspaceDiagnosticKind.Failure,\n               $\"Failed to compile {project.Name}: {ex.Message}\",\n               project.Name\n           ));\n       }\n   }\n   ```\n\n3. Define `WorkspaceDiagnostic` record:\n   ```csharp\n   public record WorkspaceDiagnostic(\n       WorkspaceDiagnosticKind Kind,\n       string Message,\n       string? ProjectName\n   );\n   ```\n\n4. Add a `HasErrors` property on LoadedWorkspace that returns true if any projects failed to compile.\n\n5. Log diagnostic summary to ILogger (inject via constructor) at appropriate levels (Warning for recoverable, Error for failures).",
+            "status": "pending",
+            "testStrategy": "Create a test solution fixture with one valid project and one project that references a missing NuGet package or has intentional compilation errors. Verify WorkspaceLoader still returns a LoadedWorkspace with the valid project's Compilation. Verify diagnostics collection contains the expected failure messages. Test that HasErrors returns true when projects fail."
+          },
+          {
+            "id": 4,
+            "title": "Implement Solution File Auto-Discovery Logic",
+            "description": "Implement the logic to automatically discover .sln files by searching the current directory and walking up parent directories, supporting both explicit path specification and auto-discovery with clear error messages when no solution is found.",
+            "dependencies": [
+              1
+            ],
+            "details": "1. Create a `SolutionDiscovery` static class or method:\n   ```csharp\n   public static class SolutionDiscovery\n   {\n       public static string FindSolutionFile(string? explicitPath = null, string? startDirectory = null)\n       {\n           if (!string.IsNullOrEmpty(explicitPath))\n           {\n               if (!File.Exists(explicitPath))\n                   throw new FileNotFoundException($\"Solution file not found: {explicitPath}\");\n               return Path.GetFullPath(explicitPath);\n           }\n           \n           var searchDir = startDirectory ?? Directory.GetCurrentDirectory();\n           return SearchForSolution(searchDir)\n               ?? throw new FileNotFoundException(\n                   $\"No .sln file found in {searchDir} or any parent directory.\");\n       }\n       \n       private static string? SearchForSolution(string startDir)\n       {\n           var dir = new DirectoryInfo(startDir);\n           while (dir != null)\n           {\n               var slnFiles = dir.GetFiles(\"*.sln\");\n               if (slnFiles.Length == 1)\n                   return slnFiles[0].FullName;\n               if (slnFiles.Length > 1)\n                   throw new InvalidOperationException(\n                       $\"Multiple .sln files found in {dir.FullName}. Please specify one explicitly.\");\n               dir = dir.Parent;\n           }\n           return null;\n       }\n   }\n   ```\n\n2. Handle edge cases:\n   - Multiple .sln files in same directory: throw with helpful message listing found files\n   - Traversal stops at filesystem root\n   - Symlinks and junctions should be followed normally\n\n3. Integrate with WorkspaceLoader: add an overload or modify `LoadSolutionAsync` to accept nullable path and use auto-discovery when null.",
+            "status": "pending",
+            "testStrategy": "Unit test auto-discovery with a temp directory structure containing a .sln file at various levels. Test that discovery finds .sln in current directory. Test that discovery walks up to parent directory. Test that multiple .sln files throws InvalidOperationException with descriptive message. Test explicit path validation. Test that missing .sln throws FileNotFoundException."
+          },
+          {
+            "id": 5,
+            "title": "Add Progress Reporting and Cancellation Token Support",
+            "description": "Implement IProgress<T> based progress reporting for solution loading and compilation phases, and ensure CancellationToken is properly threaded through all async operations to support responsive cancellation of long-running solution loads.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "1. Define a progress reporting model:\n   ```csharp\n   public record WorkspaceLoadProgress(\n       string Phase,          // \"Loading\", \"Compiling\", \"Complete\"\n       string? ProjectName,\n       int CurrentProject,\n       int TotalProjects\n   );\n   ```\n\n2. Add `IProgress<WorkspaceLoadProgress>?` parameter to `LoadSolutionAsync`:\n   ```csharp\n   public async Task<LoadedWorkspace> LoadSolutionAsync(\n       string solutionPath,\n       IProgress<WorkspaceLoadProgress>? progress = null,\n       CancellationToken ct = default)\n   ```\n\n3. Report progress at key points:\n   - After solution is opened: report total project count\n   - Before each project compilation: report project name and index\n   - After all compilations: report completion\n   ```csharp\n   progress?.Report(new WorkspaceLoadProgress(\n       \"Compiling\", project.Name, index + 1, totalProjects));\n   ```\n\n4. Ensure CancellationToken is passed to:\n   - `OpenSolutionAsync(solutionPath, ct)`\n   - `project.GetCompilationAsync(ct)`\n   - Checked between project iterations: `ct.ThrowIfCancellationRequested()`\n\n5. Add a console-friendly progress reporter implementation for CLI usage:\n   ```csharp\n   public class ConsoleProgressReporter : IProgress<WorkspaceLoadProgress>\n   {\n       public void Report(WorkspaceLoadProgress value)\n       {\n           Console.WriteLine($\"[{value.CurrentProject}/{value.TotalProjects}] {value.Phase}: {value.ProjectName}\");\n       }\n   }\n   ```",
+            "status": "pending",
+            "testStrategy": "Unit test that progress reporter receives expected sequence of reports (Loading -> Compiling x N -> Complete) using a mock IProgress<T>. Test that CancellationToken cancellation during compilation loop throws OperationCanceledException. Test that cancellation after partial compilation still returns cleanly (no resource leaks). Integration test with the test solution fixture verifying progress count matches project count."
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Implement Code Model Extractor",
+        "description": "Extract the full structural hierarchy from Roslyn compilations: Projects → Namespaces → Types (classes, interfaces, records, structs) → Methods. Produce stable symbol IDs for each element.",
+        "details": "1. Create model classes:\n   ```csharp\n   public record ProjectModel(string Id, string Name, string FilePath, List<NamespaceModel> Namespaces);\n   public record NamespaceModel(string Id, string FullName, List<TypeModel> Types);\n   public record TypeModel(string Id, string Name, string FullName, TypeKind Kind, List<MethodModel> Methods, List<string> ImplementedInterfaces);\n   public record MethodModel(string Id, string Name, string FullName, string ReturnType, List<ParameterModel> Parameters, Location Location, int StartLine, int EndLine);\n   ```\n2. Create `CodeModelExtractor` class:\n   - Walk each Compilation's global namespace recursively\n   - Use `INamedTypeSymbol` for types, `IMethodSymbol` for methods\n   - Generate stable IDs using `symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)`\n   - Track type kind: class, interface, record, struct, enum\n   - Extract method signatures, accessibility, modifiers\n3. Handle partial classes (merge members)\n4. Handle nested types\n5. Skip compiler-generated members (check `IsImplicitlyDeclared`)\n6. Extract `Contains` relationships (project→namespace→type→method)\n7. Extract `Implements` relationships (type→interface)",
+        "testStrategy": "Create test fixtures with various C# constructs: classes, interfaces, records, nested types, partial classes, generics. Verify extractor produces correct hierarchy. Verify stable IDs are consistent across runs. Verify interface implementation relationships are captured.",
+        "priority": "high",
+        "dependencies": [
+          2
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define Model Records with Stable ID Generation",
+            "description": "Create the core model record types (ProjectModel, NamespaceModel, TypeModel, MethodModel, ParameterModel) and a stable ID generation utility that uses Roslyn's SymbolDisplayFormat.FullyQualifiedFormat to produce consistent, unique identifiers across runs.",
+            "dependencies": [],
+            "details": "Create a Models directory in the Core project with the following records:\n\n1. `ParameterModel(string Name, string Type, bool IsOptional, string? DefaultValue)` - represents method parameters\n2. `MethodModel(string Id, string Name, string FullName, string ReturnType, List<ParameterModel> Parameters, string FilePath, int StartLine, int EndLine, Accessibility Accessibility, bool IsStatic, bool IsAsync, bool IsVirtual, bool IsOverride, bool IsAbstract)` - represents methods with full signature info\n3. `TypeModel(string Id, string Name, string FullName, TypeKind Kind, List<MethodModel> Methods, List<string> ImplementedInterfaces, Accessibility Accessibility, bool IsStatic, bool IsAbstract, bool IsSealed, bool IsGeneric, List<string> TypeParameters, List<TypeModel> NestedTypes)` - represents types with nested type support\n4. `NamespaceModel(string Id, string FullName, List<TypeModel> Types, List<NamespaceModel> ChildNamespaces)` - represents namespaces with hierarchy\n5. `ProjectModel(string Id, string Name, string FilePath, List<NamespaceModel> Namespaces)` - represents projects\n6. `TypeKind` enum: Class, Interface, Record, Struct, Enum, Delegate\n\nCreate a `SymbolIdGenerator` static utility class:\n- `GenerateId(ISymbol symbol)` method using `symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)` with SHA256 hash for URL-safe IDs\n- Configure SymbolDisplayFormat to include type parameters, parameter types, and return types for method disambiguation\n- Ensure generic types produce stable IDs regardless of whether they are open or closed (use the original definition)\n- Add a `GenerateDisplayString(ISymbol symbol)` method for human-readable names",
+            "status": "pending",
+            "testStrategy": "Unit test that SymbolIdGenerator produces identical IDs for the same symbol across multiple invocations. Test that different overloads of the same method produce different IDs. Test that generic types like List<T> and List<int> produce appropriate IDs (open generic should use definition form). Verify all model records can be instantiated and serialized correctly."
+          },
+          {
+            "id": 2,
+            "title": "Implement Recursive Namespace Walking from GlobalNamespace",
+            "description": "Create the CodeModelExtractor class with the core namespace traversal logic that recursively walks from Compilation.GlobalNamespace through all child namespaces, collecting type symbols at each level.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create `CodeModelExtractor` class in Core project:\n\n1. Main entry point: `ExtractProjectModel(Compilation compilation, string projectName, string projectFilePath) -> ProjectModel`\n2. Implement `WalkNamespace(INamespaceSymbol namespaceSymbol) -> List<NamespaceModel>`:\n   - Get all member namespaces via `namespaceSymbol.GetNamespaceMembers()`\n   - Recursively walk child namespaces\n   - Skip empty namespaces (no types and no child namespaces with types)\n   - For the global namespace, don't create a NamespaceModel entry but process its children\n   - Handle the case where types exist directly in the global namespace (no explicit namespace declaration)\n3. Collect `INamedTypeSymbol` instances from `namespaceSymbol.GetTypeMembers()`\n4. Filter out types from referenced assemblies - only include types from source (check `symbol.Locations` for `IsInSource`)\n5. Build the namespace hierarchy maintaining parent-child relationships\n6. Use CancellationToken support throughout for long-running operations\n7. Consider using `INamespaceSymbol.ConstituentNamespaces` for merged namespace handling across partial declarations",
+            "status": "pending",
+            "testStrategy": "Create test fixtures with multiple namespace hierarchies: nested namespaces (A.B.C), types in global namespace, empty namespaces that should be skipped, file-scoped namespaces. Verify the walker visits all namespaces exactly once. Verify types from referenced assemblies (like System.String) are not included. Test with a Compilation containing multiple syntax trees to verify cross-file namespace merging."
+          },
+          {
+            "id": 3,
+            "title": "Implement Type Extraction with Kind, Accessibility, and Modifiers",
+            "description": "Extract type information from INamedTypeSymbol including classification (class, interface, record, struct, enum, delegate), accessibility modifiers, static/abstract/sealed flags, and generic type parameter information.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Implement `ExtractType(INamedTypeSymbol typeSymbol) -> TypeModel` in CodeModelExtractor:\n\n1. **Type Kind Detection:**\n   - Use `typeSymbol.TypeKind` for basic classification (Class, Interface, Struct, Enum, Delegate)\n   - For records: check `typeSymbol.IsRecord` property (available in Roslyn 4.x)\n   - Map to the custom TypeKind enum\n\n2. **Accessibility:**\n   - Extract from `typeSymbol.DeclaredAccessibility` (Public, Internal, Private, Protected, ProtectedOrInternal, ProtectedAndInternal)\n\n3. **Modifiers:**\n   - `IsStatic`, `IsAbstract`, `IsSealed` from the symbol properties\n   - Check `IsReadOnly` for readonly structs\n   - Check `IsRefLikeType` for ref structs\n\n4. **Generic Type Parameters:**\n   - Check `typeSymbol.IsGenericType` and `typeSymbol.TypeParameters`\n   - Extract type parameter names and constraints via `ITypeParameterSymbol.ConstraintTypes`\n   - Store as List<string> of type parameter names\n\n5. **Interface Implementation:**\n   - Use `typeSymbol.AllInterfaces` to get all implemented interfaces (including inherited)\n   - Or use `typeSymbol.Interfaces` for directly implemented only\n   - Store as List<string> using the fully qualified display string\n   - Distinguish between explicit and implicit interface implementations\n\n6. **Source Location:**\n   - Extract primary declaration location from `typeSymbol.Locations.First(l => l.IsInSource)`\n   - Store file path, start line, end line",
+            "status": "pending",
+            "testStrategy": "Test with fixture code containing: public class, internal static class, abstract class, sealed class, interface, record class, record struct, readonly struct, ref struct, enum, delegate, generic class with constraints (where T : IComparable<T>). Verify each produces correct TypeKind, accessibility, and modifier flags. Test generic type parameter extraction including variance (in/out) on interface type parameters."
+          },
+          {
+            "id": 4,
+            "title": "Implement Method Extraction with Signatures and Source Locations",
+            "description": "Extract method information from IMethodSymbol including full signatures, parameters with types and defaults, return types, source locations (file path, start/end lines), and method modifiers (static, async, virtual, override, abstract).",
+            "dependencies": [
+              1,
+              2,
+              3
+            ],
+            "details": "Implement `ExtractMethod(IMethodSymbol methodSymbol) -> MethodModel` in CodeModelExtractor:\n\n1. **Method Identification:**\n   - Use `methodSymbol.Name` for simple name\n   - Generate FullName using SymbolIdGenerator.GenerateDisplayString\n   - Generate stable Id using SymbolIdGenerator.GenerateId\n   - Handle special method names: constructors (.ctor), static constructors (.cctor), finalizers, operators\n\n2. **Return Type:**\n   - Use `methodSymbol.ReturnType.ToDisplayString()` with appropriate format\n   - Handle void, Task<T>, ValueTask<T>, and nullable return types\n   - For async methods, consider noting both the declared return type and the unwrapped type\n\n3. **Parameters:**\n   - Iterate `methodSymbol.Parameters`\n   - For each parameter: name, type display string, IsOptional, default value (if HasExplicitDefaultValue)\n   - Handle params arrays, ref/out/in modifiers\n   - Handle generic type parameters in parameter types\n\n4. **Source Location:**\n   - Get from `methodSymbol.Locations.FirstOrDefault(l => l.IsInSource)`\n   - Extract FileLinePositionSpan via `location.GetLineSpan()`\n   - Store FilePath, StartLine (0-based from Roslyn, convert to 1-based), EndLine\n   - For partial methods, get the implementation location\n\n5. **Modifiers:**\n   - IsStatic, IsAsync, IsVirtual, IsOverride, IsAbstract, IsSealed\n   - IsExtensionMethod for static methods in static classes\n   - Accessibility (Public, Private, Protected, Internal)\n\n6. **Method Kinds to Include:**\n   - Regular methods, constructors, property getters/setters (configurable), operators\n   - Skip: compiler-generated accessors unless explicitly configured",
+            "status": "pending",
+            "testStrategy": "Test fixtures with: regular methods, async Task<T> methods, generic methods with constraints, methods with optional parameters and default values, ref/out/in parameters, params arrays, constructors, static constructors, operator overloads, extension methods, explicit interface implementations. Verify source locations point to correct file and line numbers. Verify stable IDs differ for overloaded methods with same name but different parameters."
+          },
+          {
+            "id": 5,
+            "title": "Handle Edge Cases: Partial Classes, Nested Types, Compiler-Generated Members, and Generics",
+            "description": "Implement robust handling of C# edge cases: merging partial class members from multiple declarations, recursively processing nested types, filtering compiler-generated/implicitly declared members, and correctly representing open and closed generic types.",
+            "dependencies": [
+              2,
+              3,
+              4
+            ],
+            "details": "Add edge case handling to CodeModelExtractor:\n\n1. **Partial Classes:**\n   - Roslyn's symbol API already merges partial declarations into a single INamedTypeSymbol\n   - `typeSymbol.Locations` will contain multiple locations for partial types\n   - Store all declaration locations (for UI display purposes)\n   - `typeSymbol.DeclaringSyntaxReferences` gives all partial declarations\n   - Members from all partial files are already unified in the symbol\n   - Verify this works correctly with integration tests\n\n2. **Nested Types:**\n   - Check `typeSymbol.GetTypeMembers()` for nested types\n   - Recursively call ExtractType for each nested type\n   - Store in TypeModel.NestedTypes\n   - Ensure IDs include the containing type (e.g., `Outer+Inner` format)\n   - Handle deeply nested types (3+ levels)\n\n3. **Compiler-Generated Members:**\n   - Filter using `symbol.IsImplicitlyDeclared` - skip these entirely\n   - Also check `symbol.CanBeReferencedByName` - skip if false\n   - Skip backing fields for auto-properties (they have `IsImplicitlyDeclared = true`)\n   - Skip record-generated members (Equals, GetHashCode, ToString, etc.) based on `IsImplicitlyDeclared`\n   - Optionally skip property accessors (get_X, set_X) that are compiler-generated wrappers\n   - Check for `[CompilerGenerated]` attribute as additional filter\n\n4. **Generic Types:**\n   - Use `typeSymbol.OriginalDefinition` for stable IDs of generic types\n   - Handle open generics (List<T>) vs constructed generics (List<int>)\n   - For IDs, always use the unbound/original definition\n   - Extract type parameter constraints for display\n   - Handle generic methods within generic types (multiple type parameter lists)\n\n5. **Additional Edge Cases:**\n   - Source-generated code: check if Location is in a GeneratedSourceText\n   - Primary constructors (C# 12): included as constructor but parameters are also properties\n   - File-scoped types: respect `file` accessibility modifier\n   - Extension methods: mark on MethodModel for later relationship extraction",
+            "status": "pending",
+            "testStrategy": "Create test fixtures specifically for edge cases: 1) Partial class split across 3 files with different members in each - verify all members are merged. 2) Three levels of nested types - verify correct hierarchy and ID generation. 3) Record type - verify compiler-generated Equals/GetHashCode are excluded but user-defined methods are included. 4) Generic class with generic method - verify stable IDs. 5) Class with auto-properties - verify backing fields are excluded. 6) Source-generated code attribution. Run extractor twice on same compilation and verify all IDs match."
+          },
+          {
+            "id": 6,
+            "title": "Extract Relationship Data: Contains Hierarchy and Implements Relationships",
+            "description": "Build the structural Contains relationships (project→namespace→type→method) and Implements relationships (type→interface) as explicit relationship objects that can be stored and queried independently of the tree hierarchy.",
+            "dependencies": [
+              3,
+              4,
+              5
+            ],
+            "details": "Create relationship extraction in CodeModelExtractor:\n\n1. **Relationship Model:**\n   ```csharp\n   public record Relationship(string SourceId, string TargetId, RelationshipKind Kind);\n   public enum RelationshipKind { Contains, Implements, Overrides, Calls }\n   ```\n\n2. **Contains Relationships:**\n   - After building the full ProjectModel tree, walk it to emit explicit Contains edges:\n     - Project → Namespace (for each top-level namespace)\n     - Namespace → Namespace (for nested namespaces)\n     - Namespace → Type (for each type in the namespace)\n     - Type → Type (for nested types)\n     - Type → Method (for each method in the type)\n   - Each relationship uses the stable IDs from SymbolIdGenerator\n   - This flattened representation enables graph queries without tree traversal\n\n3. **Implements Relationships:**\n   - For each TypeModel, create Implements edges to each interface in ImplementedInterfaces\n   - Use `typeSymbol.Interfaces` for directly implemented (not inherited) interfaces\n   - Generate interface IDs using the same SymbolIdGenerator for consistency\n   - Handle explicit interface implementations: `typeSymbol.GetMembers().OfType<IMethodSymbol>().Where(m => m.ExplicitInterfaceImplementations.Any())`\n   - Create method-level implements relationships for explicit implementations\n\n4. **Overrides Relationships:**\n   - Check `methodSymbol.OverriddenMethod` for override relationships\n   - Create Overrides edge from overriding method to base method\n   - Walk the override chain to find the original virtual declaration\n\n5. **Extraction Output:**\n   - Create `ExtractionResult` record containing:\n     - `ProjectModel Model` - the hierarchical tree\n     - `List<Relationship> Relationships` - the flattened graph edges\n   - Update the main extraction method to return ExtractionResult\n\n6. **Multi-Project Support:**\n   - `ExtractSolution(IEnumerable<(Compilation, string name, string path)> projects) -> List<ExtractionResult>`\n   - Each project produces its own ExtractionResult\n   - Cross-project relationships (implementing interface from another project) should reference the same stable IDs",
+            "status": "pending",
+            "testStrategy": "Test Contains relationships: verify a project with 2 namespaces, 3 types, and 5 methods produces the expected number of Contains edges (2 + 3 + 5 = 10 edges). Test Implements: class implementing 2 interfaces produces 2 Implements edges with correct source/target IDs. Test Overrides: virtual method overridden in subclass produces correct edge. Test explicit interface implementation creates method-level Implements edge. Test multi-project extraction where a class in Project B implements an interface from Project A - verify the interface ID matches across projects."
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Implement SQLite Storage Layer",
+        "description": "Create the SQLite database schema and data access layer for persisting the code graph, metrics, and relationships. Store only the latest snapshot (overwrite on each analysis run).",
+        "details": "1. Create SQLite schema with tables:\n   ```sql\n   CREATE TABLE Projects (Id TEXT PRIMARY KEY, Name TEXT, FilePath TEXT);\n   CREATE TABLE Namespaces (Id TEXT PRIMARY KEY, FullName TEXT, ProjectId TEXT REFERENCES Projects);\n   CREATE TABLE Types (Id TEXT PRIMARY KEY, Name TEXT, FullName TEXT, Kind TEXT, NamespaceId TEXT REFERENCES Namespaces);\n   CREATE TABLE Methods (Id TEXT PRIMARY KEY, Name TEXT, FullName TEXT, ReturnType TEXT, TypeId TEXT REFERENCES Types, StartLine INT, EndLine INT, FilePath TEXT);\n   CREATE TABLE MethodCalls (CallerId TEXT REFERENCES Methods, CalleeId TEXT REFERENCES Methods, PRIMARY KEY(CallerId, CalleeId));\n   CREATE TABLE TypeImplements (TypeId TEXT REFERENCES Types, InterfaceId TEXT REFERENCES Types, PRIMARY KEY(TypeId, InterfaceId));\n   CREATE TABLE Metrics (MethodId TEXT PRIMARY KEY REFERENCES Methods, CognitiveComplexity INT, LinesOfCode INT, NestingDepth INT);\n   CREATE TABLE IntentClusters (Id TEXT PRIMARY KEY, Label TEXT, Description TEXT);\n   CREATE TABLE MethodClusterMap (MethodId TEXT REFERENCES Methods, ClusterId TEXT REFERENCES IntentClusters, Score REAL, PRIMARY KEY(MethodId, ClusterId));\n   ```\n2. Create `StorageService` class with methods:\n   - `InitializeAsync()` - create/recreate database\n   - `SaveCodeModelAsync(List<ProjectModel>)` - bulk insert structural data\n   - `SaveCallGraphAsync(List<MethodCall>)` - insert call edges\n   - `SaveMetricsAsync(List<MethodMetrics>)` - insert metrics\n   - Query methods for CLI: `GetMethodById`, `GetCallees`, `GetCallers`, `GetHotspots`, etc.\n3. Database path: `./ai-code-graph/graph.db`\n4. Use transactions for bulk inserts\n5. Drop and recreate tables on each full analysis (latest snapshot only)\n6. Add indexes on frequently queried columns (FullName, CognitiveComplexity)",
+        "testStrategy": "Unit test all CRUD operations with in-memory SQLite. Test schema creation, bulk inserts, query methods. Verify foreign key constraints. Test that re-analysis overwrites previous data correctly. Benchmark bulk insert performance with 5000+ methods.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create SQLite Database Schema with Tables and Indexes",
+            "description": "Define the complete SQLite schema including all 9 tables (Projects, Namespaces, Types, Methods, MethodCalls, TypeImplements, Metrics, IntentClusters, MethodClusterMap) plus a NormalizedMethods table for future phases, with appropriate foreign key constraints and performance indexes.",
+            "dependencies": [],
+            "details": "Create a SQL schema definition (as embedded resource or constants class) containing:\n\n1. All tables with correct column types and constraints:\n   - Projects (Id TEXT PK, Name TEXT, FilePath TEXT)\n   - Namespaces (Id TEXT PK, FullName TEXT, ProjectId TEXT FK)\n   - Types (Id TEXT PK, Name TEXT, FullName TEXT, Kind TEXT, NamespaceId TEXT FK)\n   - Methods (Id TEXT PK, Name TEXT, FullName TEXT, ReturnType TEXT, TypeId TEXT FK, StartLine INT, EndLine INT, FilePath TEXT)\n   - MethodCalls (CallerId TEXT FK, CalleeId TEXT FK, composite PK)\n   - TypeImplements (TypeId TEXT FK, InterfaceId TEXT FK, composite PK)\n   - Metrics (MethodId TEXT PK FK, CognitiveComplexity INT, LinesOfCode INT, NestingDepth INT)\n   - IntentClusters (Id TEXT PK, Label TEXT, Description TEXT)\n   - MethodClusterMap (MethodId TEXT FK, ClusterId TEXT FK, Score REAL, composite PK)\n   - NormalizedMethods (MethodId TEXT PK FK, NormalizedSource TEXT, TokenHash TEXT) for future duplicate detection\n\n2. Indexes for query performance:\n   - IX_Methods_FullName on Methods(FullName)\n   - IX_Types_FullName on Types(FullName)\n   - IX_Metrics_CognitiveComplexity on Metrics(CognitiveComplexity DESC)\n   - IX_MethodCalls_CalleeId on MethodCalls(CalleeId) for reverse lookups\n   - IX_Namespaces_ProjectId on Namespaces(ProjectId)\n   - IX_Types_NamespaceId on Types(NamespaceId)\n   - IX_Methods_TypeId on Methods(TypeId)\n\n3. Use PRAGMA foreign_keys = ON for constraint enforcement.\n4. Define table creation order respecting FK dependencies: Projects → Namespaces → Types → Methods → MethodCalls/TypeImplements/Metrics → IntentClusters → MethodClusterMap.",
+            "status": "pending",
+            "testStrategy": "Unit test schema creation against in-memory SQLite. Verify all tables exist with correct columns using PRAGMA table_info. Verify indexes exist using PRAGMA index_list. Test that FK constraints are enforced (inserting Method with invalid TypeId should fail). Test drop order doesn't violate FK constraints."
+          },
+          {
+            "id": 2,
+            "title": "Implement StorageService Class with InitializeAsync",
+            "description": "Create the StorageService class with database lifecycle management including InitializeAsync that creates/recreates the database, manages connection strings, and handles the drop-and-recreate strategy for snapshot-based storage.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create `StorageService` class using Microsoft.Data.Sqlite:\n\n1. Constructor accepts optional database path (default: `./ai-code-graph/graph.db`)\n2. Manage SqliteConnection lifecycle (implement IDisposable/IAsyncDisposable)\n3. `InitializeAsync()` method:\n   - Ensure directory exists for database file\n   - Drop all tables in reverse FK-dependency order (MethodClusterMap → IntentClusters → Metrics → TypeImplements → MethodCalls → Methods → Types → Namespaces → Projects → NormalizedMethods)\n   - Create all tables and indexes using schema from subtask 1\n   - Enable WAL mode for better concurrent read performance: PRAGMA journal_mode=WAL\n   - Enable foreign keys: PRAGMA foreign_keys = ON\n4. Add `GetConnectionString()` helper that builds connection string with appropriate settings\n5. Add internal `GetConnectionAsync()` method for use by other StorageService methods\n6. Use `Microsoft.Data.Sqlite` NuGet package with parameterized queries throughout\n7. Ensure thread-safety considerations for the connection (single writer, multiple readers with WAL)",
+            "status": "pending",
+            "testStrategy": "Test InitializeAsync creates database file at specified path. Test with in-memory database (Data Source=:memory:) for fast unit tests. Test calling InitializeAsync twice recreates tables (verify data is cleared). Test directory creation when path doesn't exist. Test connection is properly disposed."
+          },
+          {
+            "id": 3,
+            "title": "Implement Bulk Insert Methods with Transaction Batching",
+            "description": "Implement SaveCodeModelAsync, SaveCallGraphAsync, and SaveMetricsAsync methods that efficiently bulk-insert structural data, call graph edges, and metrics using parameterized queries within transactions.",
+            "dependencies": [
+              2
+            ],
+            "details": "Implement three bulk insert methods on StorageService:\n\n1. `SaveCodeModelAsync(List<ProjectModel> projects)`:\n   - Wrap entire operation in a transaction for atomicity and performance\n   - Insert Projects, then Namespaces, then Types (with Kind), then Methods in FK order\n   - Insert TypeImplements relationships from TypeModel.ImplementedInterfaces\n   - Use parameterized INSERT statements with command reuse (create command once, rebind parameters)\n   - Batch in groups of 500 for memory efficiency on large solutions\n   - Handle the hierarchical model traversal: Project → Namespaces → Types → Methods\n\n2. `SaveCallGraphAsync(List<MethodCall> calls)`:\n   - Wrap in transaction\n   - Use INSERT OR IGNORE to handle duplicate edges gracefully\n   - Parameterized insert for (CallerId, CalleeId) pairs\n\n3. `SaveMetricsAsync(List<MethodMetrics> metrics)`:\n   - Wrap in transaction\n   - INSERT OR REPLACE to allow metric updates\n   - Insert (MethodId, CognitiveComplexity, LinesOfCode, NestingDepth)\n\n4. Performance considerations:\n   - Reuse SqliteCommand objects with parameter rebinding\n   - Use BEGIN/COMMIT transaction wrapping (massive perf improvement for SQLite)\n   - Target: 5000+ methods inserted in under 2 seconds",
+            "status": "pending",
+            "testStrategy": "Test bulk insert of a realistic code model (multiple projects, namespaces, types, methods). Verify row counts match input. Test transaction rollback on failure (corrupt one insert, verify nothing persisted). Test SaveCallGraphAsync with duplicate edges (INSERT OR IGNORE). Benchmark with 5000+ method inserts to verify performance target. Test SaveMetricsAsync overwrites existing metrics correctly."
+          },
+          {
+            "id": 4,
+            "title": "Implement Query Methods for CLI Consumption",
+            "description": "Implement read query methods that the CLI commands will use: GetMethodById, GetCallees, GetCallers, GetHotspots, and pattern-matching search methods with sorting and filtering capabilities.",
+            "dependencies": [
+              3
+            ],
+            "details": "Implement query methods on StorageService:\n\n1. `GetMethodByIdAsync(string methodId)` → MethodModel?\n   - Join with Types, Namespaces for full context\n   - Return null if not found\n\n2. `GetCalleesAsync(string methodId)` → List<MethodModel>\n   - Query MethodCalls WHERE CallerId = @id, JOIN Methods for callee details\n   - Include callee's type and namespace info\n\n3. `GetCallersAsync(string methodId)` → List<MethodModel>\n   - Query MethodCalls WHERE CalleeId = @id, JOIN Methods for caller details\n\n4. `GetHotspotsAsync(int top = 20, string? sortBy = \"complexity\")` → List<(MethodModel, MethodMetrics)>\n   - Join Methods with Metrics\n   - ORDER BY CognitiveComplexity DESC (or LinesOfCode, NestingDepth based on sortBy)\n   - LIMIT @top\n\n5. `SearchMethodsAsync(string pattern)` → List<MethodModel>\n   - Use LIKE '%pattern%' on Methods.FullName for pattern matching\n   - Support wildcard patterns\n   - Return with type/namespace context\n\n6. `GetMethodsByTypeAsync(string typeId)` → List<MethodModel>\n   - All methods belonging to a type\n\n7. `GetInterfaceImplementorsAsync(string interfaceId)` → List<TypeModel>\n   - Query TypeImplements for implementing types\n\n8. All queries use parameterized statements to prevent SQL injection.\n9. Return domain model objects (not raw readers) for clean API boundaries.",
+            "status": "pending",
+            "testStrategy": "Test each query method with pre-populated test data. Test GetMethodById returns null for non-existent ID. Test GetCallees/GetCallers return correct graph relationships. Test GetHotspots returns methods sorted by complexity descending. Test SearchMethods with various patterns including partial matches. Test empty results return empty lists (not null). Integration test: insert data via Save methods, then query via Get methods."
+          },
+          {
+            "id": 5,
+            "title": "Add NormalizedMethods Table and Vector Storage Schema",
+            "description": "Extend the schema with NormalizedMethods for code clone detection and add vector/embedding storage tables for the semantic search phase, preparing the database for future analysis capabilities.",
+            "dependencies": [
+              2
+            ],
+            "details": "Extend StorageService with additional tables and methods for later phases:\n\n1. **NormalizedMethods table** (for duplicate/clone detection - Task 11):\n   - Schema: MethodId TEXT PK FK→Methods, NormalizedSource TEXT, TokenHash TEXT\n   - Index on TokenHash for fast structural clone lookup\n   - `SaveNormalizedMethodsAsync(List<NormalizedMethod>)` - bulk insert with transaction\n   - `GetMethodsByTokenHashAsync(string hash)` → List<MethodModel> for finding structural clones\n\n2. **Embeddings storage** (for semantic search - Task 10):\n   - Schema: CREATE TABLE Embeddings (MethodId TEXT PK FK→Methods, Vector BLOB, ModelVersion TEXT)\n   - Store float[] as BLOB (serialize/deserialize with BinaryWriter/Reader or BitConverter)\n   - `SaveEmbeddingsAsync(List<(string MethodId, float[] Vector, string ModelVersion)>)` - bulk insert\n   - `GetAllEmbeddingsAsync()` → List<(string MethodId, float[] Vector)> for building in-memory index\n   - `GetEmbeddingAsync(string methodId)` → float[]?\n\n3. **IntentClusters and MethodClusterMap** save/query methods:\n   - `SaveClustersAsync(List<IntentCluster>)` - save cluster definitions\n   - `SaveMethodClusterMappingsAsync(List<MethodClusterMapping>)` - save method-to-cluster assignments\n   - `GetMethodsByClusterAsync(string clusterId)` → List<(MethodModel, float Score)>\n   - `GetClustersAsync()` → List<IntentCluster>\n\n4. All tables included in InitializeAsync drop/create cycle.\n5. Use parameterized queries and transactions for all bulk operations.",
+            "status": "pending",
+            "testStrategy": "Test NormalizedMethods insert and hash-based lookup. Test embedding serialization roundtrip (float[] → BLOB → float[] with precision preserved). Test SaveEmbeddingsAsync with 1000+ vectors for performance. Test cluster save and query returns correct method-cluster associations with scores. Verify all new tables are properly dropped and recreated by InitializeAsync. Test GetAllEmbeddingsAsync returns all stored vectors correctly deserialized."
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Implement Call Graph Builder",
+        "description": "Build the method-level call graph by analyzing method bodies using Roslyn's semantic model to resolve invocations, including interface dispatch and virtual calls.",
+        "details": "1. Create `CallGraphBuilder` class:\n   ```csharp\n   public class CallGraphBuilder\n   {\n       public List<MethodCallEdge> BuildCallGraph(LoadedWorkspace workspace, List<ProjectModel> codeModel)\n       {\n           // For each method in the code model:\n           // 1. Get the SyntaxNode for the method declaration\n           // 2. Find all InvocationExpressionSyntax nodes in the body\n           // 3. Use SemanticModel.GetSymbolInfo() to resolve the target\n           // 4. Map resolved IMethodSymbol back to our MethodModel IDs\n           // 5. Handle interface dispatch: if target is interface method,\n           //    also add edges to known implementations\n       }\n   }\n   ```\n2. Create `MethodCallEdge` record: `(string CallerId, string CalleeId, CallKind Kind)`\n3. Handle call kinds:\n   - Direct method call\n   - Virtual/override dispatch\n   - Interface method call\n   - Delegate invocation\n   - Constructor calls\n4. Resolve `ObjectCreationExpression` as constructor calls\n5. Handle LINQ expressions and lambda invocations\n6. Skip calls to external (non-solution) methods but log them\n7. Build interface→implementation mapping from TypeImplements data\n8. Support bidirectional traversal: callers and callees",
+        "testStrategy": "Create test fixtures with: direct calls, interface dispatch, virtual calls, constructor calls, LINQ chains, lambda expressions. Verify all edges are correctly captured. Test that interface calls resolve to implementations. Verify no duplicate edges. Test with circular call patterns.",
+        "priority": "high",
+        "dependencies": [
+          2,
+          3
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create MethodCallEdge model and CallGraphBuilder class skeleton",
+            "description": "Define the MethodCallEdge record type with CallKind enum and create the CallGraphBuilder class with its public API signature and helper method stubs.",
+            "dependencies": [],
+            "details": "1. Create `CallKind` enum with values: Direct, Virtual, Interface, Delegate, Constructor, Extension, Operator.\n2. Create `MethodCallEdge` record: `(string CallerId, string CalleeId, CallKind Kind, string? Location)` where Location captures file/line for diagnostics.\n3. Create `CallGraphBuilder` class with:\n   - `public List<MethodCallEdge> BuildCallGraph(LoadedWorkspace workspace, List<ProjectModel> codeModel)` as main entry point\n   - Private helper stubs for each resolution strategy\n   - A `Dictionary<string, List<string>>` for interface-to-implementations mapping\n   - A `HashSet<MethodCallEdge>` to deduplicate edges\n   - Logging for skipped external method calls\n4. Create `CallGraphResult` wrapper class with helper methods: `GetCallers(string methodId)`, `GetCallees(string methodId)` for bidirectional traversal.\n5. Place all types in a `CallGraph` namespace/folder within the Core project.",
+            "status": "pending",
+            "testStrategy": "Unit test that CallKind enum has all expected values. Test MethodCallEdge equality/hashing for deduplication. Test CallGraphResult bidirectional traversal with manually constructed edge lists. Verify empty input produces empty result without errors."
+          },
+          {
+            "id": 2,
+            "title": "Implement syntax node location for method declarations",
+            "description": "Map each MethodModel from the code model back to its corresponding SyntaxNode (MethodDeclarationSyntax, ConstructorDeclarationSyntax, etc.) using the Roslyn SemanticModel to enable body analysis.",
+            "dependencies": [
+              1
+            ],
+            "details": "1. For each project in the code model, get the corresponding `Compilation` from LoadedWorkspace.\n2. For each MethodModel, reconstruct the lookup path: use the fully-qualified name and parameter types to locate the `IMethodSymbol` via `Compilation.GetTypeByMetadataName()` then `.GetMembers()`.\n3. Handle all method-like declarations: `MethodDeclarationSyntax`, `ConstructorDeclarationSyntax`, `DestructorDeclarationSyntax`, `OperatorDeclarationSyntax`, `ConversionOperatorDeclarationSyntax`, `AccessorDeclarationSyntax` (property getters/setters), and `LocalFunctionStatementSyntax`.\n4. Handle expression-bodied members (`ArrowExpressionClauseSyntax`) which don't have a Block body but still contain invocable expressions.\n5. Handle partial methods by combining declarations across syntax trees.\n6. Cache the mapping `Dictionary<string, (IMethodSymbol Symbol, SyntaxNode Node, SemanticModel Model)>` for reuse during invocation resolution.\n7. Handle generic method instantiations by mapping back to the `OriginalDefinition` or `ReducedFrom` symbol.\n8. Log warnings for MethodModels that cannot be resolved (e.g., generated code, missing references).",
+            "status": "pending",
+            "testStrategy": "Test with fixture containing regular methods, constructors, expression-bodied members, property accessors, and partial methods. Verify each MethodModel resolves to the correct SyntaxNode. Test that generic methods map correctly. Verify warning is logged for unresolvable methods."
+          },
+          {
+            "id": 3,
+            "title": "Implement InvocationExpression resolution for direct method calls",
+            "description": "Walk method bodies to find InvocationExpressionSyntax nodes, use SemanticModel.GetSymbolInfo() to resolve targets, and map resolved IMethodSymbols back to MethodModel IDs for direct call edges.",
+            "dependencies": [
+              2
+            ],
+            "details": "1. For each resolved method SyntaxNode, get all descendant `InvocationExpressionSyntax` nodes from the body (Block or ArrowExpressionClause).\n2. For each invocation, call `semanticModel.GetSymbolInfo(invocation)` to get the resolved symbol.\n3. Handle `SymbolInfo.Symbol` (resolved) vs `SymbolInfo.CandidateSymbols` (ambiguous/overloaded) - for candidates, add edges to all candidate methods within the solution.\n4. Map the resolved `IMethodSymbol` back to a MethodModel ID:\n   - Use `OriginalDefinition` to handle generic instantiations (e.g., `List<int>.Add` → `List<T>.Add`)\n   - Use `ReducedFrom` to handle extension method calls resolved to their static form\n   - Build a reverse lookup `Dictionary<ISymbol, string>` using SymbolEqualityComparer.Default\n5. Skip methods where the resolved symbol belongs to assemblies outside the solution (external calls) - log these at Debug level.\n6. Create edges with `CallKind.Direct` for standard resolved invocations.\n7. Handle chained method calls (fluent APIs) where each `.Method()` in a chain is a separate invocation.\n8. Handle `nameof()` expressions - these are NOT invocations and should be skipped.",
+            "status": "pending",
+            "testStrategy": "Test with fixture containing: simple method calls, chained calls, generic method calls, overloaded methods, static method calls, and nameof expressions. Verify correct edges are created for each. Verify external calls are skipped but logged. Test ambiguous resolution creates edges to all candidates."
+          },
+          {
+            "id": 4,
+            "title": "Handle ObjectCreationExpression as constructor calls and member access patterns",
+            "description": "Resolve ObjectCreationExpression (new T()), ImplicitObjectCreationExpression (new()), and base/this constructor initializers as constructor call edges.",
+            "dependencies": [
+              2
+            ],
+            "details": "1. Find all `ObjectCreationExpressionSyntax` nodes in method bodies.\n2. Use `semanticModel.GetSymbolInfo(objectCreation)` to resolve the constructor `IMethodSymbol`.\n3. Handle `ImplicitObjectCreationExpressionSyntax` (target-typed `new()`) which requires type inference from context.\n4. Handle `BaseConstructorInitializerSyntax` (`: base(...)`) and `ThisConstructorInitializerSyntax` (`: this(...)`) in constructor declarations.\n5. Create edges with `CallKind.Constructor`.\n6. Handle object initializer expressions - property setters in `{ Prop = value }` may invoke property setters which are method-like.\n7. Handle collection initializer expressions which invoke `.Add()` methods implicitly.\n8. Handle array creation expressions (`new int[] { ... }`) - these don't invoke constructors but should be recognized and skipped.\n9. Map resolved constructor IMethodSymbols back to MethodModel IDs using the same reverse lookup from subtask 3.\n10. Handle `Activator.CreateInstance<T>()` and similar reflection-based construction - log as unresolvable.",
+            "status": "pending",
+            "testStrategy": "Test with fixtures containing: explicit new, target-typed new(), base/this constructor chains, object initializers with property setters, collection initializers. Verify constructor edges are created with correct CallKind. Verify array creation is skipped. Test implicit Add() calls in collection initializers."
+          },
+          {
+            "id": 5,
+            "title": "Implement interface dispatch resolution",
+            "description": "Build an interface-to-implementation mapping from the code model's TypeImplements data and resolve interface method calls to all known implementing methods.",
+            "dependencies": [
+              3
+            ],
+            "details": "1. Pre-build an interface implementation map from the code model:\n   - For each TypeModel with `ImplementedInterfaces`, map interface method IDs to the implementing type's corresponding method IDs.\n   - Handle explicit interface implementations (e.g., `IFoo.Bar()`) which have different naming patterns.\n   - Handle implicit interface implementations where the method name matches.\n2. When an invocation resolves to an `IMethodSymbol` where `ContainingType.TypeKind == TypeKind.Interface`:\n   - Create an edge with `CallKind.Interface` to the interface method itself.\n   - Look up all known implementations from the pre-built map.\n   - Create additional edges with `CallKind.Interface` to each implementation.\n3. Handle generic interface implementations (e.g., `IComparable<T>`) by matching on the unbound generic interface.\n4. Handle interface inheritance chains (e.g., `IFoo : IBar` where IBar.Method is called but implemented in a class implementing IFoo).\n5. Handle cases where the implementation map is incomplete (abstract classes implementing only some interface methods) - log these.\n6. Store the interface map in CallGraphBuilder for reuse across all method bodies.",
+            "status": "pending",
+            "testStrategy": "Test with fixture containing: simple interface + implementation, multiple implementations of same interface, explicit interface implementation, generic interfaces, interface inheritance chains. Verify interface calls create edges to all known implementations. Verify abstract partial implementations are handled gracefully."
+          },
+          {
+            "id": 6,
+            "title": "Handle virtual/override dispatch and delegate invocations",
+            "description": "Resolve virtual and override method calls to all possible dispatch targets in the type hierarchy, and handle delegate/event invocations including Func<>/Action<> types.",
+            "dependencies": [
+              3
+            ],
+            "details": "1. **Virtual/Override dispatch:**\n   - When invocation resolves to a virtual/abstract method (`IMethodSymbol.IsVirtual || IsAbstract || IsOverride`):\n     - Create edge with `CallKind.Virtual` to the declared method.\n     - Walk the type hierarchy to find all overrides: use `IMethodSymbol.OverriddenMethod` chain upward and find all types that override it downward.\n     - Build override lookup: for each type in the solution, check if it overrides the target method.\n     - Create edges to each override with `CallKind.Virtual`.\n   - Handle `base.Method()` calls which bypass virtual dispatch - these should be `CallKind.Direct` to the specific base implementation.\n2. **Delegate invocations:**\n   - Detect delegate invocations: `delegateVariable(args)` or `delegateVariable.Invoke(args)` patterns.\n   - For typed delegates (Func<>, Action<>, custom delegate types), the target is generally unknown at static analysis time.\n   - When the delegate is assigned from a method group in the same method/class, resolve the target.\n   - Handle event invocations (`EventName?.Invoke(...)`) - mark as `CallKind.Delegate`.\n   - Track delegate assignments via `+=` to identify potential targets for events.\n3. Handle `sealed` override methods - these don't need further dispatch resolution.",
+            "status": "pending",
+            "testStrategy": "Test with fixture containing: virtual method with multiple overrides, abstract method implementations, base.Method() calls, sealed overrides, delegate variables assigned from method groups, event += subscriptions and invocations. Verify virtual calls create edges to all overrides. Verify base calls are Direct. Verify delegate invocations are captured."
+          },
+          {
+            "id": 7,
+            "title": "Handle LINQ expressions, lambda invocations, and edge cases",
+            "description": "Resolve LINQ method chain calls (Select, Where, etc.), lambda/anonymous method invocations, extension methods, operator overloads, and conditional access patterns (?.).",
+            "dependencies": [
+              3,
+              4,
+              5,
+              6
+            ],
+            "details": "1. **LINQ and extension methods:**\n   - LINQ query syntax (`from x in y select z`) is lowered to method calls - find the underlying `InvocationExpressionSyntax` nodes generated by the compiler or use `GetSymbolInfo()` on query clause syntax nodes.\n   - LINQ method syntax (`.Where().Select()`) is already handled as chained invocations, but ensure extension method resolution uses `ReducedFrom` to map back to the static extension method definition.\n   - Handle custom extension methods defined in the solution.\n2. **Lambda and anonymous methods:**\n   - Lambdas passed as arguments (e.g., `.Where(x => x.IsValid())`) contain invocations within their bodies.\n   - Recursively walk lambda bodies (`LambdaExpressionSyntax`, `AnonymousMethodExpressionSyntax`) for invocations.\n   - Attribute the discovered calls to the containing method (the lambda's enclosing method).\n3. **Conditional access (`?.`):**\n   - `ConditionalAccessExpressionSyntax` wraps invocations differently: the method call is inside a `MemberBindingExpressionSyntax`.\n   - Use `GetSymbolInfo()` on the overall conditional access to resolve the target.\n4. **Operator overloads:**\n   - Binary/unary operator expressions may resolve to user-defined operator methods.\n   - Check `semanticModel.GetSymbolInfo(binaryExpression)` for operator overloads defined in solution types.\n   - Create edges with `CallKind.Operator` (add to CallKind enum if needed, otherwise use Direct).\n5. **Implicit conversions:**\n   - User-defined implicit/explicit conversion operators invoked implicitly in assignments or casts.\n   - Use `GetConversion()` or `GetSymbolInfo()` on cast expressions.\n6. **Pattern matching invocations:** Handle `is` patterns that invoke `Deconstruct` methods.",
+            "status": "pending",
+            "testStrategy": "Test with fixture containing: LINQ query syntax, LINQ method chains, lambdas with internal calls, nested lambdas, conditional access (?.) invocations, operator overloads (+, ==), implicit conversions, extension methods from solution, and Deconstruct patterns. Verify LINQ resolves to correct extension methods. Verify lambda body calls are attributed to the enclosing method. Verify conditional access resolves correctly. Verify operator overloads create edges."
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Implement Cognitive Complexity Metrics Engine",
+        "description": "Compute cognitive complexity, lines of code, and nesting depth for each method. Cognitive complexity follows the Sonar-style algorithm measuring how difficult code is to understand.",
+        "details": "1. Create `CognitiveComplexityCalculator`:\n   ```csharp\n   public class CognitiveComplexityCalculator : CSharpSyntaxWalker\n   {\n       private int _complexity = 0;\n       private int _nestingLevel = 0;\n       \n       // Increment for:\n       // +1 for each: if, else if, else, switch, for, foreach, while, do, catch, goto, &&, ||\n       // +1 for each: break/continue to label, recursion\n       // +nesting for: nested if/for/while/switch/catch/lambda\n       // No increment for: method declaration, sequential statements\n   }\n   ```\n2. Create `MetricsEngine` class:\n   ```csharp\n   public record MethodMetrics(string MethodId, int CognitiveComplexity, int LinesOfCode, int MaxNestingDepth);\n   public List<MethodMetrics> ComputeMetrics(LoadedWorkspace workspace, List<MethodModel> methods);\n   ```\n3. Cognitive complexity rules:\n   - +1 for control flow breaks: if, else if, else, switch/case, for, foreach, while, do-while, catch, goto, ternary (?:)\n   - +1 for logical operators that change context: &&, ||\n   - +1 for each break/continue to a label\n   - +nesting increment for nested structures\n   - Nesting incremented by: if, else if, else, switch, for, foreach, while, do, catch, lambda, local function\n4. Lines of Code: count non-empty, non-comment lines in method body\n5. Max Nesting Depth: track deepest control structure nesting\n6. Handle expression-bodied members (=> syntax)\n7. Handle switch expressions vs switch statements",
+        "testStrategy": "Create test methods with known complexity scores (reference SonarSource examples). Test: simple sequential method (score 0-1), single if (score 1), nested ifs (increasing score), loops with conditions, try-catch blocks, LINQ chains. Verify LOC counting excludes comments and blank lines. Compare results against SonarQube reference implementation.",
+        "priority": "high",
+        "dependencies": [
+          2,
+          3
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement CognitiveComplexityCalculator with Nesting Level Tracking",
+            "description": "Create the CognitiveComplexityCalculator class extending CSharpSyntaxWalker with nesting level tracking infrastructure. Implement the visitor pattern skeleton with _complexity and _nestingLevel fields, entry/exit methods for nesting-incrementing constructs (if, else if, else, switch, for, foreach, while, do, catch, lambda, local function), and the public API to compute complexity for a given method syntax node.",
+            "dependencies": [],
+            "details": "Create `CognitiveComplexityCalculator : CSharpSyntaxWalker` in the Core/Metrics directory. Include:\n- Private fields: `_complexity` (int), `_nestingLevel` (int)\n- Public method: `int Calculate(MethodDeclarationSyntax node)` and overload for `LocalFunctionStatementSyntax`\n- Helper method `IncrementWithNesting()` that adds `1 + _nestingLevel` to complexity\n- Helper method `IncrementWithoutNesting()` that adds just `1` to complexity\n- Nesting management: override `Visit*` methods for nesting-incrementing constructs, incrementing `_nestingLevel` before visiting children and decrementing after\n- Handle the distinction between `if` and `else if`: when an `else` clause contains a single `if` statement, treat it as `else if` (no additional nesting increment)\n- Reference SonarSource cognitive complexity specification for correct nesting behavior\n- Reset state between calculations to allow reuse of the calculator instance",
+            "status": "pending",
+            "testStrategy": "Unit test with a trivial method (empty body) expecting complexity 0. Test a method with a single if-statement expecting complexity 1. Test the calculator can be reused across multiple method nodes without state leakage. Verify nesting level resets correctly after visiting nested structures."
+          },
+          {
+            "id": 2,
+            "title": "Implement Base Increment Rules for Control Flow and Logical Operators",
+            "description": "Implement the +1 base increment rules in the CognitiveComplexityCalculator for all control flow breaks and logical operators: if, else if, else, switch/case, for, foreach, while, do-while, catch, goto, ternary (?:), &&, ||, break/continue to label, and null-coalescing (??). Each of these adds exactly +1 to complexity regardless of nesting level.",
+            "dependencies": [
+              1
+            ],
+            "details": "Override the following visitor methods in CognitiveComplexityCalculator:\n- `VisitIfStatement`: +1 (base increment, not nesting increment here - nesting handled separately)\n- `VisitElseClause`: +1 for `else`, but if the else contains only an `if`, treat as `else if` (+1 for the if, no extra nesting)\n- `VisitSwitchStatement`: +1\n- `VisitForStatement`, `VisitForEachStatement`: +1 each\n- `VisitWhileStatement`, `VisitDoStatement`: +1 each\n- `VisitCatchClause`: +1\n- `VisitGotoStatement`: +1\n- `VisitConditionalExpression` (ternary ?:): +1\n- `VisitBinaryExpression`: +1 for `&&` (LogicalAndExpression) and `||` (LogicalOrExpression), but only count sequences of the same operator once per change in operator type (e.g., `a && b && c` = +1, `a && b || c` = +2)\n- `VisitBreakStatement`/`VisitContinueStatement`: +1 only when targeting a label\n- Handle `??` (CoalesceExpression): +1 per SonarSource rules\n- Handle pattern matching `is` expressions and switch expressions as appropriate",
+            "status": "pending",
+            "testStrategy": "Create test methods with known complexity: single if (+1), if-else (+2), if-else if-else (+3), for loop (+1), while with && condition (+2), try-catch (+1 for catch), goto (+1), ternary (+1). Test logical operator sequences: `a && b && c` should be +1, `a && b || c && d` should be +3. Compare results against SonarSource reference examples."
+          },
+          {
+            "id": 3,
+            "title": "Implement Nesting Increment Rules for Nested Structures",
+            "description": "Implement the nesting-based increment rules where nested control structures add +1 for the base plus the current nesting level. Structures that increment nesting include: if, else if, else, switch, for, foreach, while, do, catch, lambda expressions, and local functions.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Modify the visitor methods to apply the nesting increment pattern:\n- When entering a nesting-incrementing construct, the complexity added is `1 + _nestingLevel` (base +1, plus nesting bonus)\n- After adding complexity, increment `_nestingLevel` before visiting child nodes, then decrement after\n- Nesting-incrementing constructs: if, else if, else, switch, for, foreach, while, do, catch\n- Lambda expressions (`SimpleLambdaExpression`, `ParenthesizedLambdaExpression`): increment nesting but do NOT add base +1 for the lambda itself\n- Local functions (`LocalFunctionStatement`): increment nesting but do NOT add base +1 for the declaration itself (they reset nesting context in some interpretations - follow SonarSource spec)\n- `else if` special case: the `if` inside an `else` should NOT increment nesting (it's at the same conceptual level as the parent if)\n- Ternary expressions nested inside other structures should receive nesting increment\n- Handle deeply nested structures (3+ levels) correctly: if { if { if {} } } should produce 1 + 2 + 3 = 6",
+            "status": "pending",
+            "testStrategy": "Test nested if statements: `if { if { } }` = 1 + 2 = 3. Test triple nesting: `if { for { while {} } }` = 1 + 2 + 3 = 6. Test lambda nesting: method with lambda containing if should show increased nesting. Test else-if chains don't compound nesting: `if {} else if {} else if {}` = 1 + 1 + 1 = 3, not escalating. Test local function resets or increments nesting per SonarSource spec."
+          },
+          {
+            "id": 4,
+            "title": "Implement LinesOfCode Counter and MaxNestingDepth Tracker",
+            "description": "Implement two utility metric calculators: a LinesOfCode counter that counts non-empty, non-comment lines within a method body, and a MaxNestingDepth tracker that determines the deepest control structure nesting level within a method.",
+            "dependencies": [],
+            "details": "Create two calculator classes or static methods:\n\n**LinesOfCodeCalculator:**\n- Accept a `MethodDeclarationSyntax` or `BaseMethodDeclarationSyntax` node\n- Get the full text of the method body (or expression body for `=>`)\n- Split into lines and count lines that are:\n  - Not empty/whitespace-only\n  - Not single-line comments (`//`)\n  - Not part of multi-line comments (`/* */`)\n  - Not XML doc comments (`///`)\n- Handle mixed lines (code + trailing comment): count as code line\n- Handle expression-bodied members: count the expression as 1+ lines\n- Use Roslyn trivia API to identify comment trivia rather than string parsing for accuracy\n\n**MaxNestingDepthCalculator (CSharpSyntaxWalker):**\n- Track `_currentDepth` and `_maxDepth`\n- Increment depth when entering: if, else, for, foreach, while, do, switch, try, catch, finally, lock, using statement\n- Record max depth as `Math.Max(_currentDepth, _maxDepth)`\n- Decrement depth when exiting\n- Handle nested lambdas and local functions (they contribute to nesting)\n- Expression-bodied members have depth 0 (no block nesting)",
+            "status": "pending",
+            "testStrategy": "LOC tests: empty method = 0 (or 2 for braces depending on spec), method with 5 statements = 5, method with comments interspersed should exclude comment lines, method with blank lines should exclude them. Multi-line comment blocks properly excluded. MaxNesting tests: flat method = 0, single if = 1, if-inside-if = 2, for-while-if = 3. Expression-bodied member has depth 0."
+          },
+          {
+            "id": 5,
+            "title": "Create MetricsEngine Class with Expression-Bodied and Switch Expression Handling",
+            "description": "Create the MetricsEngine class that orchestrates all metric calculations, computing CognitiveComplexity, LinesOfCode, and MaxNestingDepth for a list of methods. Handle special cases including expression-bodied members (=> syntax) and switch expressions vs switch statements.",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "details": "Create `MetricsEngine` class:\n```csharp\npublic record MethodMetrics(string MethodId, int CognitiveComplexity, int LinesOfCode, int MaxNestingDepth);\n\npublic class MetricsEngine\n{\n    public List<MethodMetrics> ComputeMetrics(LoadedWorkspace workspace, List<MethodModel> methods);\n}\n```\n\nImplementation details:\n- For each `MethodModel`, locate the corresponding `SyntaxNode` from the workspace's compilation\n- Use the `MethodModel.Id` (stable symbol ID from Task 3) to find the syntax node via semantic model\n- Instantiate and run all three calculators: CognitiveComplexityCalculator, LinesOfCodeCalculator, MaxNestingDepthCalculator\n- **Expression-bodied members** (`=>`): These have no block body; treat the expression as the body. Cognitive complexity should still analyze the expression (may contain ternary, null-coalescing, etc.)\n- **Switch expressions** (`x switch { pattern => value, ... }`): Each arm adds +1 complexity (similar to case), and the switch expression itself adds +1. Nesting applies if inside another structure.\n- **Switch statements**: Traditional +1 per case with nesting\n- Handle `ArrowExpressionClauseSyntax` for expression-bodied members\n- Handle methods that can't be found (removed between extraction and analysis): skip with warning\n- Return results as a list of `MethodMetrics` records\n- Consider parallel computation for large codebases using `Parallel.ForEach` or async patterns",
+            "status": "pending",
+            "testStrategy": "Integration test: create a test workspace with methods of known complexity, LOC, and nesting. Verify MetricsEngine produces correct MethodMetrics for each. Test expression-bodied member: `int Foo() => x > 0 ? 1 : -1;` should have complexity 1 (ternary). Test switch expression with 3 arms. Test switch statement with 3 cases. Test method not found scenario returns graceful skip. Test with LoadedWorkspace from Task 2's test fixtures."
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Implement CLI Framework and Analyze Command",
+        "description": "Set up the CLI framework using System.CommandLine and implement the primary `analyze` command that orchestrates the full analysis pipeline: load workspace, extract model, build call graph, compute metrics, and store results.",
+        "details": "1. Set up CLI with `System.CommandLine`:\n   ```csharp\n   var rootCommand = new RootCommand(\"AI Code Graph - Semantic code analysis for .NET\");\n   \n   var analyzeCommand = new Command(\"analyze\", \"Analyze the codebase and build the code graph\");\n   analyzeCommand.AddOption(new Option<string>(\"--solution\", \"Path to .sln file\"));\n   analyzeCommand.AddOption(new Option<string>(\"--output\", () => \"./ai-code-graph\", \"Output directory\"));\n   analyzeCommand.AddOption(new Option<bool>(\"--verbose\", \"Enable verbose output\"));\n   ```\n2. Create `AnalyzeCommand` handler that orchestrates:\n   ```csharp\n   async Task<int> ExecuteAnalyze(string? solutionPath, string output, bool verbose)\n   {\n       // 1. Discover/validate solution\n       // 2. Load workspace (WorkspaceLoader)\n       // 3. Extract code model (CodeModelExtractor)\n       // 4. Build call graph (CallGraphBuilder)\n       // 5. Compute metrics (MetricsEngine)\n       // 6. Store results (StorageService)\n       // 7. Report summary statistics\n   }\n   ```\n3. Add progress reporting with elapsed time\n4. Add summary output:\n   ```\n   Analysis complete:\n     Projects: 5\n     Types: 234\n     Methods: 1,456\n     Call edges: 3,892\n     Avg complexity: 4.2\n     Duration: 12.3s\n   ```\n5. Handle errors gracefully with user-friendly messages\n6. Create output directory if it doesn't exist\n7. Return exit code 0 on success, non-zero on failure",
+        "testStrategy": "Integration test: run analyze command against the test fixture solution, verify database is created with correct data. Test solution auto-discovery. Test --verbose flag produces additional output. Test error cases: missing solution, invalid path, compilation errors in target. Verify exit codes.",
+        "priority": "high",
+        "dependencies": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Set up System.CommandLine with RootCommand and CLI infrastructure",
+            "description": "Install the System.CommandLine NuGet package and create the basic CLI infrastructure including RootCommand with description, version info, and help text generation. Set up Program.cs as the entry point that builds and invokes the command tree.",
+            "dependencies": [],
+            "details": "Add System.CommandLine NuGet package to the CLI project. Create Program.cs with a RootCommand configured with description 'AI Code Graph - Semantic code analysis for .NET'. Configure the command builder to include automatic help (--help) and version (--version) options. Set up the async Main method to invoke rootCommand.InvokeAsync(args). Ensure the CLI project references the Core project for access to services.",
+            "status": "pending",
+            "testStrategy": "Verify the CLI builds and runs without errors. Test that --help displays the root description and available commands. Test that running with no arguments shows help text. Test that --version displays version information."
+          },
+          {
+            "id": 2,
+            "title": "Implement analyze command definition with options",
+            "description": "Define the 'analyze' command and register its options: --solution (path to .sln file), --output (output directory with default './ai-code-graph'), and --verbose (enable verbose output). Add the command to the root command tree.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create the analyze Command instance with description 'Analyze the codebase and build the code graph'. Add Option<string>('--solution', 'Path to .sln file') as optional. Add Option<string>('--output', default './ai-code-graph', 'Output directory'). Add Option<bool>('--verbose', 'Enable verbose output'). Register the command with rootCommand.AddCommand(analyzeCommand). Set up the command handler binding to wire options to the handler method parameters using SetHandler.",
+            "status": "pending",
+            "testStrategy": "Test that 'analyze --help' shows all three options with descriptions. Test that default values are applied when options are not specified. Test that invalid option names produce error messages."
+          },
+          {
+            "id": 3,
+            "title": "Implement AnalyzeCommand handler orchestrating the full pipeline",
+            "description": "Create the ExecuteAnalyze handler method that orchestrates the complete analysis pipeline: discover/validate solution, load workspace via WorkspaceLoader, extract code model via CodeModelExtractor, build call graph via CallGraphBuilder, compute metrics via MetricsEngine, and store results via StorageService.",
+            "dependencies": [
+              2
+            ],
+            "details": "Implement async Task<int> ExecuteAnalyze(string? solutionPath, string output, bool verbose) method. Step 1: If solutionPath is null, auto-discover .sln file in current directory. Validate the solution file exists. Step 2: Create WorkspaceLoader and call LoadSolutionAsync. Step 3: Create CodeModelExtractor and extract the code model from the loaded workspace. Step 4: Create CallGraphBuilder and build the call graph from the code model. Step 5: Create MetricsEngine and compute metrics. Step 6: Create output directory if not exists, then use StorageService to persist results. Wire up DI or manual instantiation of each service. Pass CancellationToken through the pipeline for graceful cancellation support.",
+            "status": "pending",
+            "testStrategy": "Integration test: run analyze command against the test fixture solution and verify the pipeline completes successfully. Verify StorageService produces output in the specified directory. Mock individual services to test orchestration logic in isolation. Test solution auto-discovery when --solution is not provided."
+          },
+          {
+            "id": 4,
+            "title": "Add progress reporting and summary statistics output",
+            "description": "Implement progress reporting during pipeline execution showing elapsed time for each stage, and display a formatted summary upon completion including counts of projects, types, methods, call edges, average complexity, and total duration.",
+            "dependencies": [
+              3
+            ],
+            "details": "Use a Stopwatch to track total elapsed time and per-stage timing. Print progress messages to Console during each pipeline stage (e.g., 'Loading workspace...', 'Extracting code model...', 'Building call graph...', 'Computing metrics...', 'Storing results...'). When verbose mode is enabled, print additional detail such as per-project compilation status. After pipeline completion, print formatted summary: 'Analysis complete:\\n  Projects: {count}\\n  Types: {count}\\n  Methods: {count}\\n  Call edges: {count}\\n  Avg complexity: {value:F1}\\n  Duration: {elapsed:F1}s'. Extract counts from the code model and metrics results.",
+            "status": "pending",
+            "testStrategy": "Test that summary output contains correct counts by running against a known fixture solution. Test that --verbose flag produces additional output lines. Capture console output in tests to verify formatting. Test elapsed time is reported and is a reasonable positive value."
+          },
+          {
+            "id": 5,
+            "title": "Implement error handling, exit codes, and output directory management",
+            "description": "Add comprehensive error handling throughout the pipeline with user-friendly error messages, proper exit codes (0 for success, non-zero for failure), and automatic creation of the output directory if it doesn't exist.",
+            "dependencies": [
+              3
+            ],
+            "details": "Wrap the pipeline execution in try-catch blocks to handle common failure modes: FileNotFoundException when solution doesn't exist, InvalidOperationException for workspace loading failures, and general exceptions. Print user-friendly error messages to Console.Error (e.g., 'Error: Solution file not found: {path}'). In verbose mode, include stack traces. Return exit code 0 on success, 1 for general errors, 2 for invalid arguments. Before storing results, call Directory.CreateDirectory(output) to ensure the output directory exists. Handle the case where the output path is invalid or inaccessible. Add a top-level exception handler in Program.cs to catch unhandled exceptions and return a non-zero exit code with a message.",
+            "status": "pending",
+            "testStrategy": "Test that missing solution file returns exit code non-zero with descriptive message. Test that invalid output path produces an error. Test that output directory is created when it doesn't exist. Test that successful run returns exit code 0. Test that verbose mode includes additional error details."
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Implement CLI Query Commands: callgraph, hotspots, tree",
+        "description": "Add CLI commands for querying the stored code graph: exploring call graphs with depth control, finding complexity hotspots, and displaying the code tree structure.",
+        "details": "1. **`callgraph` command:**\n   ```csharp\n   var callgraphCmd = new Command(\"callgraph\", \"Explore method call graph\");\n   callgraphCmd.AddArgument(new Argument<string>(\"method\", \"Method name or pattern\"));\n   callgraphCmd.AddOption(new Option<int>(\"--depth\", () => 2, \"Traversal depth\"));\n   callgraphCmd.AddOption(new Option<string>(\"--direction\", () => \"both\", \"callers|callees|both\"));\n   callgraphCmd.AddOption(new Option<string>(\"--format\", () => \"tree\", \"tree|json\"));\n   ```\n   - Resolve method by name (support partial matching, namespace-qualified)\n   - BFS/DFS traversal to specified depth\n   - Tree output: indented with arrows showing direction\n   - JSON output: nodes + edges format\n\n2. **`hotspots` command:**\n   ```csharp\n   var hotspotsCmd = new Command(\"hotspots\", \"Show complexity hotspots\");\n   hotspotsCmd.AddOption(new Option<int>(\"--top\", () => 20, \"Number of results\"));\n   hotspotsCmd.AddOption(new Option<int>(\"--threshold\", \"Minimum complexity\"));\n   hotspotsCmd.AddOption(new Option<string>(\"--format\", () => \"table\", \"table|json\"));\n   ```\n   - Query methods ordered by cognitive complexity DESC\n   - Display: method name, complexity, LOC, nesting depth, file:line\n\n3. **`tree` command:**\n   ```csharp\n   var treeCmd = new Command(\"tree\", \"Display code structure tree\");\n   treeCmd.AddOption(new Option<string>(\"--namespace\", \"Filter by namespace\"));\n   treeCmd.AddOption(new Option<string>(\"--type\", \"Filter by type name\"));\n   treeCmd.AddOption(new Option<string>(\"--format\", () => \"tree\", \"tree|json\"));\n   ```\n   - Show: Project → Namespace → Type → Methods\n   - Support filtering by namespace or type\n\n4. All commands support `--format json` for machine consumption\n5. All JSON output is deterministic (sorted keys, consistent ordering)",
+        "testStrategy": "Integration tests against a pre-analyzed test database. Test callgraph: verify correct traversal depth, direction filtering, partial name matching. Test hotspots: verify ordering, threshold filtering, correct metrics display. Test tree: verify hierarchy, namespace filtering. Test JSON output is valid and deterministic. Test edge cases: method not found, empty results.",
+        "priority": "medium",
+        "dependencies": [
+          4,
+          7
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement callgraph command with method resolution and partial name matching",
+            "description": "Create the callgraph CLI command with argument parsing, method name resolution supporting partial matching and namespace-qualified names, and wire up the command to System.CommandLine.",
+            "dependencies": [],
+            "details": "1. Define the `callgraph` command using System.CommandLine:\n   - Add `method` argument (string, required) for method name or pattern\n   - Add `--depth` option (int, default 2) for traversal depth\n   - Add `--direction` option (string, default 'both') accepting 'callers', 'callees', or 'both'\n   - Add `--format` option (string, default 'tree') accepting 'tree' or 'json'\n2. Implement `MethodResolver` class that:\n   - Queries the database for methods matching the input pattern\n   - Supports exact match by full qualified name (e.g., 'Namespace.Class.Method')\n   - Supports partial matching by method name only (e.g., 'DoWork' matches 'MyApp.Service.DoWork')\n   - Supports wildcard/glob patterns (e.g., '*Repository.Get*')\n   - Returns disambiguation list if multiple matches found, prompting user to be more specific\n3. Register the command with the root command in Program.cs\n4. Handle error cases: no matches found, ambiguous matches, invalid direction values",
+            "status": "pending",
+            "testStrategy": "Test partial name matching returns correct candidates. Test namespace-qualified lookup finds exact match. Test ambiguous input returns multiple candidates with helpful message. Test invalid method name returns appropriate error."
+          },
+          {
+            "id": 2,
+            "title": "Implement BFS/DFS graph traversal with depth control and direction filtering",
+            "description": "Implement the core graph traversal logic for the callgraph command, supporting BFS traversal with configurable depth limits and directional filtering (callers, callees, or both).",
+            "dependencies": [
+              1
+            ],
+            "details": "1. Create `CallGraphTraverser` class with:\n   - `TraverseAsync(string methodId, int depth, TraversalDirection direction)` method\n   - BFS implementation using a queue with depth tracking\n   - Visited set to avoid cycles in the graph\n2. Implement direction-based traversal:\n   - `callers`: Follow incoming edges (who calls this method) - query CallRelationships where CalleeId matches\n   - `callees`: Follow outgoing edges (what does this method call) - query CallRelationships where CallerId matches\n   - `both`: Traverse in both directions, marking edge direction in results\n3. Depth control:\n   - Track current depth during BFS\n   - Stop expanding nodes beyond specified depth\n   - Include depth level in result nodes for rendering\n4. Return a `CallGraphResult` containing:\n   - Root node (the queried method)\n   - List of nodes with depth levels and method metadata\n   - List of edges with direction indicators\n5. Query the SQLite database for call relationships at each traversal step\n6. Handle edge cases: methods with no callers/callees, self-recursive methods, very deep graphs",
+            "status": "pending",
+            "testStrategy": "Test depth=1 returns only direct callers/callees. Test depth=2 returns transitive relationships. Test direction='callers' only returns incoming edges. Test direction='callees' only returns outgoing edges. Test cycle detection prevents infinite loops. Test self-recursive methods are handled correctly."
+          },
+          {
+            "id": 3,
+            "title": "Implement hotspots command with complexity-ordered queries and threshold filtering",
+            "description": "Create the hotspots CLI command that queries methods ordered by cognitive complexity, supports threshold filtering and top-N limiting, and displays method name, complexity score, LOC, nesting depth, and file location.",
+            "dependencies": [],
+            "details": "1. Define the `hotspots` command using System.CommandLine:\n   - Add `--top` option (int, default 20) for number of results\n   - Add `--threshold` option (int, optional) for minimum complexity score\n   - Add `--format` option (string, default 'table') accepting 'table' or 'json'\n2. Implement `HotspotsQuery` class that:\n   - Queries the database for methods with complexity metrics\n   - Orders results by cognitive complexity DESC\n   - Applies threshold filter: WHERE complexity >= threshold (if specified)\n   - Limits results to top N\n3. Result model includes for each method:\n   - Full qualified method name\n   - Cognitive complexity score\n   - Lines of code (LOC)\n   - Maximum nesting depth\n   - File path and line number (file:line format)\n4. Register command with root command in Program.cs\n5. Handle edge cases: no methods above threshold, empty database, methods without complexity data",
+            "status": "pending",
+            "testStrategy": "Test ordering is by complexity descending. Test --top limits output correctly. Test --threshold filters out methods below the threshold. Test all required fields are present in output. Test empty result set produces helpful message."
+          },
+          {
+            "id": 4,
+            "title": "Implement tree command with namespace/type hierarchy display and filtering",
+            "description": "Create the tree CLI command that displays the code structure as a hierarchy (Project → Namespace → Type → Methods) with support for namespace and type name filtering.",
+            "dependencies": [],
+            "details": "1. Define the `tree` command using System.CommandLine:\n   - Add `--namespace` option (string, optional) to filter by namespace prefix\n   - Add `--type` option (string, optional) to filter by type name\n   - Add `--format` option (string, default 'tree') accepting 'tree' or 'json'\n2. Implement `TreeQuery` class that:\n   - Queries database for the full project → namespace → type → method hierarchy\n   - Applies namespace filter: WHERE namespace LIKE 'filter%' (prefix match)\n   - Applies type filter: WHERE type_name LIKE '%filter%' (contains match)\n   - Builds a hierarchical result model\n3. Tree result model:\n   - `ProjectNode` containing list of `NamespaceNode`\n   - `NamespaceNode` containing list of `TypeNode`\n   - `TypeNode` containing type kind (class/interface/record/struct) and list of `MethodNode`\n   - `MethodNode` with name, return type, parameter count\n4. Tree rendering uses box-drawing characters:\n   - `├──` for intermediate items, `└──` for last items\n   - Different prefixes/icons for different node types\n5. Register command with root command\n6. Handle: empty namespaces after filtering, types with no methods",
+            "status": "pending",
+            "testStrategy": "Test full hierarchy renders correctly with proper indentation. Test --namespace filter shows only matching namespaces. Test --type filter shows only matching types (with parent namespace context). Test combined filters. Test empty result after filtering shows helpful message."
+          },
+          {
+            "id": 5,
+            "title": "Implement table formatting with proper column alignment for all commands",
+            "description": "Create a shared table formatter that renders human-readable table output with proper column alignment, truncation for long values, and consistent styling across all query commands.",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "details": "1. Create `TableFormatter` utility class:\n   - Accept column definitions: name, alignment (left/right), max width\n   - Calculate column widths based on content (auto-sizing)\n   - Support minimum and maximum column widths\n   - Truncate long values with ellipsis ('...')\n2. Implement tree/indented output for callgraph:\n   - Use arrow indicators: `→` for callees, `←` for callers\n   - Indent by depth level (2-4 spaces per level)\n   - Show method signature and file location at each node\n   - Example: `  → ServiceClass.ProcessData() [src/Service.cs:45]`\n3. Implement table output for hotspots:\n   - Columns: Method, Complexity, LOC, MaxNesting, Location\n   - Right-align numeric columns\n   - Header row with separator line\n   - Example: `MyClass.ComplexMethod    42    150    8    src/MyClass.cs:23`\n4. Implement tree output for tree command:\n   - Box-drawing characters for hierarchy (├──, └──, │)\n   - Type annotations: [C] class, [I] interface, [R] record, [S] struct\n   - Method signatures with return types\n5. Add color/ANSI support (optional, respect NO_COLOR env var)\n6. Ensure consistent formatting across all commands",
+            "status": "pending",
+            "testStrategy": "Test column alignment with varying content lengths. Test truncation works correctly at max width. Test tree indentation is consistent. Test hotspots table has correct column headers and separators. Test callgraph tree shows correct arrow directions. Test output respects NO_COLOR environment variable."
+          },
+          {
+            "id": 6,
+            "title": "Implement JSON output format for all commands with deterministic sorted output",
+            "description": "Add JSON output mode to all query commands ensuring deterministic output with sorted keys, consistent ordering of arrays, and a stable schema suitable for machine consumption and piping to other tools.",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "details": "1. Create `JsonOutputFormatter` utility class:\n   - Use System.Text.Json with `JsonSerializerOptions` configured for:\n     - `WriteIndented = true` for readable output\n     - `PropertyNamingPolicy = JsonNamingPolicy.CamelCase`\n     - Custom converter for deterministic key ordering\n   - Ensure all dictionary/object keys are sorted alphabetically\n   - Ensure all arrays have stable ordering (by ID or name)\n2. Define JSON schemas for each command:\n   - **callgraph**: `{ \"root\": { \"id\", \"name\", \"file\" }, \"nodes\": [...], \"edges\": [{ \"from\", \"to\", \"direction\" }], \"metadata\": { \"depth\", \"direction\" } }`\n   - **hotspots**: `{ \"hotspots\": [{ \"method\", \"complexity\", \"loc\", \"maxNesting\", \"location\" }], \"metadata\": { \"total\", \"threshold\", \"top\" } }`\n   - **tree**: `{ \"projects\": [{ \"name\", \"namespaces\": [{ \"name\", \"types\": [{ \"name\", \"kind\", \"methods\": [...] }] }] }] }`\n3. Include metadata in all outputs:\n   - Query parameters used\n   - Timestamp of query\n   - Total count of results\n4. Implement deterministic ordering:\n   - Nodes sorted by full qualified name\n   - Edges sorted by (from, to)\n   - Hotspots sorted by complexity DESC, then name ASC\n   - Tree items sorted alphabetically within each level\n5. Wire `--format json` option to use JsonOutputFormatter in each command handler\n6. Validate output against schema in tests",
+            "status": "pending",
+            "testStrategy": "Test JSON output is valid JSON parseable by standard parsers. Test running same query twice produces byte-identical output (determinism). Test all required fields are present in each command's JSON output. Test metadata contains correct query parameters. Test array ordering is consistent and sorted. Test camelCase property naming."
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Implement Intent Normalization Module",
+        "description": "For each method, generate a normalized structural signature and semantic payload text by tokenizing identifiers, normalizing AST structure, and producing intent-descriptive text for embedding.",
+        "details": "1. Create `IntentNormalizer` class:\n   ```csharp\n   public record NormalizedMethod(\n       string MethodId,\n       string StructuralSignature,  // Normalized AST shape\n       string SemanticPayload        // Human-readable intent text\n   );\n   \n   public class IntentNormalizer\n   {\n       public NormalizedMethod Normalize(MethodModel method, SyntaxNode methodSyntax)\n       {\n           var structural = BuildStructuralSignature(methodSyntax);\n           var semantic = BuildSemanticPayload(method, methodSyntax);\n           return new NormalizedMethod(method.Id, structural, semantic);\n       }\n   }\n   ```\n2. **Structural Signature** generation:\n   - Replace all literals with placeholder tokens (`LIT_STR`, `LIT_NUM`)\n   - Replace local variable names with positional names (`v0`, `v1`)\n   - Keep control flow structure (if/for/while/switch)\n   - Keep method call names but normalize receiver\n   - Result is a canonical AST shape string\n3. **Semantic Payload** generation:\n   - Split PascalCase/camelCase identifiers: `RemoveCustomerTag` → `remove customer tag`\n   - Include: method name tokens, parameter type names, return type\n   - Include: called method name tokens\n   - Include: string literals (potential intent signals)\n   - Concatenate into natural language description\n4. **Identifier tokenization:**\n   - PascalCase split: `GetCustomerById` → [`Get`, `Customer`, `By`, `Id`]\n   - Acronym handling: `HTTPClient` → [`HTTP`, `Client`]\n   - Lowercase normalization\n5. Store normalized data in SQLite (add columns to Methods table or separate NormalizedMethods table)",
+        "testStrategy": "Test structural signature: two methods with same logic but different variable names should produce identical signatures. Test semantic payload: verify PascalCase splitting, acronym handling, and payload includes relevant tokens. Test with various naming conventions. Verify normalization is deterministic.",
+        "priority": "medium",
+        "dependencies": [
+          3,
+          4
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Identifier Tokenizer with PascalCase/camelCase Splitting and Acronym Handling",
+            "description": "Create a utility class that splits compound identifiers into their constituent tokens, handling PascalCase, camelCase, acronyms (e.g., HTTPClient → [HTTP, Client]), underscores, and edge cases like consecutive uppercase letters.",
+            "dependencies": [],
+            "details": "Create an `IdentifierTokenizer` static class with a `Tokenize(string identifier)` method that returns `IReadOnlyList<string>`. Implement splitting logic: 1) Split on underscores first, 2) For each segment, detect transitions between lowercase→uppercase (camelCase boundary), uppercase→uppercase+lowercase (acronym boundary like 'HTTPClient' → 'HTTP'+'Client'), 3) Handle edge cases: single-letter words, all-caps identifiers, numeric segments ('Get2ndItem' → ['Get', '2nd', 'Item']), trailing acronyms ('getURL' → ['get', 'URL']). Add a `TokenizeAndNormalize(string identifier)` method that returns lowercase tokens. Include comprehensive unit tests covering: standard PascalCase ('GetCustomerById' → ['Get','Customer','By','Id']), acronyms ('XMLHTTPRequest' → ['XML','HTTP','Request']), camelCase ('removeTag' → ['remove','Tag']), mixed ('getURLForID' → ['get','URL','For','ID']), underscored ('get_customer_id' → ['get','customer','id']).",
+            "status": "pending",
+            "testStrategy": "Unit tests verifying: PascalCase splitting (GetCustomerById → [Get, Customer, By, Id]), acronym handling (HTTPClient → [HTTP, Client], XMLParser → [XML, Parser]), camelCase (getElementById → [get, Element, By, Id]), edge cases (iOS → [i, OS], ID → [ID]), underscore splitting, numeric segments, empty/null input handling. Verify lowercase normalization produces consistent results."
+          },
+          {
+            "id": 2,
+            "title": "Implement Structural Signature Generation from AST",
+            "description": "Build the structural signature generator that walks a Roslyn SyntaxNode tree and produces a canonical, normalized string representation preserving control flow shape while replacing literals and local variable names with positional placeholders.",
+            "dependencies": [],
+            "details": "Create a `StructuralSignatureBuilder` class with a `Build(SyntaxNode methodSyntax)` method returning a canonical string. Implement a CSharpSyntaxWalker or recursive visitor that: 1) Replaces all string literals with 'LIT_STR', numeric literals with 'LIT_NUM', boolean literals with 'LIT_BOOL', null with 'LIT_NULL', 2) Replaces local variable declarations and references with positional names (v0, v1, v2) based on declaration order, 3) Preserves control flow keywords and structure (if/else/for/foreach/while/do/switch/case/try/catch/finally), 4) Preserves method call names but normalizes the receiver to 'recv' (e.g., 'this.Foo()' and 'obj.Foo()' both become 'recv.Foo()'), 5) Preserves operators and expression structure, 6) Outputs a deterministic, whitespace-normalized string. Track variable name mappings in a dictionary during traversal to ensure consistent positional naming.",
+            "status": "pending",
+            "testStrategy": "Test that two methods with identical logic but different variable names produce the same structural signature. Test literal replacement (strings, numbers, booleans, null all replaced). Test control flow preservation (if/for/while structures retained). Test method call normalization (different receivers produce same output). Test determinism: same input always produces same output. Test with nested control flow, multiple variables, and complex expressions."
+          },
+          {
+            "id": 3,
+            "title": "Implement Semantic Payload Generation",
+            "description": "Build the semantic payload generator that combines tokenized identifiers from method names, parameter types, return types, called method names, and string literals into a natural language description suitable for embedding.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create a `SemanticPayloadBuilder` class with a `Build(MethodModel method, SyntaxNode methodSyntax)` method returning a concatenated natural language string. Implementation: 1) Tokenize and lowercase the method name using IdentifierTokenizer ('RemoveCustomerTag' → 'remove customer tag'), 2) Tokenize parameter type names and include them ('List<Customer>' → 'list customer'), 3) Include the return type tokenized, 4) Walk the syntax tree to find all InvocationExpressions and tokenize called method names, 5) Extract string literal values from the method body as potential intent signals, 6) Concatenate all tokens into a space-separated natural language string with section markers or ordering: '[method] remove customer tag [params] string customer id [returns] bool [calls] find customer delete tag [literals] customer not found'. Ensure deduplication of repeated tokens and consistent ordering for determinism.",
+            "status": "pending",
+            "testStrategy": "Test that method name is properly split and included (RemoveCustomerTag → 'remove customer tag'). Test parameter types are tokenized and included. Test return type inclusion. Test that called method names are extracted from syntax tree and tokenized. Test string literals are included. Test overall payload is deterministic for same input. Test with methods having no parameters, void return, no method calls. Test deduplication of repeated tokens."
+          },
+          {
+            "id": 4,
+            "title": "Create IntentNormalizer Class Combining Structural and Semantic Normalization",
+            "description": "Implement the main IntentNormalizer class that orchestrates structural signature and semantic payload generation for each method, producing a NormalizedMethod record with both representations.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Create the `NormalizedMethod` record type with properties: MethodId (string), StructuralSignature (string), SemanticPayload (string). Create the `IntentNormalizer` class that: 1) Takes dependencies on StructuralSignatureBuilder and SemanticPayloadBuilder (inject via constructor for testability), 2) Implements `NormalizedMethod Normalize(MethodModel method, SyntaxNode methodSyntax)` that calls both builders and returns the combined result, 3) Implements `IReadOnlyList<NormalizedMethod> NormalizeAll(IEnumerable<(MethodModel, SyntaxNode)> methods)` for batch processing, 4) Handles error cases gracefully (null syntax nodes, methods without bodies like abstract/interface methods - produce empty structural signature but still generate semantic payload from declaration), 5) Add logging for normalization statistics (methods processed, failures). Ensure the class is registered in the DI container if the project uses one.",
+            "status": "pending",
+            "testStrategy": "Integration test: normalize a complete method and verify both structural signature and semantic payload are populated and non-empty. Test with abstract methods (no body) produces semantic payload but empty/minimal structural signature. Test batch normalization processes all methods. Test error handling for null inputs. Test that NormalizedMethod record equality works correctly for deduplication scenarios. Verify determinism by normalizing same method twice and comparing results."
+          },
+          {
+            "id": 5,
+            "title": "Add NormalizedMethods Storage Table in SQLite",
+            "description": "Create a NormalizedMethods table in the SQLite database to persist structural signatures and semantic payloads, with methods to store and retrieve normalized data linked to method IDs.",
+            "dependencies": [
+              4
+            ],
+            "details": "Add a `NormalizedMethods` table to the SQLite schema with columns: MethodId (TEXT PRIMARY KEY, FK to Methods), StructuralSignature (TEXT NOT NULL), SemanticPayload (TEXT NOT NULL), NormalizedAt (TEXT, ISO 8601 timestamp). Create or extend a repository class with methods: 1) `SaveNormalizedMethod(NormalizedMethod method)` - upsert a single normalized method, 2) `SaveNormalizedMethods(IEnumerable<NormalizedMethod> methods)` - batch upsert with transaction for performance, 3) `GetNormalizedMethod(string methodId)` - retrieve by ID, 4) `GetAllNormalizedMethods()` - retrieve all for batch embedding generation, 5) `GetMethodsNeedingNormalization()` - find methods without normalization entries (for incremental processing). Use parameterized queries to prevent SQL injection. Add migration logic to create the table if it doesn't exist. Ensure the foreign key to the Methods table is properly defined.",
+            "status": "pending",
+            "testStrategy": "Test table creation and migration (table created if not exists, idempotent). Test save and retrieve round-trip (save NormalizedMethod, read back, verify all fields match). Test batch save with transaction (multiple methods saved atomically). Test upsert behavior (saving same MethodId twice updates the record). Test GetMethodsNeedingNormalization returns only methods without normalization. Test foreign key constraint (cannot save normalization for non-existent method). Test with empty database."
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Implement Local Embedding Engine and Vector Index",
+        "description": "Integrate a local open-source embedding model to generate vector embeddings for each method's semantic payload, and implement a vector index for kNN similarity search.",
+        "details": "1. **Embedding Model Selection:**\n   - Use `Microsoft.ML.OnnxRuntime` to run a local ONNX embedding model\n   - Recommended model: `all-MiniLM-L6-v2` (384 dimensions, fast, good quality)\n   - Download model on first run to `./ai-code-graph/models/`\n   - Alternative: use `SmartComponents.LocalEmbeddings` or `Microsoft.SemanticKernel` with local provider\n\n2. Create `EmbeddingEngine` class:\n   ```csharp\n   public class EmbeddingEngine : IDisposable\n   {\n       public float[] GenerateEmbedding(string text);\n       public List<(string MethodId, float[] Vector)> GenerateEmbeddings(List<NormalizedMethod> methods);\n   }\n   ```\n3. **Vector Index** implementation:\n   - Use a simple in-memory HNSW index or flat index for v1\n   - Consider `Annoy.Net`, `HNSW.Net`, or implement flat brute-force for small codebases\n   - Persist vectors to disk: `./ai-code-graph/vectors/` as binary files\n   - Load into memory for search operations\n\n4. Create `VectorIndex` class:\n   ```csharp\n   public class VectorIndex\n   {\n       public void BuildIndex(List<(string Id, float[] Vector)> items);\n       public List<(string Id, float Score)> Search(float[] query, int topK = 10);\n       public void SaveToDisk(string path);\n       public void LoadFromDisk(string path);\n   }\n   ```\n5. Cosine similarity for distance metric\n6. Batch embedding generation with progress reporting\n7. Cache embeddings - only regenerate for changed methods",
+        "testStrategy": "Test embedding generation produces consistent vectors for same input. Test vector dimensions match expected (384 for MiniLM). Test kNN search returns correct nearest neighbors for known similar texts. Test persistence: save and reload vectors, verify search still works. Benchmark embedding generation time for 1000 methods. Test with edge cases: empty text, very long text.",
+        "priority": "medium",
+        "dependencies": [
+          9
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Research and Set Up ONNX Model Download/Caching Infrastructure",
+            "description": "Select the all-MiniLM-L6-v2 ONNX embedding model and implement infrastructure to download, cache, and validate the model file on first run.",
+            "dependencies": [],
+            "details": "1. Add `Microsoft.ML.OnnxRuntime` NuGet package to the project.\n2. Create a `ModelManager` class responsible for:\n   - Checking if the model exists at `./ai-code-graph/models/all-MiniLM-L6-v2.onnx`\n   - Downloading the ONNX model from HuggingFace if not present (use HttpClient with progress reporting)\n   - Validating the downloaded file (check file size, optionally SHA256 hash)\n   - Providing the model path to the EmbeddingEngine\n3. Handle cross-platform path considerations (Windows/Linux/Mac).\n4. Include the tokenizer vocabulary file (`vocab.txt`) for the model's WordPiece tokenizer.\n5. Add configuration options for custom model paths.\n6. Consider retry logic for failed downloads and partial download resume support.",
+            "status": "pending",
+            "testStrategy": "Test that ModelManager correctly identifies when model is missing and triggers download. Mock HttpClient to verify download logic without network calls. Test path resolution on different platforms. Test validation rejects corrupted/incomplete files. Test that subsequent calls use cached model without re-downloading."
+          },
+          {
+            "id": 2,
+            "title": "Implement EmbeddingEngine Class with ONNX Runtime and Tokenization",
+            "description": "Create the EmbeddingEngine class that loads the ONNX model via OnnxRuntime, implements WordPiece tokenization matching the model's training, and generates 384-dimensional embeddings.",
+            "dependencies": [
+              1
+            ],
+            "details": "1. Implement `EmbeddingEngine : IDisposable` class:\n   - Initialize `InferenceSession` with the ONNX model path\n   - Configure session options (thread count, execution provider)\n   - Implement proper disposal of the InferenceSession\n2. Implement WordPiece tokenizer matching all-MiniLM-L6-v2 requirements:\n   - Load `vocab.txt` vocabulary file\n   - Implement text preprocessing: lowercase, Unicode normalization, punctuation handling\n   - Implement WordPiece subword tokenization with `[UNK]` handling\n   - Add special tokens: `[CLS]` at start, `[SEP]` at end\n   - Generate `input_ids`, `attention_mask`, and `token_type_ids` tensors\n   - Handle max sequence length (512 tokens) with truncation\n3. Implement `float[] GenerateEmbedding(string text)` method:\n   - Tokenize input text\n   - Create OrtValue tensors for model input\n   - Run inference\n   - Apply mean pooling over token embeddings (using attention mask)\n   - L2-normalize the resulting vector\n   - Return 384-dimensional float array\n4. Key challenge: Ensuring tokenizer output exactly matches the model's expected input format.",
+            "status": "pending",
+            "testStrategy": "Test that GenerateEmbedding returns a 384-dimensional vector. Test that the same input always produces the same embedding (determinism). Test that semantically similar texts produce high cosine similarity (>0.7). Test that dissimilar texts produce low similarity (<0.3). Test max sequence length truncation. Test special character and Unicode handling in tokenizer. Test proper resource disposal."
+          },
+          {
+            "id": 3,
+            "title": "Implement Batch Embedding Generation with Progress Reporting",
+            "description": "Add batch processing capability to EmbeddingEngine that efficiently generates embeddings for multiple methods with progress callbacks and cancellation support.",
+            "dependencies": [
+              2
+            ],
+            "details": "1. Implement `List<(string MethodId, float[] Vector)> GenerateEmbeddings(List<NormalizedMethod> methods, IProgress<int>? progress = null, CancellationToken ct = default)` method:\n   - Accept a list of NormalizedMethod objects (from Task 9's semantic payload normalization)\n   - Build semantic text from each method's normalized payload (combine name, parameters, body summary, doc comments)\n   - Process in configurable batch sizes (default: 32) to balance memory and throughput\n   - Report progress after each batch completion\n   - Support cancellation between batches\n2. Implement text preparation logic:\n   - Concatenate method signature, doc comments, and normalized body into a single embedding input string\n   - Truncate to reasonable length before tokenization\n3. Consider parallel tokenization (CPU-bound) with sequential inference (GPU/CPU bound through ONNX)\n4. Add logging for batch processing statistics (methods/second, total time)\n5. Handle errors gracefully: log and skip methods that fail tokenization, don't abort entire batch.",
+            "status": "pending",
+            "testStrategy": "Test batch processing produces same results as individual processing. Test progress reporting fires correct number of times. Test cancellation stops processing mid-batch. Test error handling: one bad input doesn't crash the batch. Benchmark: measure throughput for 100, 1000, 5000 methods. Test that method ID mapping is preserved correctly in output."
+          },
+          {
+            "id": 4,
+            "title": "Implement VectorIndex Class with Cosine Similarity Search",
+            "description": "Create the VectorIndex class implementing flat brute-force kNN search using cosine similarity, with support for building, querying, and managing the in-memory index.",
+            "dependencies": [
+              2
+            ],
+            "details": "1. Implement `VectorIndex` class:\n   ```csharp\n   public class VectorIndex\n   {\n       private List<(string Id, float[] Vector)> _items;\n       private int _dimensions; // 384 for MiniLM\n       \n       public void BuildIndex(List<(string Id, float[] Vector)> items);\n       public List<(string Id, float Score)> Search(float[] query, int topK = 10);\n       public void AddItem(string id, float[] vector);\n       public void RemoveItem(string id);\n       public int Count { get; }\n   }\n   ```\n2. Implement cosine similarity calculation:\n   - `CosineSimilarity(float[] a, float[] b)` using dot product / (magnitude_a * magnitude_b)\n   - Pre-normalize vectors during BuildIndex for faster search (then cosine = dot product)\n   - Use SIMD intrinsics (`System.Numerics.Vector<float>`) for vectorized dot product computation\n3. Implement brute-force search:\n   - Compute similarity against all indexed vectors\n   - Use a min-heap or partial sort to efficiently find top-K results\n   - Return results sorted by descending similarity score\n4. Validate input dimensions match expected (384)\n5. Thread-safety: use `ReaderWriterLockSlim` for concurrent read access during search\n6. Consider future HNSW upgrade path: define `IVectorIndex` interface for abstraction.",
+            "status": "pending",
+            "testStrategy": "Test with known vectors: insert [1,0,0], [0,1,0], [0,0,1] and verify query [1,0,0] returns first item with score 1.0. Test top-K returns correct number of results. Test cosine similarity correctness against reference implementation. Test with 384-dimensional vectors matching real embedding output. Benchmark search performance with 10K, 50K vectors. Test thread-safety with concurrent reads during search. Test edge cases: empty index, K > count, duplicate IDs."
+          },
+          {
+            "id": 5,
+            "title": "Implement Vector Persistence (Save/Load to Disk)",
+            "description": "Add binary serialization for the vector index, enabling save to and load from disk at the ./ai-code-graph/vectors/ path with efficient binary format.",
+            "dependencies": [
+              4
+            ],
+            "details": "1. Add persistence methods to VectorIndex:\n   ```csharp\n   public void SaveToDisk(string path);\n   public void LoadFromDisk(string path);\n   ```\n2. Design binary file format:\n   - Header: magic bytes (4 bytes), version (4 bytes), dimension count (4 bytes), item count (4 bytes)\n   - For each item: ID length (4 bytes), ID string (UTF-8), vector data (dimensions * 4 bytes as float32)\n   - Footer: checksum (optional, for integrity verification)\n3. Implementation details:\n   - Use `BinaryWriter`/`BinaryReader` for efficient serialization\n   - Write vectors directory to `./ai-code-graph/vectors/index.bin`\n   - Support versioning in format header for future format changes\n   - Memory-map large files if needed (for future optimization)\n4. Directory management:\n   - Create `./ai-code-graph/vectors/` directory if it doesn't exist\n   - Support configurable base path\n5. Handle corruption gracefully: validate header on load, provide clear error messages\n6. Add metadata file alongside binary (JSON with creation timestamp, method count, model version used)",
+            "status": "pending",
+            "testStrategy": "Test round-trip: build index, save to disk, load into new instance, verify search produces identical results. Test file format versioning: load v1 file with v2 code gracefully. Test corruption detection: truncated file, bad magic bytes, wrong dimensions. Test with empty index. Test with large index (50K vectors) for performance. Verify file size matches expected (header + count * (id_size + 384*4)). Test metadata file is written and readable."
+          },
+          {
+            "id": 6,
+            "title": "Add Embedding Caching Logic for Changed Method Detection",
+            "description": "Implement smart caching that detects which methods have changed since last embedding generation and only regenerates embeddings for modified methods, preserving unchanged embeddings.",
+            "dependencies": [
+              3,
+              5
+            ],
+            "details": "1. Create `EmbeddingCache` class:\n   ```csharp\n   public class EmbeddingCache\n   {\n       public List<string> GetChangedMethodIds(List<NormalizedMethod> currentMethods);\n       public void UpdateCache(List<(string MethodId, float[] Vector)> newEmbeddings);\n       public List<(string MethodId, float[] Vector)> GetCachedEmbeddings();\n       public void RemoveStaleEntries(List<string> currentMethodIds);\n   }\n   ```\n2. Change detection strategy:\n   - Store a content hash (SHA256 or xxHash for speed) of each method's semantic payload alongside its embedding\n   - On re-analysis, compute hash of current method payload\n   - Compare with stored hash: if different, mark for re-embedding\n   - Handle new methods (no cached hash) and removed methods (stale cache entries)\n3. Cache storage:\n   - Store hash map as JSON or binary file: `./ai-code-graph/vectors/cache-manifest.json`\n   - Format: `{ \"methodId\": { \"hash\": \"abc123\", \"vectorOffset\": 0 } }`\n4. Integration with EmbeddingEngine:\n   - Create orchestration method that coordinates cache checking, selective re-embedding, and cache updating\n   - Merge new embeddings with cached ones for complete index rebuild\n5. Handle edge cases:\n   - Model version change (invalidate all cache)\n   - Renamed methods (new ID = new embedding needed, old removed)\n   - Store model version in manifest to detect model changes",
+            "status": "pending",
+            "testStrategy": "Test that unchanged methods are not re-embedded (mock EmbeddingEngine, verify it's not called for cached methods). Test that modified methods trigger re-embedding. Test that new methods are embedded. Test that removed methods are purged from cache. Test model version change invalidates entire cache. Test hash consistency: same input always produces same hash. Test manifest file round-trip serialization. Integration test: modify one method in a set of 100, verify only 1 embedding is regenerated."
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "Implement Duplicate Detection and Intent Clustering",
+        "description": "Detect structural clones (AST similarity) and semantic clones (embedding similarity), compute hybrid scores, and cluster methods by intent to identify patterns like 'permission checks' or 'tag management'.",
+        "details": "1. **Structural Clone Detection:**\n   ```csharp\n   public class StructuralCloneDetector\n   {\n       public List<ClonePair> DetectClones(List<NormalizedMethod> methods, float threshold = 0.8f)\n       {\n           // Compare structural signatures\n           // Use edit distance or token-level Jaccard similarity\n           // Return pairs above threshold\n       }\n   }\n   ```\n2. **Semantic Clone Detection:**\n   ```csharp\n   public class SemanticCloneDetector\n   {\n       public List<ClonePair> DetectClones(VectorIndex index, List<NormalizedMethod> methods, float threshold = 0.85f)\n       {\n           // For each method, find k nearest neighbors\n           // Filter by cosine similarity threshold\n           // Return pairs\n       }\n   }\n   ```\n3. **Hybrid Scoring:**\n   - `HybridScore = α * StructuralSimilarity + (1-α) * SemanticSimilarity`\n   - Default α = 0.4 (favor semantic similarity)\n   - Configurable threshold for reporting\n\n4. **Intent Clustering:**\n   ```csharp\n   public class IntentClusterer\n   {\n       public List<IntentCluster> ClusterMethods(List<NormalizedMethod> methods, VectorIndex index)\n       {\n           // Use DBSCAN or agglomerative clustering on embedding vectors\n           // Label clusters using common tokens from semantic payloads\n           // Return labeled clusters with member methods\n       }\n   }\n   ```\n5. Create `IntentCluster` record: `(string Id, string Label, string Description, List<string> MethodIds, float Cohesion)`\n6. Auto-label clusters by finding most common identifier tokens among members\n7. Store clusters and clone pairs in SQLite\n8. Support configurable thresholds via CLI options",
+        "testStrategy": "Create test fixtures with known duplicates: exact clones, near-clones (renamed variables), semantic clones (same intent, different implementation). Verify structural detection catches renamed-variable clones. Verify semantic detection catches different-implementation clones. Test clustering produces meaningful groups. Verify hybrid scoring correctly combines both signals.",
+        "priority": "medium",
+        "dependencies": [
+          9,
+          10
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement StructuralCloneDetector with Token-Level Jaccard Similarity",
+            "description": "Create the StructuralCloneDetector class that compares normalized method structural signatures using edit distance and token-level Jaccard similarity to identify structural clones above a configurable threshold.",
+            "dependencies": [],
+            "details": "Implement StructuralCloneDetector in the Core project with a DetectClones method that accepts a list of NormalizedMethod objects and a similarity threshold (default 0.8f). For each pair of methods, compute token-level Jaccard similarity on their structural signatures (tokenized type sequences, control flow patterns). Also implement Levenshtein edit distance as an alternative metric for finer-grained comparison. Use early termination when signature length differences exceed threshold bounds to optimize the O(n²) pairwise comparison. Return a List<ClonePair> containing method ID pairs and their structural similarity scores. Define ClonePair as a record: (string MethodIdA, string MethodIdB, float StructuralSimilarity, float SemanticSimilarity, float HybridScore, CloneType Type). Consider batching comparisons and parallelizing with Parallel.ForEach for large method sets.",
+            "status": "pending",
+            "testStrategy": "Create test fixtures with known structural clones: exact copies, renamed-variable clones (Type I/II), reordered-statement clones. Verify detector identifies exact clones with score 1.0. Verify renamed-variable clones score above 0.8 threshold. Verify structurally different methods score below threshold. Test with empty input and single-method input. Benchmark with 500+ methods to ensure O(n²) is manageable."
+          },
+          {
+            "id": 2,
+            "title": "Implement SemanticCloneDetector with kNN Embedding Search",
+            "description": "Create the SemanticCloneDetector class that uses the VectorIndex to perform kNN search on method embedding vectors, identifying semantically similar method pairs above a cosine similarity threshold.",
+            "dependencies": [],
+            "details": "Implement SemanticCloneDetector with a DetectClones method that accepts a VectorIndex, a list of NormalizedMethod objects, and a similarity threshold (default 0.85f). For each method, query the VectorIndex for k nearest neighbors (k configurable, default 10). Filter results by cosine similarity threshold, excluding self-matches. Deduplicate pairs (A,B) and (B,A) into a single ClonePair. Populate the SemanticSimilarity field in each ClonePair. Handle edge cases: methods without embeddings (skip with warning), empty index, threshold of 1.0 (exact matches only). Use batch querying if the VectorIndex supports it to reduce overhead.",
+            "status": "pending",
+            "testStrategy": "Create test fixtures with known semantic clones: methods that implement the same logic differently (e.g., iterative vs recursive, LINQ vs loops). Verify detector identifies same-intent methods above threshold. Verify unrelated methods score below threshold. Test with pre-computed embeddings for deterministic results. Test deduplication of symmetric pairs. Test behavior when methods lack embeddings."
+          },
+          {
+            "id": 3,
+            "title": "Implement Hybrid Scoring with Configurable Alpha Weight",
+            "description": "Implement the hybrid scoring formula that combines structural and semantic similarity scores with a configurable alpha weight, and produce a unified ranked list of clone pairs.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Create a HybridScorer class that takes structural clone pairs and semantic clone pairs, merges them by method ID pair, and computes HybridScore = α * StructuralSimilarity + (1-α) * SemanticSimilarity. Default α = 0.4 (favoring semantic similarity). For pairs found only by one detector, use 0.0 for the missing score. Support a configurable hybrid threshold for filtering the final output. Implement a Merge method that unions both sets of pairs, joining on (MethodIdA, MethodIdB), and computes the hybrid score. Classify clone types: Type1 (structural > 0.95), Type2 (structural > 0.8), Semantic (semantic > 0.85, structural < 0.8). Sort results by hybrid score descending. Expose alpha and threshold as constructor parameters or options.",
+            "status": "pending",
+            "testStrategy": "Test with known structural and semantic scores: verify hybrid formula produces correct values for α=0.4 (e.g., structural=0.9, semantic=0.8 → 0.36+0.48=0.84). Test with α=0.0 (pure semantic) and α=1.0 (pure structural). Test merge logic when pairs exist in only one detector's output. Test threshold filtering removes below-threshold pairs. Test clone type classification is correct."
+          },
+          {
+            "id": 4,
+            "title": "Implement IntentClusterer with DBSCAN on Embedding Vectors",
+            "description": "Implement the IntentClusterer class that groups methods by semantic intent using DBSCAN clustering on their embedding vectors, producing labeled clusters with cohesion scores.",
+            "dependencies": [],
+            "details": "Create IntentClusterer with a ClusterMethods method that accepts NormalizedMethod list and VectorIndex. Extract embedding vectors for all methods from the index. Implement DBSCAN algorithm with configurable epsilon (default 0.3 for cosine distance) and minPoints (default 3). Use cosine distance (1 - cosine_similarity) as the distance metric. For each resulting cluster, compute cohesion as the average pairwise cosine similarity of members. Create IntentCluster record: (string Id, string Label, string Description, List<string> MethodIds, float Cohesion). Generate cluster IDs as 'cluster-{n}'. Mark noise points (not in any cluster) separately. Consider implementing agglomerative clustering as a fallback when DBSCAN produces too many noise points (>50% of methods).",
+            "status": "pending",
+            "testStrategy": "Create test embeddings for methods with known groupings (e.g., 5 permission-check methods, 5 tag-management methods, 3 unrelated). Verify DBSCAN groups similar methods correctly. Test with different epsilon values to ensure configurability. Test cohesion calculation matches expected average similarity. Test noise point handling. Test fallback to agglomerative when too many noise points."
+          },
+          {
+            "id": 5,
+            "title": "Implement Cluster Auto-Labeling Using Common Identifier Tokens",
+            "description": "Implement automatic label generation for intent clusters by analyzing the most frequent identifier tokens and semantic payload terms among cluster members.",
+            "dependencies": [
+              4
+            ],
+            "details": "Create a ClusterLabeler class with a LabelCluster method that accepts an IntentCluster and the corresponding NormalizedMethod objects. Extract identifier tokens from each member method: method names (split by camelCase/PascalCase), parameter names, return type names, and key tokens from semantic payloads. Compute token frequency across all members, excluding common stop-words (get, set, is, has, the, a, etc.) and C# keywords. Select top 2-3 most frequent meaningful tokens to form the label (e.g., 'permission check', 'tag management', 'customer validation'). Generate a description by combining the label with member count and average cohesion. Handle edge cases: single-member clusters, clusters with no common tokens (use 'miscellaneous-{n}'). Apply the labeler to all clusters produced by IntentClusterer.",
+            "status": "pending",
+            "testStrategy": "Create clusters with known method names: methods like CheckPermission, ValidatePermission, VerifyPermission should produce label 'permission'. Test camelCase splitting works correctly. Test stop-word filtering removes noise tokens. Test with clusters having no common tokens generates fallback label. Test description generation includes member count and cohesion."
+          },
+          {
+            "id": 6,
+            "title": "Store Clone Pairs and Intent Clusters in SQLite",
+            "description": "Create SQLite tables for persisting clone pairs (ClonePairs) and intent clusters (IntentClusters, MethodClusterMap), with methods for insert, query, and threshold-based filtering.",
+            "dependencies": [
+              3,
+              5
+            ],
+            "details": "Extend the existing SQLite database schema with three tables: 1) ClonePairs (MethodIdA TEXT, MethodIdB TEXT, StructuralSimilarity REAL, SemanticSimilarity REAL, HybridScore REAL, CloneType TEXT, PRIMARY KEY(MethodIdA, MethodIdB)). 2) IntentClusters (ClusterId TEXT PRIMARY KEY, Label TEXT, Description TEXT, Cohesion REAL, MemberCount INTEGER). 3) MethodClusterMap (MethodId TEXT, ClusterId TEXT, PRIMARY KEY(MethodId, ClusterId), FOREIGN KEY ClusterId REFERENCES IntentClusters). Create a DuplicateRepository class with methods: SaveClonePairs(List<ClonePair>), GetClonePairs(float minThreshold, string type), SaveClusters(List<IntentCluster>), GetClusters(), GetClusterMembers(string clusterId). Use transactions for batch inserts. Add indexes on HybridScore and CloneType for efficient filtering. Support upsert semantics for re-analysis runs.",
+            "status": "pending",
+            "testStrategy": "Test table creation on fresh database. Test SaveClonePairs inserts correctly and GetClonePairs retrieves with threshold filtering. Test type filtering (structural/semantic/all). Test SaveClusters and GetClusterMembers round-trip. Test upsert behavior on re-analysis. Test foreign key constraints between MethodClusterMap and IntentClusters. Test index usage with EXPLAIN QUERY PLAN."
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "title": "Implement Natural Language Search Command",
+        "description": "Add CLI `search` command that accepts natural language queries, generates embeddings for the query, and returns the most semantically similar methods from the codebase.",
+        "details": "1. **`search` command:**\n   ```csharp\n   var searchCmd = new Command(\"search\", \"Search code by natural language intent\");\n   searchCmd.AddArgument(new Argument<string>(\"query\", \"Natural language search query\"));\n   searchCmd.AddOption(new Option<int>(\"--top\", () => 10, \"Number of results\"));\n   searchCmd.AddOption(new Option<float>(\"--threshold\", () => 0.5f, \"Minimum similarity score\"));\n   searchCmd.AddOption(new Option<string>(\"--format\", () => \"table\", \"table|json\"));\n   ```\n2. Search pipeline:\n   ```csharp\n   async Task<int> ExecuteSearch(string query, int top, float threshold, string format)\n   {\n       // 1. Load embedding model\n       // 2. Generate embedding for query text\n       // 3. Load vector index from disk\n       // 4. Perform kNN search\n       // 5. Filter by threshold\n       // 6. Enrich results with method metadata from SQLite\n       // 7. Display results\n   }\n   ```\n3. Result display (table format):\n   ```\n   Score  Method                              File:Line\n   0.92   CustomerService.RemoveTag           Services/Customer.cs:45\n   0.87   TagManager.DeleteCustomerTag        Managers/TagManager.cs:112\n   0.81   CustomerTagHandler.Handle           Handlers/CustomerTag.cs:23\n   ```\n4. JSON format includes: methodId, fullName, score, filePath, line, cognitiveComplexity\n5. Handle case where vector index doesn't exist (prompt user to run `analyze` first)\n6. Support quoted exact phrases for boosting",
+        "testStrategy": "Test with known queries against pre-built index: 'remove customer tag' should rank tag-removal methods highest. Test threshold filtering excludes low-similarity results. Test JSON output format is valid and contains all required fields. Test error case when index doesn't exist. Test with empty results.",
+        "priority": "medium",
+        "dependencies": [
+          10,
+          8
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement search command definition with System.CommandLine",
+            "description": "Define the `search` command using System.CommandLine with a required query argument and options for --top (default 10), --threshold (default 0.5f), and --format (default \"table\"). Wire the command handler to invoke the search pipeline. Include validation that the vector index exists on disk before proceeding, displaying a helpful error message prompting the user to run `analyze` first if missing.",
+            "dependencies": [],
+            "details": "Create the search command in the CLI entry point using System.CommandLine:\n- Add `Argument<string>(\"query\", \"Natural language search query\")`\n- Add `Option<int>(\"--top\", () => 10, \"Number of results\")`\n- Add `Option<float>(\"--threshold\", () => 0.5f, \"Minimum similarity score\")`\n- Add `Option<string>(\"--format\", () => \"table\", \"table|json\")`\n- In the handler, check if the vector index file exists on disk before proceeding. If not, print an error: \"No vector index found. Run 'analyze' first to build embeddings.\" and return exit code 1.\n- Pass parsed arguments to the ExecuteSearch pipeline method.",
+            "status": "pending",
+            "testStrategy": "Test command parsing with various argument combinations. Verify defaults are applied correctly when options are omitted. Test the error path when the vector index file does not exist. Verify exit code is 1 on missing index and 0 on success."
+          },
+          {
+            "id": 2,
+            "title": "Implement search pipeline: embed query and perform kNN search",
+            "description": "Implement the core search pipeline that loads the embedding model, generates an embedding vector for the user's query text, loads the persisted vector index from disk, performs kNN search to find the top-N most similar method embeddings, and filters results by the similarity threshold.",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement the `ExecuteSearch` method's core logic:\n1. Load the EmbeddingEngine (from Task 10) - instantiate or reuse the ONNX-based embedding model.\n2. Call `GenerateEmbedding(query)` to get the query vector (float[] of 384 dimensions for MiniLM).\n3. Load the persisted vector index from the expected disk path (the index built during the `analyze` command).\n4. Perform kNN search with the query vector, requesting `top` results.\n5. Filter the returned results by the `threshold` parameter, removing any entries with similarity score below the threshold.\n6. Return the list of (methodId, score) pairs for downstream enrichment.\n\nThis is a linear pipeline that composes existing components from Task 10's EmbeddingEngine and vector index.",
+            "status": "pending",
+            "testStrategy": "Test with a pre-built index containing known method embeddings. Verify that a query semantically similar to a known method (e.g., 'remove customer tag') returns that method with a high score. Test threshold filtering removes low-score results. Test that requesting --top=3 returns at most 3 results. Test with an empty query returns gracefully."
+          },
+          {
+            "id": 3,
+            "title": "Implement result enrichment from SQLite metadata",
+            "description": "Join the vector search results (methodId + score pairs) with the SQLite database to enrich each result with full method metadata including qualified name, file path, line number, and cognitive complexity score.",
+            "dependencies": [
+              2
+            ],
+            "details": "After the kNN search returns a list of (methodId, score) pairs:\n1. Open the SQLite database (from Task 4/8 infrastructure).\n2. Query method metadata for each methodId - retrieve: fullName, filePath, lineNumber, cognitiveComplexity, returnType, and any other relevant fields.\n3. Build enriched result objects containing: methodId, fullName, score, filePath, line, cognitiveComplexity.\n4. Sort results by score descending (deterministic ordering - for equal scores, use fullName as tiebreaker).\n5. Return the enriched result list for formatting.\n\nUse a single batch query (WHERE id IN (...)) rather than N individual queries for efficiency.",
+            "status": "pending",
+            "testStrategy": "Test with a pre-populated SQLite database containing known method records. Verify enrichment correctly joins methodId to full metadata. Verify deterministic ordering by score descending with fullName tiebreaker. Test handling of a methodId that exists in the vector index but is missing from SQLite (should skip or show partial info gracefully)."
+          },
+          {
+            "id": 4,
+            "title": "Implement table and JSON output formatters",
+            "description": "Implement the two output formats for search results: a human-readable table format showing Score, Method, and File:Line columns, and a machine-readable JSON format containing all enriched fields. Selection is controlled by the --format option.",
+            "dependencies": [
+              3
+            ],
+            "details": "Implement output formatting based on the --format option value:\n\n**Table format (default):**\n- Print header: `Score  Method                              File:Line`\n- For each result, print: `{score:F2}   {fullName padded}   {filePath}:{line}`\n- Right-align scores, left-align method names with consistent column widths.\n- If no results after filtering, print: \"No results found above threshold {threshold}.\"\n\n**JSON format:**\n- Serialize the result list as a JSON array where each element contains: methodId, fullName, score, filePath, line, cognitiveComplexity.\n- Use System.Text.Json with indented formatting.\n- Ensure deterministic ordering (same as table: score desc, fullName tiebreaker).\n\nBoth formats should write to stdout. Return exit code 0 on success.",
+            "status": "pending",
+            "testStrategy": "Test table output matches expected column alignment and formatting for known inputs. Test JSON output is valid JSON and contains all required fields (methodId, fullName, score, filePath, line, cognitiveComplexity). Test deterministic ordering is consistent between table and JSON formats. Test the empty results message when no methods pass the threshold. Verify scores are formatted to 2 decimal places in table output."
+          }
+        ]
+      },
+      {
+        "id": 13,
+        "title": "Implement Duplicates CLI Command",
+        "description": "Add CLI `duplicates` command to query and display detected code duplicates, supporting filtering by concept/cluster and different output formats.",
+        "details": "1. **`duplicates` command:**\n   ```csharp\n   var duplicatesCmd = new Command(\"duplicates\", \"Show detected code duplicates\");\n   duplicatesCmd.AddOption(new Option<string>(\"--concept\", \"Filter by intent cluster label\"));\n   duplicatesCmd.AddOption(new Option<float>(\"--threshold\", () => 0.8f, \"Minimum similarity\"));\n   duplicatesCmd.AddOption(new Option<string>(\"--type\", () => \"all\", \"structural|semantic|all\"));\n   duplicatesCmd.AddOption(new Option<int>(\"--top\", () => 20, \"Number of results\"));\n   duplicatesCmd.AddOption(new Option<string>(\"--format\", () => \"table\", \"table|json\"));\n   ```\n2. Query pipeline:\n   - Load clone pairs from SQLite\n   - Filter by concept (match against intent cluster labels)\n   - Filter by type (structural, semantic, or both)\n   - Filter by threshold\n   - Sort by hybrid score descending\n3. Table output:\n   ```\n   Score  Type        Method A                        Method B\n   0.95   structural  OrderService.Validate           CartService.Validate\n   0.91   semantic    PermissionCheck.HasAccess       AuthGuard.VerifyPermission\n   ```\n4. JSON output includes full method details and cluster associations\n5. **`export` command:**\n   ```csharp\n   var exportCmd = new Command(\"export\", \"Export code graph data\");\n   exportCmd.AddOption(new Option<string>(\"--concept\", \"Filter by concept\"));\n   exportCmd.AddOption(new Option<string>(\"--format\", () => \"json\", \"json|csv\"));\n   ```\n   - Export filtered subsets of the code graph\n   - Include methods, relationships, metrics for the specified concept\n6. All output deterministic and sorted",
+        "testStrategy": "Integration tests with pre-populated database containing known duplicates. Test concept filtering returns only matching clusters. Test type filtering correctly separates structural and semantic clones. Test threshold filtering. Test JSON output is valid and deterministic. Test export command produces correct subset.",
+        "priority": "medium",
+        "dependencies": [
+          8,
+          11
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement duplicates command definition with System.CommandLine options",
+            "description": "Define the `duplicates` CLI command using System.CommandLine with all required options: --concept (string, filter by intent cluster label), --threshold (float, default 0.8), --type (string, default 'all', accepts structural|semantic|all), --top (int, default 20), and --format (string, default 'table', accepts table|json). Wire the command handler to parse and validate these options before passing them to the query layer.",
+            "dependencies": [],
+            "details": "Create DuplicatesCommand.cs in AiCodeGraph.Cli/Commands/. Define the command with `new Command(\"duplicates\", \"Show detected code duplicates\")`. Add each option with proper types, default values, and descriptions. Register a SetHandler that receives all option values, validates the --type value against allowed values (structural|semantic|all) and --format against (table|json), and invokes the query pipeline. Add the command to the root command in Program.cs. Follow the same pattern established by SearchCommand and other query commands (Task 12). Return exit code 2 for invalid arguments, 0 for success, 1 for runtime errors.",
+            "status": "pending",
+            "testStrategy": "Test that the command is registered and responds to --help. Test default values are applied when options are omitted. Test that invalid --type or --format values produce exit code 2 and an error message. Test that all options are correctly parsed and forwarded to the handler."
+          },
+          {
+            "id": 2,
+            "title": "Implement query logic for SQLite clone pairs with filtering and sorting",
+            "description": "Build the query pipeline that loads clone pairs from the SQLite database (ClonePairs table) and applies concept, type, and threshold filters. Sort results by HybridScore descending and limit to the --top count. Concept filtering matches against IntentClusters labels via the MethodClusterMap join.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create a DuplicatesQueryService (or add methods to an existing repository class) that accepts filter parameters (concept, type, threshold, top). Query ClonePairs table with: (1) WHERE HybridScore >= threshold for --threshold filtering, (2) WHERE CloneType = type for --type filtering (skip if 'all'), (3) JOIN MethodClusterMap and IntentClusters to filter by cluster label using LIKE '%concept%' or exact match for --concept filtering. ORDER BY HybridScore DESC, then by MethodIdA, MethodIdB for deterministic tiebreaking. LIMIT to --top results. Enrich each clone pair with method FullName from the Methods table for display. Return a list of DuplicateResult records containing: MethodAId, MethodAFullName, MethodBId, MethodBFullName, HybridScore, CloneType, and optionally cluster label.",
+            "status": "pending",
+            "testStrategy": "Integration tests with a pre-populated SQLite database containing known clone pairs and cluster mappings. Test that threshold filtering excludes pairs below the cutoff. Test type filtering returns only structural or semantic pairs. Test concept filtering returns only pairs where at least one method belongs to the named cluster. Test deterministic ordering with tied scores. Test --top limits the result count correctly."
+          },
+          {
+            "id": 3,
+            "title": "Implement export command for filtered code graph subsets",
+            "description": "Add the `export` CLI command that exports filtered subsets of the code graph data. Supports --concept (filter by concept/cluster) and --format (json|csv). Exports methods, relationships, and metrics for the specified concept cluster.",
+            "dependencies": [
+              2
+            ],
+            "details": "Create ExportCommand.cs in AiCodeGraph.Cli/Commands/. Define with `new Command(\"export\", \"Export code graph data\")` and options: --concept (string, optional filter), --format (string, default 'json', accepts json|csv). The handler queries methods belonging to the specified concept cluster (via MethodClusterMap + IntentClusters), then loads their call graph edges (MethodCalls where caller or callee is in the set), and their metrics from the Metrics table. For JSON output: serialize a structured object with { methods[], relationships[], metrics[], cluster } using System.Text.Json with camelCase and sorted keys. For CSV output: produce a methods CSV with columns (Id, FullName, FilePath, Line, Complexity, ClusterLabel) and optionally a relationships CSV. If --concept is omitted, export all data. Ensure deterministic ordering by method ID.",
+            "status": "pending",
+            "testStrategy": "Test JSON export produces valid JSON with all required sections (methods, relationships, metrics). Test concept filtering only includes methods in the specified cluster and their relationships. Test CSV output has correct headers and properly escaped values. Test deterministic output by running export twice and comparing results byte-for-byte. Test export without --concept includes all methods."
+          },
+          {
+            "id": 4,
+            "title": "Implement table and JSON output formatting for duplicates and export commands",
+            "description": "Implement the output formatting layer for both commands: table format displays a columnar view (Score, Type, Method A, Method B) for duplicates; JSON format outputs full method details with cluster associations. Ensure all output is deterministic and sorted.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Use the shared TableFormatter (from Task 8.5) to render duplicates results as: Score (formatted to 2 decimal places), Type (structural|semantic), Method A (FullName, truncated if needed), Method B (FullName, truncated if needed). Column widths should auto-size based on content with max constraints. For JSON output of duplicates: serialize array of objects with { score, type, methodA: { id, fullName, filePath, line }, methodB: { id, fullName, filePath, line }, cluster } using System.Text.Json with WriteIndented, camelCase naming, and alphabetically sorted properties. For export JSON: produce { methods[], relationships[], metrics[] } with consistent ordering. All arrays sorted by primary key (method ID or score descending then IDs). Ensure no floating-point formatting inconsistencies (use InvariantCulture). Write to Console.Out for pipe-friendliness.",
+            "status": "pending",
+            "testStrategy": "Test table output has correct column headers and alignment. Test Score column shows exactly 2 decimal places. Test long method names are truncated with ellipsis. Test JSON output is valid, parseable, and contains all required fields. Test deterministic output: same input produces identical output across runs. Test JSON property ordering is alphabetical. Test output works correctly when piped (no ANSI escape codes in non-terminal mode)."
+          }
+        ]
+      },
+      {
+        "id": 14,
+        "title": "Implement Diff and Drift Detection Engine",
+        "description": "Compare current analysis against a previous snapshot or main branch artifact to detect new duplicates, complexity regressions, and scattered intent clusters.",
+        "details": "1. **Snapshot Management:**\n   - After each analysis, optionally save a baseline: `./ai-code-graph/baseline.db`\n   - `ai-code-graph analyze --save-baseline` saves current as baseline\n   - Compare current run vs saved baseline\n\n2. **Diff Engine:**\n   ```csharp\n   public class DriftDetector\n   {\n       public DriftReport Compare(string currentDbPath, string baselineDbPath)\n       {\n           // Compare:\n           // 1. New methods not in baseline\n           // 2. Removed methods\n           // 3. Complexity changes (regressions)\n           // 4. New duplicate pairs\n           // 5. New cluster members (intent scattering)\n       }\n   }\n   ```\n3. Create `DriftReport` model:\n   ```csharp\n   public record DriftReport(\n       List<MethodDiff> NewMethods,\n       List<MethodDiff> RemovedMethods,\n       List<ComplexityRegression> Regressions,\n       List<ClonePair> NewDuplicates,\n       List<ScatteringAlert> IntentScattering\n   );\n   ```\n4. **`drift` CLI command:**\n   ```csharp\n   var driftCmd = new Command(\"drift\", \"Detect architectural drift\");\n   driftCmd.AddOption(new Option<string>(\"--vs\", () => \"baseline\", \"baseline|<path>\"));\n   driftCmd.AddOption(new Option<string>(\"--format\", () => \"summary\", \"summary|detail|json\"));\n   ```\n5. Complexity regression: flag methods where complexity increased by >25% or crossed threshold (e.g., >15)\n6. Intent scattering: detect when a cluster gains members in new namespaces\n7. Support comparing against a specific database file path (e.g., from main branch CI artifact)",
+        "testStrategy": "Create two database snapshots with known differences. Test detection of: new methods, removed methods, complexity increases, new duplicates. Test threshold-based regression detection. Test scattering detection when cluster grows across namespaces. Test all output formats.",
+        "priority": "low",
+        "dependencies": [
+          7,
+          11
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Baseline Snapshot Management",
+            "description": "Add --save-baseline flag to the analyze command that copies the current analysis database to a designated baseline path (./ai-code-graph/baseline.db). Implement path resolution logic for baseline files and support both default baseline location and custom paths.",
+            "dependencies": [],
+            "details": "1. Add a `--save-baseline` option to the existing `analyze` CLI command that, when specified, copies the current analysis SQLite database to `./ai-code-graph/baseline.db` after analysis completes.\n2. Create a `BaselineManager` class responsible for:\n   - Saving a database snapshot: copy the current DB file to the baseline path atomically (write to temp file, then move)\n   - Resolving baseline paths: support `baseline` keyword (resolves to default path) and arbitrary file paths\n   - Checking if a baseline exists and is valid (has expected tables/schema)\n3. Ensure the baseline directory exists before saving (create if needed).\n4. Add validation that the source database is complete before saving as baseline (all analysis tables populated).\n5. Support overwriting an existing baseline with a confirmation-style approach (force overwrite since CLI is non-interactive).",
+            "status": "pending",
+            "testStrategy": "Test that --save-baseline creates a copy of the database at the expected path. Test path resolution for both 'baseline' keyword and custom paths. Test that saving baseline with missing source database produces clear error. Test atomic write behavior (baseline not corrupted on failure). Test overwrite of existing baseline."
+          },
+          {
+            "id": 2,
+            "title": "Implement DriftDetector Core Comparison Logic",
+            "description": "Create the DriftDetector class that opens two SQLite databases simultaneously (current and baseline) and computes set-based diffs for methods: new methods not in baseline, removed methods no longer present, and basic structural changes.",
+            "dependencies": [
+              1
+            ],
+            "details": "1. Create `DriftDetector` class with a `Compare(string currentDbPath, string baselineDbPath)` method.\n2. Create `DriftReport` record model:\n   ```csharp\n   public record DriftReport(\n       List<MethodDiff> NewMethods,\n       List<MethodDiff> RemovedMethods,\n       List<ComplexityRegression> Regressions,\n       List<ClonePair> NewDuplicates,\n       List<ScatteringAlert> IntentScattering\n   );\n   ```\n3. Create supporting models: `MethodDiff` (method ID, name, namespace, file path), `ComplexityRegression`, `ClonePair`, `ScatteringAlert`.\n4. Open both databases using separate SQLite connections. Query the methods table from each.\n5. Compute set difference for new methods (in current but not baseline, matched by stable symbol ID).\n6. Compute set difference for removed methods (in baseline but not current).\n7. Detect new duplicate pairs by comparing clone pair tables between the two databases.\n8. Handle edge cases: missing tables in either database, schema version mismatches, empty databases.",
+            "status": "pending",
+            "testStrategy": "Create two test databases with known differences: add 3 new methods to current, remove 2 from baseline, add new duplicate pairs. Verify DriftDetector correctly identifies all new methods, removed methods, and new duplicates. Test with identical databases produces empty report. Test with missing/corrupt baseline produces meaningful error."
+          },
+          {
+            "id": 3,
+            "title": "Implement Complexity Regression Detection",
+            "description": "Add complexity regression detection to the DriftDetector that flags methods where cyclomatic complexity increased by more than 25% or crossed an absolute threshold (default >15), with configurable threshold parameters.",
+            "dependencies": [
+              2
+            ],
+            "details": "1. Add `ComplexityRegression` model:\n   ```csharp\n   public record ComplexityRegression(\n       string MethodId,\n       string MethodName,\n       string Namespace,\n       int BaselineComplexity,\n       int CurrentComplexity,\n       double PercentageIncrease,\n       bool CrossedAbsoluteThreshold,\n       int AbsoluteThreshold\n   );\n   ```\n2. In `DriftDetector.Compare()`, for each method present in both databases, compare complexity metrics.\n3. Flag as regression if: (a) complexity increased by >25% (configurable via `percentageThreshold` parameter, default 0.25), OR (b) complexity crossed the absolute threshold (configurable, default 15).\n4. Add configuration options to DriftDetector or a `DriftDetectorOptions` class:\n   - `ComplexityPercentageThreshold` (default 0.25)\n   - `ComplexityAbsoluteThreshold` (default 15)\n5. Sort regressions by severity (highest percentage increase first).\n6. Only flag increases, not decreases (decreases are improvements, not regressions).",
+            "status": "pending",
+            "testStrategy": "Test with method going from complexity 10 to 13 (30% increase, should flag). Test with method going from 10 to 12 (20%, should not flag with default threshold). Test absolute threshold crossing: method going from 14 to 16 (crosses 15). Test method going from 20 to 22 (already above threshold, only percentage applies). Test custom threshold values. Test that complexity decreases are not flagged."
+          },
+          {
+            "id": 4,
+            "title": "Implement Intent Scattering Detection",
+            "description": "Detect when an intent cluster gains members in new namespaces compared to the baseline, indicating that related functionality is becoming more scattered across the codebase rather than consolidated.",
+            "dependencies": [
+              2
+            ],
+            "details": "1. Add `ScatteringAlert` model:\n   ```csharp\n   public record ScatteringAlert(\n       string ClusterId,\n       string ClusterLabel,\n       List<string> BaselineNamespaces,\n       List<string> NewNamespaces,\n       List<string> NewMemberMethods,\n       int TotalMemberCount\n   );\n   ```\n2. In `DriftDetector.Compare()`, query cluster membership tables from both databases.\n3. For each cluster present in both databases:\n   - Get the set of namespaces containing cluster members in baseline\n   - Get the set of namespaces containing cluster members in current\n   - If current has namespaces not present in baseline, create a ScatteringAlert\n4. Include the specific new methods that were added in the new namespaces.\n5. Handle cluster ID matching between databases (clusters may be re-computed, so match by label or by significant member overlap if IDs differ).\n6. Filter out trivial scattering (e.g., a single method in a test namespace).",
+            "status": "pending",
+            "testStrategy": "Create baseline with cluster A having members in namespaces X and Y. Add members in namespace Z to current. Verify scattering alert is generated with correct new namespace. Test cluster with no new namespaces produces no alert. Test cluster that only exists in current (new cluster) is not flagged as scattering. Test matching clusters across databases when cluster IDs differ but labels match."
+          },
+          {
+            "id": 5,
+            "title": "Implement Drift CLI Command with Output Formats",
+            "description": "Add the `drift` CLI command that invokes DriftDetector.Compare() and presents results in summary, detail, or JSON format, with --vs option to specify the comparison target (baseline path or keyword).",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "details": "1. Register a new `drift` command in the CLI command hierarchy:\n   ```csharp\n   var driftCmd = new Command(\"drift\", \"Detect architectural drift\");\n   driftCmd.AddOption(new Option<string>(\"--vs\", () => \"baseline\", \"baseline|<path>\"));\n   driftCmd.AddOption(new Option<string>(\"--format\", () => \"summary\", \"summary|detail|json\"));\n   driftCmd.AddOption(new Option<double>(\"--complexity-pct\", () => 0.25, \"Complexity percentage threshold\"));\n   driftCmd.AddOption(new Option<int>(\"--complexity-abs\", () => 15, \"Complexity absolute threshold\"));\n   ```\n2. In the command handler:\n   - Resolve the `--vs` path (\"baseline\" maps to default path, otherwise use as file path)\n   - Validate both current DB and baseline DB exist\n   - Create DriftDetector with configured thresholds and call Compare()\n3. Output formatters:\n   - **Summary**: One-line counts (e.g., \"3 new methods, 1 removed, 2 complexity regressions, 1 new duplicate pair, 1 scattering alert\")\n   - **Detail**: Grouped sections with full method names, complexity values, namespace details\n   - **JSON**: Serialize the full DriftReport to JSON with proper formatting\n4. Set appropriate exit codes: 0 for no drift, 1 for drift detected (useful in CI pipelines).\n5. Handle error cases with user-friendly messages: baseline not found, databases incompatible, etc.",
+            "status": "pending",
+            "testStrategy": "Integration test: run drift command against two known-different databases, verify summary output contains correct counts. Test detail format includes method names and namespaces. Test JSON format is valid and deserializable back to DriftReport. Test --vs with custom path resolves correctly. Test exit code is 1 when drift detected and 0 when clean. Test error message when baseline doesn't exist."
+          }
+        ]
+      },
+      {
+        "id": 15,
+        "title": "End-to-End Integration Testing and Performance Optimization",
+        "description": "Create comprehensive integration tests running the full pipeline against a realistic test codebase, optimize performance to meet the 2-minute requirement, and ensure deterministic output.",
+        "details": "1. **Test Fixture:**\n   - Create a realistic test solution with 50+ classes, 200+ methods\n   - Include various patterns: services, handlers, repositories, controllers\n   - Include known duplicates, complex methods, interface hierarchies\n   - Place in `tests/fixtures/TestSolution/`\n\n2. **Integration Test Suite:**\n   ```csharp\n   [Fact]\n   public async Task FullPipeline_ProducesExpectedGraph()\n   {\n       // Run full analyze command\n       // Verify database contains expected counts\n       // Verify call graph edges are correct\n       // Verify metrics are computed\n       // Verify clusters are formed\n   }\n   \n   [Fact]\n   public async Task SearchCommand_ReturnsRelevantResults()\n   [Fact]\n   public async Task DuplicatesCommand_FindsKnownClones()\n   [Fact]\n   public async Task DriftCommand_DetectsRegressions()\n   [Fact]\n   public async Task Output_IsDeterministic()\n   ```\n3. **Determinism Verification:**\n   - Run analysis twice on same codebase\n   - Compare database contents (should be identical)\n   - Compare JSON outputs (should be byte-identical)\n\n4. **Performance Optimization:**\n   - Profile with `dotnet-trace` on large solution\n   - Parallelize: compilation, metric computation, embedding generation\n   - Use `Parallel.ForEachAsync` for independent method analysis\n   - Batch SQLite inserts with transactions\n   - Lazy-load embedding model (only when needed)\n   - Target: complete analysis of 2000-method codebase in <2 minutes\n\n5. **CI Integration:**\n   - Add GitHub Actions workflow\n   - Run tests on PR\n   - Verify tool packaging works\n\n6. **Documentation:**\n   - Update README with usage examples\n   - Document all CLI commands with `--help` text\n   - Add architecture decision records for key choices",
+        "testStrategy": "Run full integration suite against fixture solution. Measure and assert execution time <2 minutes for fixture. Run analysis twice and diff outputs for determinism. Test all CLI commands produce valid output. Test global tool installation and invocation. Run on CI to verify cross-platform compatibility.",
+        "priority": "medium",
+        "dependencies": [
+          7,
+          8,
+          12,
+          13,
+          14
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Realistic Test Fixture Solution with 50+ Classes and 200+ Methods",
+            "description": "Build a comprehensive test solution in tests/fixtures/TestSolution/ containing realistic C# code patterns including services, handlers, repositories, controllers, interface hierarchies, known duplicate methods, and methods with varying cognitive complexity levels.",
+            "dependencies": [],
+            "details": "Create a complete .NET solution structure under tests/fixtures/TestSolution/ with:\n\n1. **Project structure:** TestSolution.sln with at least 3 projects (Core, Services, Api)\n2. **Service layer (15+ classes):** OrderService, UserService, PaymentService, NotificationService, etc. with realistic business logic methods\n3. **Repository layer (10+ classes):** IOrderRepository/OrderRepository patterns with CRUD operations\n4. **Controller layer (8+ classes):** REST-style controllers delegating to services\n5. **Handler layer (8+ classes):** Command/query handlers (CQRS-style) like CreateOrderHandler, GetUserQueryHandler\n6. **Interface hierarchies (10+ interfaces):** IRepository<T>, IService, IHandler<TRequest,TResponse> with multiple implementations\n7. **Known duplicates (5+ pairs):** Intentionally duplicated methods across different classes (e.g., same validation logic in OrderService and PaymentService) for testing clone detection\n8. **Complex methods (10+):** Methods with nested loops, multiple conditionals, try-catch blocks, and switch statements to produce known high cognitive complexity scores\n9. **Simple methods (50+):** Properties, getters, simple CRUD delegations for baseline metrics\n10. **Call graph patterns:** Ensure controller→service→repository call chains exist for call graph verification\n\nEach class should have XML doc comments and realistic method signatures. Total target: 50+ classes, 200+ methods across the solution.",
+            "status": "pending",
+            "testStrategy": "Verify the fixture solution compiles with `dotnet build`. Count classes and methods programmatically to confirm 50+ classes and 200+ methods. Verify known duplicates are detectable. Verify complex methods have predictable cognitive complexity ranges."
+          },
+          {
+            "id": 2,
+            "title": "Implement Full Pipeline Integration Test (Analyze Command End-to-End)",
+            "description": "Create an integration test that runs the full analyze command against the test fixture solution and verifies the SQLite database contains expected counts for projects, types, methods, call graph edges, metrics, and clusters.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create integration test class `FullPipelineTests` in AiCodeGraph.Tests:\n\n1. **Test setup:** Use a fresh temp directory for the database, point analyzer at tests/fixtures/TestSolution/\n2. **FullPipeline_ProducesExpectedGraph test:**\n   - Run the full analyze command programmatically (invoke CLI or call core analysis directly)\n   - Open the resulting SQLite database\n   - Assert project count matches fixture (3 projects)\n   - Assert type count >= 50\n   - Assert method count >= 200\n   - Assert call graph edges exist (verify known controller→service→repository chains)\n   - Assert cognitive complexity metrics are computed for all methods\n   - Assert methods with known high complexity have scores > 10\n   - Assert namespace groupings are correct\n   - Verify interface implementation relationships are captured\n3. **Test teardown:** Clean up temp database files\n4. **Helper methods:** Create `AssertDatabaseContains(db, expectedTypes, expectedMethods)` utilities\n5. **Timeout:** Set test timeout to 3 minutes to allow for compilation overhead\n\nUse xUnit [Fact] attributes and configure as integration test category.",
+            "status": "pending",
+            "testStrategy": "Run the integration test against the fixture solution. Verify all assertions pass. Intentionally break a pipeline stage and confirm the test catches the regression."
+          },
+          {
+            "id": 3,
+            "title": "Implement CLI Command Integration Tests (Search, Duplicates, Drift, Callgraph, Hotspots, Tree)",
+            "description": "Create integration tests for each CLI command (search, duplicates, drift, callgraph, hotspots, tree) verifying they produce correct output against the pre-analyzed test fixture database.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Create test class `CommandIntegrationTests` with tests for each CLI command:\n\n1. **SearchCommand_ReturnsRelevantResults:**\n   - Analyze fixture first (or use pre-built database from shared fixture)\n   - Run search with a known method name or keyword\n   - Verify results contain expected methods ranked by relevance\n   - Test with semantic search terms matching known patterns\n\n2. **DuplicatesCommand_FindsKnownClones:**\n   - Run duplicates command against analyzed fixture\n   - Verify known intentional duplicates are detected\n   - Verify similarity scores are above threshold\n   - Verify output format is correct (JSON or table)\n\n3. **DriftCommand_DetectsRegressions:**\n   - Run analyze twice (baseline + current with a known change)\n   - Run drift command\n   - Verify new/removed/changed methods are reported\n\n4. **CallgraphCommand_ShowsExpectedChains:**\n   - Query callgraph for a known controller method\n   - Verify it shows calls to service layer\n   - Verify depth parameter works\n\n5. **HotspotsCommand_RanksComplexMethods:**\n   - Run hotspots command\n   - Verify methods with known high complexity appear at top\n   - Verify output includes complexity scores\n\n6. **TreeCommand_ShowsHierarchy:**\n   - Run tree command\n   - Verify namespace→type→method hierarchy is displayed\n   - Verify filtering by project works\n\nUse a shared class fixture (IClassFixture<AnalyzedFixture>) to avoid re-analyzing for each test.",
+            "status": "pending",
+            "testStrategy": "Run each command test individually and as a suite. Verify expected output patterns. Test with invalid inputs to verify error handling. Ensure tests are independent and can run in any order."
+          },
+          {
+            "id": 4,
+            "title": "Implement Determinism Verification Tests",
+            "description": "Create tests that run the full analysis pipeline twice on the same codebase and verify that database contents and JSON outputs are byte-identical, ensuring no non-deterministic behavior from parallelism, timestamps, or random ordering.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Create test class `DeterminismTests`:\n\n1. **Output_IsDeterministic test:**\n   - Run full analyze command on fixture → database A + JSON output A\n   - Run full analyze command on fixture again → database B + JSON output B\n   - Compare all table contents from database A vs B:\n     - Export each table sorted by primary key\n     - Assert row counts are identical\n     - Assert all column values are identical\n   - Compare JSON outputs byte-for-byte using string comparison\n   - If embeddings are generated, verify they produce same vectors for same input\n\n2. **Identify and fix non-determinism sources:**\n   - Ensure method IDs are based on fully-qualified names (not hash of content that could vary)\n   - Ensure call graph edges are sorted consistently\n   - Ensure cluster assignments are deterministic (seed random if needed)\n   - Ensure parallel processing doesn't affect output ordering\n   - Remove any timestamp fields or make them fixed during test\n\n3. **Helper utilities:**\n   - `CompareDatabases(pathA, pathB)` - table-by-table comparison\n   - `CompareJsonOutputs(jsonA, jsonB)` - structural comparison with detailed diff on failure\n   - Provide clear error messages showing first difference found\n\n4. **Run 3+ times** in CI to catch intermittent non-determinism from race conditions.",
+            "status": "pending",
+            "testStrategy": "Run the determinism test multiple times (at least 3 runs). Any single failure indicates non-determinism. Use different thread counts to stress-test parallel code paths. Log detailed diffs on failure for debugging."
+          },
+          {
+            "id": 5,
+            "title": "Profile and Optimize Performance with Parallelization and Batched SQLite Transactions",
+            "description": "Profile the analysis pipeline on a large solution, identify bottlenecks, and optimize using Parallel.ForEachAsync for independent method analysis, batched SQLite inserts with transactions, lazy-loaded embedding model, and parallelized compilation. Target: 2000-method codebase analyzed in under 2 minutes.",
+            "dependencies": [
+              2
+            ],
+            "details": "Performance optimization strategy:\n\n1. **Profiling (establish baseline):**\n   - Use `dotnet-trace` or BenchmarkDotNet to profile against test fixture\n   - Identify top time consumers: compilation, syntax walking, metric computation, DB writes, embeddings\n   - Create a performance test that measures and asserts total time\n\n2. **Parallelize compilation:**\n   - Use `Parallel.ForEachAsync` to compile multiple projects concurrently\n   - Respect `MaxDegreeOfParallelism` (default to Environment.ProcessorCount)\n\n3. **Parallelize method analysis:**\n   - After compilation, process methods independently with `Parallel.ForEachAsync`\n   - Each method's complexity calculation is independent\n   - Use `ConcurrentBag<MethodMetrics>` or channels to collect results\n   - Ensure Roslyn SemanticModel access is thread-safe (it is per-compilation)\n\n4. **Batch SQLite inserts:**\n   - Wrap inserts in transactions (BEGIN/COMMIT every 500-1000 rows)\n   - Use parameterized prepared statements for bulk inserts\n   - Consider WAL mode for concurrent reads during writes\n   - Target: 5000 method inserts in <1 second\n\n5. **Lazy-load embedding model:**\n   - Only initialize ML model when search/embeddings actually requested\n   - Use `Lazy<T>` or explicit initialization gate\n   - Skip embedding generation during basic analyze if not needed\n\n6. **Performance assertion test:**\n   - `[Fact] public async Task FullAnalysis_CompletesWithin2Minutes()`\n   - Use Stopwatch, assert elapsed < TimeSpan.FromMinutes(2)\n   - Run against fixture solution (scale up if needed to 2000 methods)",
+            "status": "pending",
+            "testStrategy": "Create a performance benchmark test that asserts analysis of 2000-method fixture completes in under 2 minutes. Profile before and after optimizations to measure improvement. Test with MaxDegreeOfParallelism=1 to verify sequential correctness. Verify SQLite batch inserts handle 5000+ rows efficiently."
+          },
+          {
+            "id": 6,
+            "title": "Add CI Pipeline with GitHub Actions Workflow",
+            "description": "Create a GitHub Actions workflow that builds the solution, runs all tests (unit + integration), verifies global tool packaging, and runs determinism checks on every PR and push to main.",
+            "dependencies": [
+              2,
+              3,
+              4
+            ],
+            "details": "Create `.github/workflows/ci.yml`:\n\n1. **Workflow triggers:**\n   - `push` to main/master branches\n   - `pull_request` to main/master branches\n\n2. **Build job:**\n   ```yaml\n   - uses: actions/checkout@v4\n   - uses: actions/setup-dotnet@v4\n     with:\n       dotnet-version: '8.0.x'\n   - run: dotnet restore\n   - run: dotnet build --no-restore --configuration Release\n   ```\n\n3. **Test job (depends on build):**\n   - Run unit tests: `dotnet test --filter Category!=Integration`\n   - Run integration tests: `dotnet test --filter Category=Integration`\n   - Set timeout to 10 minutes for integration tests\n   - Upload test results as artifacts\n\n4. **Packaging verification job:**\n   - `dotnet pack AiCodeGraph.Cli --configuration Release`\n   - Install as global tool: `dotnet tool install --global --add-source ./nupkg AiCodeGraph.Cli`\n   - Run `ai-code-graph --help` to verify it starts\n   - Run `ai-code-graph --version` to verify version\n\n5. **Matrix strategy:**\n   - Test on ubuntu-latest, windows-latest, macos-latest\n   - .NET 8.0\n\n6. **Caching:**\n   - Cache NuGet packages\n   - Cache dotnet tools\n\n7. **Status badge:** Add workflow status badge to README",
+            "status": "pending",
+            "testStrategy": "Trigger the workflow manually or via a test PR. Verify all jobs pass on all OS targets. Verify the global tool installation succeeds. Verify test results artifacts are uploaded correctly. Check that caching reduces subsequent run times."
+          },
+          {
+            "id": 7,
+            "title": "Add CLI Help Text Documentation and Global Tool Packaging Verification",
+            "description": "Add comprehensive --help text for all CLI commands with usage examples, verify global tool packaging works correctly, and ensure the tool can be installed and invoked as a .NET global tool.",
+            "dependencies": [
+              3
+            ],
+            "details": "1. **CLI help text for each command:**\n   - `ai-code-graph --help` - Overview of all commands, global options\n   - `ai-code-graph analyze --help` - Solution path argument, options (--output, --skip-embeddings, --parallel)\n   - `ai-code-graph search --help` - Query argument, options (--top, --threshold)\n   - `ai-code-graph duplicates --help` - Options (--threshold, --min-lines, --format)\n   - `ai-code-graph drift --help` - Options (--baseline, --format)\n   - `ai-code-graph callgraph --help` - Method argument, options (--depth, --direction)\n   - `ai-code-graph hotspots --help` - Options (--top, --sort-by, --min-complexity)\n   - `ai-code-graph tree --help` - Options (--project, --namespace, --depth)\n\n2. **Help text format (per command):**\n   ```\n   Description: <what the command does>\n   Usage: ai-code-graph <command> [arguments] [options]\n   Arguments:\n     <arg>    Description\n   Options:\n     --opt    Description [default: value]\n   Examples:\n     ai-code-graph analyze ./MySolution.sln\n     ai-code-graph hotspots --top 20 --sort-by complexity\n   ```\n\n3. **Global tool packaging verification:**\n   - Ensure .csproj has PackAsTool=true, ToolCommandName=ai-code-graph\n   - Test: `dotnet pack` → `dotnet tool install --global --add-source ./nupkg`\n   - Verify: `ai-code-graph --version` outputs correct version\n   - Verify: `ai-code-graph --help` outputs command list\n   - Test uninstall: `dotnet tool uninstall -g ai-code-graph`\n\n4. **Integration test for help text:**\n   - Verify each command's --help exits with code 0\n   - Verify output contains expected sections (Description, Usage, Options)",
+            "status": "pending",
+            "testStrategy": "Run `ai-code-graph --help` and each `<command> --help` verifying exit code 0 and expected output sections. Test global tool install/uninstall cycle. Verify package metadata (version, description, authors) in .nupkg. Test that unknown commands show helpful error with available commands list."
+          }
+        ]
+      }
+    ],
+    "metadata": {
+      "created": "2026-01-23T20:05:42.877Z",
+      "updated": "2026-01-23T20:05:42.877Z",
+      "description": "Tasks for master context"
+    }
+  }
+}

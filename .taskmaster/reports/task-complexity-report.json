@@ -1,0 +1,133 @@
+{
+	"meta": {
+		"generatedAt": "2026-01-23T20:09:02.839Z",
+		"tasksAnalyzed": 15,
+		"totalTasks": 15,
+		"analysisCount": 15,
+		"thresholdScore": 5,
+		"projectName": "Task Master",
+		"usedResearch": true
+	},
+	"complexityAnalysis": [
+		{
+			"taskId": 1,
+			"taskTitle": "Initialize .NET Solution and Project Structure",
+			"complexityScore": 3,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Break down the .NET solution initialization into subtasks covering: 1) Solution and project creation (sln, console, classlib, xunit), 2) Global tool configuration in CLI csproj, 3) NuGet package references for Core project (Roslyn, SQLite, System.CommandLine, MSBuild.Locator), 4) Dependency injection setup and project references, 5) .gitignore updates and output directory conventions. Note: the existing .gitignore excludes *.sln which needs to be fixed.",
+			"reasoning": "This is a straightforward scaffolding task using standard dotnet CLI commands. The complexity is low because it involves well-documented template commands and NuGet package additions. However, there's a notable issue: the existing .gitignore file excludes *.sln files, which will need to be corrected. The task involves no novel logic, just following established .NET project structure conventions. The slight complexity comes from configuring the global tool packaging and ensuring all NuGet packages resolve correctly together (Roslyn workspace packages have specific version compatibility requirements)."
+		},
+		{
+			"taskId": 2,
+			"taskTitle": "Implement Roslyn Workspace Loader",
+			"complexityScore": 6,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Break down the Roslyn Workspace Loader implementation into subtasks: 1) Create LoadedWorkspace model and WorkspaceLoader class skeleton with MSBuildLocator registration, 2) Implement solution loading with MSBuildWorkspace.OpenSolutionAsync and compilation of all projects, 3) Implement diagnostics handling and graceful error recovery for failed project loads, 4) Implement solution file auto-discovery (search current and parent directories for .sln files), 5) Add progress reporting and cancellation token support. Consider that MSBuildLocator.RegisterDefaults() must be called before any Roslyn types are loaded, which affects assembly loading order.",
+			"reasoning": "MSBuildWorkspace is notoriously tricky to work with correctly. Key challenges include: MSBuildLocator must be called before any MSBuild types are referenced (assembly load order issue), workspace diagnostics are common and must be handled gracefully, compilation can fail for various reasons (missing SDK, package restore needed), and the solution discovery logic needs careful path traversal. This is a foundational component where errors propagate to all downstream tasks, increasing the importance of robust error handling."
+		},
+		{
+			"taskId": 3,
+			"taskTitle": "Implement Code Model Extractor",
+			"complexityScore": 7,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Break down the Code Model Extractor into subtasks: 1) Define model records (ProjectModel, NamespaceModel, TypeModel, MethodModel, ParameterModel) with stable ID generation using symbol display strings, 2) Implement recursive namespace walking from Compilation.GlobalNamespace, 3) Implement type extraction (class, interface, record, struct, enum) with accessibility and modifier tracking, 4) Implement method extraction with signatures, parameters, return types, and source locations, 5) Handle edge cases: partial classes (merge members), nested types, compiler-generated members (IsImplicitlyDeclared), generics, 6) Extract relationship data: Contains hierarchy and Implements relationships (type→interface). Consider that Roslyn's symbol API has many subtleties around generic types, explicit interface implementations, and source-generated code.",
+			"reasoning": "This task requires deep knowledge of Roslyn's symbol API. The complexity arises from: handling the many type kinds in C# (classes, interfaces, records, structs, enums, delegates), dealing with partial classes that span multiple files, nested types requiring recursive processing, generic type handling (open vs closed generics, type constraints), compiler-generated members that should be filtered, and producing stable IDs across runs. The symbol display format needs careful configuration to produce consistent, unique identifiers. Interface implementation tracking adds another layer with explicit vs implicit implementations."
+		},
+		{
+			"taskId": 4,
+			"taskTitle": "Implement SQLite Storage Layer",
+			"complexityScore": 5,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Break down the SQLite Storage Layer into subtasks: 1) Create database schema with all tables (Projects, Namespaces, Types, Methods, MethodCalls, TypeImplements, Metrics, IntentClusters, MethodClusterMap) and indexes, 2) Implement StorageService class with InitializeAsync (create/recreate tables), 3) Implement bulk insert methods with transactions (SaveCodeModelAsync, SaveCallGraphAsync, SaveMetricsAsync), 4) Implement query methods for CLI consumption (GetMethodById, GetCallees, GetCallers, GetHotspots, pattern matching), 5) Add NormalizedMethods table and vector storage schema for later phases. Use Microsoft.Data.Sqlite with parameterized queries throughout.",
+			"reasoning": "SQLite schema design and data access are well-understood patterns. The complexity is moderate because: the schema has 9 tables with foreign key relationships, bulk inserts need transaction batching for performance (5000+ methods target), the drop-and-recreate strategy needs careful ordering due to foreign keys, and query methods need to support pattern matching and sorting. However, Microsoft.Data.Sqlite is straightforward to use, there's no ORM complexity, and the schema is clearly defined in the task description. The main challenge is performance optimization for bulk operations."
+		},
+		{
+			"taskId": 5,
+			"taskTitle": "Implement Call Graph Builder",
+			"complexityScore": 8,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Break down the Call Graph Builder into subtasks: 1) Create MethodCallEdge model and CallGraphBuilder class skeleton, 2) Implement syntax node location for method declarations (map MethodModel back to SyntaxNodes via SemanticModel), 3) Implement InvocationExpression resolution using SemanticModel.GetSymbolInfo() for direct method calls, 4) Handle ObjectCreationExpression as constructor calls and member access patterns, 5) Implement interface dispatch resolution (interface method → known implementations mapping), 6) Handle virtual/override dispatch and delegate invocations, 7) Handle LINQ expressions, lambda invocations, and edge cases (extension methods, operator overloads, conditional access). This is the most technically challenging analysis task due to the many invocation patterns in C#.",
+			"reasoning": "This is one of the most complex tasks because C# has many invocation patterns that must be handled. Key challenges: GetSymbolInfo() can return candidates instead of a single symbol (overload resolution ambiguity), interface dispatch requires building a complete implementation map first, virtual calls need the type hierarchy, lambda/delegate invocations are indirect, LINQ chains involve extension methods with complex resolution, conditional access (?.) creates different syntax patterns, and expression-bodied members use different syntax trees. Additionally, mapping resolved IMethodSymbols back to the project's MethodModel IDs requires careful handling of generic instantiations and reduced symbols."
+		},
+		{
+			"taskId": 6,
+			"taskTitle": "Implement Cognitive Complexity Metrics Engine",
+			"complexityScore": 6,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Break down the Cognitive Complexity Metrics Engine into subtasks: 1) Implement CognitiveComplexityCalculator as a CSharpSyntaxWalker with nesting level tracking, 2) Implement base increment rules (+1 for control flow breaks: if, else, switch, for, foreach, while, do, catch, goto, ternary, &&, ||), 3) Implement nesting increment rules (+nesting for nested control structures and lambdas), 4) Implement LinesOfCode counter (non-empty, non-comment lines) and MaxNestingDepth tracker, 5) Create MetricsEngine class that computes all metrics for method lists, handling expression-bodied members and switch expressions. Reference the SonarSource specification for cognitive complexity rules.",
+			"reasoning": "The cognitive complexity algorithm is well-documented by SonarSource, but implementing it correctly in C# syntax requires careful handling of many language constructs. Challenges include: correctly tracking nesting depth across nested structures, handling the distinction between 'if' and 'else if' (else if shouldn't increment nesting), switch expressions vs switch statements having different complexity implications, ternary operators, null-coalescing operators, and pattern matching (is/switch patterns). The LOC counter needs to handle various comment styles (single-line, multi-line, XML docs). Expression-bodied members (=>) require special handling."
+		},
+		{
+			"taskId": 7,
+			"taskTitle": "Implement CLI Framework and Analyze Command",
+			"complexityScore": 5,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Break down the CLI Framework and Analyze Command into subtasks: 1) Set up System.CommandLine with RootCommand and basic CLI infrastructure (help text, version), 2) Implement the analyze command definition with options (--solution, --output, --verbose), 3) Implement the AnalyzeCommand handler that orchestrates the full pipeline (workspace→model→callgraph→metrics→storage), 4) Add progress reporting with elapsed time and summary statistics output, 5) Implement error handling, exit codes, and output directory management. This is primarily an orchestration task that wires together previously-built components.",
+			"reasoning": "This is primarily an integration/orchestration task. System.CommandLine has a learning curve but is well-documented. The main complexity is in correctly sequencing the pipeline steps, handling errors at each stage gracefully, and providing useful progress output. Since all the actual analysis components are built in previous tasks, this task is about wiring them together with proper error handling and user-facing output. The dependency injection setup and service lifetime management add some complexity."
+		},
+		{
+			"taskId": 8,
+			"taskTitle": "Implement CLI Query Commands: callgraph, hotspots, tree",
+			"complexityScore": 6,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Break down the CLI Query Commands into subtasks: 1) Implement the callgraph command with method resolution (partial name matching, namespace-qualified), 2) Implement BFS/DFS traversal with depth control and direction filtering (callers/callees/both), 3) Implement the hotspots command with complexity-ordered queries and threshold filtering, 4) Implement the tree command with namespace/type hierarchy display and filtering, 5) Implement table formatting for all commands with proper column alignment, 6) Implement JSON output format for all commands ensuring deterministic, sorted output. Each command needs both table and JSON output modes.",
+			"reasoning": "Three distinct commands each with multiple options and two output formats. The callgraph command is the most complex due to graph traversal with depth limiting, bidirectional support, and partial method name resolution (which needs fuzzy matching). The tree command requires recursive hierarchy rendering. All commands need both human-readable table output (with column alignment) and machine-readable JSON output. Deterministic output ordering requires careful sorting. The main challenge is the callgraph traversal logic and method name resolution with partial matching."
+		},
+		{
+			"taskId": 9,
+			"taskTitle": "Implement Intent Normalization Module",
+			"complexityScore": 5,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Break down the Intent Normalization Module into subtasks: 1) Implement identifier tokenizer with PascalCase/camelCase splitting and acronym handling (HTTPClient → [HTTP, Client]), 2) Implement structural signature generation (replace literals with placeholders, normalize variable names to positional, preserve control flow structure), 3) Implement semantic payload generation (combine split identifiers, parameter types, return type, called method names into natural language text), 4) Create IntentNormalizer class that combines structural and semantic normalization for each method, 5) Add storage for normalized data (NormalizedMethods table in SQLite). The key challenge is producing consistent, deterministic normalizations.",
+			"reasoning": "This task involves text processing and AST manipulation. The structural signature generation requires walking the syntax tree and applying consistent transformations (replacing literals, renaming variables). PascalCase splitting with acronym handling has known edge cases (e.g., 'XMLHTTPRequest', 'iOS', 'GetURLForID'). The semantic payload concatenation is straightforward string manipulation. Overall, this is algorithmic work with well-defined inputs and outputs, but the normalization rules need careful implementation to be deterministic and produce meaningful results."
+		},
+		{
+			"taskId": 10,
+			"taskTitle": "Implement Local Embedding Engine and Vector Index",
+			"complexityScore": 8,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Break down the Local Embedding Engine and Vector Index into subtasks: 1) Research and select ONNX embedding model (all-MiniLM-L6-v2) and set up model download/caching infrastructure, 2) Implement EmbeddingEngine class using Microsoft.ML.OnnxRuntime with proper tokenization for the selected model, 3) Implement batch embedding generation with progress reporting, 4) Implement VectorIndex class with cosine similarity search (flat brute-force for v1, consider HNSW for larger codebases), 5) Implement vector persistence (save/load to disk in binary format), 6) Add embedding caching logic (detect changed methods, only regenerate necessary embeddings). Key challenge: ONNX runtime setup with correct tokenizer configuration for the selected model.",
+			"reasoning": "This is one of the most complex tasks due to ML infrastructure integration. Challenges include: selecting and downloading ONNX models at runtime, implementing correct tokenization (the model expects specific tokenization matching its training), OnnxRuntime session management and memory handling, batching for performance, vector serialization format design, and the vector index implementation. Even a flat brute-force index needs careful cosine similarity implementation. The caching logic adds complexity (detecting which methods changed). Cross-platform ONNX runtime compatibility (different native binaries) is another concern."
+		},
+		{
+			"taskId": 11,
+			"taskTitle": "Implement Duplicate Detection and Intent Clustering",
+			"complexityScore": 7,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Break down the Duplicate Detection and Intent Clustering into subtasks: 1) Implement StructuralCloneDetector using edit distance or token-level Jaccard similarity on structural signatures, 2) Implement SemanticCloneDetector using kNN search on embedding vectors with threshold filtering, 3) Implement hybrid scoring formula (α * structural + (1-α) * semantic) with configurable weights, 4) Implement IntentClusterer using DBSCAN or agglomerative clustering on embedding vectors, 5) Implement cluster auto-labeling using most common identifier tokens among members, 6) Store clone pairs and clusters in SQLite (ClonePairs table, IntentClusters, MethodClusterMap). The clustering algorithm choice significantly impacts result quality.",
+			"reasoning": "This task combines multiple algorithmic challenges: string similarity computation (edit distance is O(n*m) and may need optimization for large codebases), kNN search over vectors, hybrid score computation, and unsupervised clustering. DBSCAN implementation requires choosing epsilon and minPoints parameters that work well for code embeddings. The O(n²) pairwise comparison for structural clones could be a performance bottleneck for large codebases. Auto-labeling clusters requires NLP-like token frequency analysis. The configurable thresholds add testing complexity."
+		},
+		{
+			"taskId": 12,
+			"taskTitle": "Implement Natural Language Search Command",
+			"complexityScore": 4,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Break down the Natural Language Search Command into subtasks: 1) Implement the search command definition with System.CommandLine (query argument, --top, --threshold, --format options), 2) Implement the search pipeline (load model → embed query → load index → kNN search → filter by threshold), 3) Implement result enrichment by joining vector search results with SQLite metadata (method details, file paths, complexity), 4) Implement table and JSON output formatting with deterministic ordering. This is primarily a CLI wiring task that combines the embedding engine and vector index from Task 10.",
+			"reasoning": "This task is relatively straightforward because it's wiring together already-built components (embedding engine from Task 10, vector index, SQLite queries from Task 4). The search pipeline is a linear sequence of operations. The main work is CLI argument parsing, result formatting, and the error case when the index doesn't exist. The 'quoted phrase boosting' mentioned in the details adds minor complexity but could be deferred. Overall this is a thin CLI layer over existing functionality."
+		},
+		{
+			"taskId": 13,
+			"taskTitle": "Implement Duplicates CLI Command",
+			"complexityScore": 4,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Break down the Duplicates CLI Command into subtasks: 1) Implement the duplicates command definition with System.CommandLine (--concept, --threshold, --type, --top, --format options), 2) Implement query logic against SQLite clone pairs with concept/type/threshold filtering, 3) Implement the export command for filtered subsets of the code graph, 4) Implement table and JSON output formatting for both commands with deterministic ordering. This is a query-and-display task over data already computed by Task 11.",
+			"reasoning": "Similar to Task 12, this is primarily a CLI presentation layer over data already computed and stored by Task 11 (Duplicate Detection and Intent Clustering). The queries against SQLite are straightforward with WHERE clauses for filtering. The export command adds a second sub-command but follows the same pattern. Deterministic sorting and formatting are the main concerns. The concept filtering requires matching against intent cluster labels, which is a simple string comparison or LIKE query."
+		},
+		{
+			"taskId": 14,
+			"taskTitle": "Implement Diff and Drift Detection Engine",
+			"complexityScore": 6,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Break down the Diff and Drift Detection Engine into subtasks: 1) Implement baseline snapshot management (save current DB as baseline, --save-baseline flag on analyze command), 2) Implement DriftDetector.Compare() method that opens both databases and computes diffs (new/removed methods, complexity changes), 3) Implement complexity regression detection with configurable thresholds (>25% increase or crossing absolute threshold), 4) Implement intent scattering detection (cluster gaining members in new namespaces), 5) Implement drift CLI command with summary/detail/json output formats. The comparison logic requires opening two SQLite databases simultaneously and performing set operations.",
+			"reasoning": "The diff engine requires comparing two database snapshots, which involves set operations (methods in A not in B, methods in B not in A) and value comparisons (complexity changes). The complexity regression logic needs percentage and absolute threshold calculations. Intent scattering detection requires comparing cluster membership across namespaces, which is more nuanced. The baseline management (copying databases, path resolution) adds operational complexity. However, the core logic is comparison and filtering, which is well-understood."
+		},
+		{
+			"taskId": 15,
+			"taskTitle": "End-to-End Integration Testing and Performance Optimization",
+			"complexityScore": 8,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Break down the E2E Testing and Performance Optimization into subtasks: 1) Create realistic test fixture solution (50+ classes, 200+ methods with various patterns: services, handlers, repositories, known duplicates, complex methods, interface hierarchies), 2) Implement full pipeline integration test (analyze → verify database contents), 3) Implement CLI command integration tests (search, duplicates, drift, callgraph, hotspots, tree), 4) Implement determinism verification (run twice, compare outputs byte-for-byte), 5) Profile and optimize performance with Parallel.ForEachAsync for independent operations and batched SQLite transactions, 6) Add CI pipeline with GitHub Actions workflow, 7) Add CLI help text documentation and global tool packaging verification. The test fixture creation is substantial work requiring realistic C# code patterns.",
+			"reasoning": "This is a large task combining several distinct concerns: test fixture creation (writing 50+ realistic classes is substantial), integration test implementation across all commands, determinism verification, performance profiling and optimization, CI setup, and documentation. The performance optimization aspect is open-ended and may require iterating on approaches (parallelization strategies, batch sizes, lazy loading). Creating a realistic test fixture with known duplicates, specific complexity scores, and predictable call graphs requires careful design. The 2-minute performance target adds a hard constraint that may require significant optimization work."
+		}
+	]
+}
