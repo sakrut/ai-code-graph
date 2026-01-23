@@ -1210,7 +1210,7 @@
           "13",
           "14"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1301,14 +1301,15 @@
         ],
         "complexity": 8,
         "recommendedSubtasks": 7,
-        "expansionPrompt": "Break down the E2E Testing and Performance Optimization into subtasks: 1) Create realistic test fixture solution (50+ classes, 200+ methods with various patterns: services, handlers, repositories, known duplicates, complex methods, interface hierarchies), 2) Implement full pipeline integration test (analyze → verify database contents), 3) Implement CLI command integration tests (search, duplicates, drift, callgraph, hotspots, tree), 4) Implement determinism verification (run twice, compare outputs byte-for-byte), 5) Profile and optimize performance with Parallel.ForEachAsync for independent operations and batched SQLite transactions, 6) Add CI pipeline with GitHub Actions workflow, 7) Add CLI help text documentation and global tool packaging verification. The test fixture creation is substantial work requiring realistic C# code patterns."
+        "expansionPrompt": "Break down the E2E Testing and Performance Optimization into subtasks: 1) Create realistic test fixture solution (50+ classes, 200+ methods with various patterns: services, handlers, repositories, known duplicates, complex methods, interface hierarchies), 2) Implement full pipeline integration test (analyze → verify database contents), 3) Implement CLI command integration tests (search, duplicates, drift, callgraph, hotspots, tree), 4) Implement determinism verification (run twice, compare outputs byte-for-byte), 5) Profile and optimize performance with Parallel.ForEachAsync for independent operations and batched SQLite transactions, 6) Add CI pipeline with GitHub Actions workflow, 7) Add CLI help text documentation and global tool packaging verification. The test fixture creation is substantial work requiring realistic C# code patterns.",
+        "updatedAt": "2026-01-23T21:40:16.682Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-23T21:32:15.804Z",
+      "lastModified": "2026-01-23T21:40:16.682Z",
       "taskCount": 15,
-      "completedCount": 14,
+      "completedCount": 15,
       "tags": [
         "master"
       ]
