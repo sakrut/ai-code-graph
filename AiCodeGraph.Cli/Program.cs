@@ -31,9 +31,16 @@ analyzeCommand.SetAction(async (parseResult, cancellationToken) =>
     Console.WriteLine($"Analyzing solution: {solutionPath}");
 
     await storage.InitializeAsync(cancellationToken);
-    var solution = await loader.LoadSolutionAsync(solutionPath, cancellationToken);
+    var workspace = await loader.LoadSolutionAsync(solutionPath, cancellationToken);
 
-    Console.WriteLine($"Loaded {solution.Projects.Count()} projects.");
+    Console.WriteLine($"Loaded {workspace.Compilations.Count} projects.");
+
+    if (workspace.HasErrors)
+    {
+        foreach (var diag in workspace.Diagnostics)
+            Console.Error.WriteLine($"  [{diag.Kind}] {diag.Message}");
+    }
+
     await storage.SaveAsync(cancellationToken);
 
     Console.WriteLine("Analysis complete. Output written to ./ai-code-graph/");

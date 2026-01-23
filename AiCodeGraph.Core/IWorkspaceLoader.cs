@@ -1,8 +1,8 @@
-using Microsoft.CodeAnalysis;
+using AiCodeGraph.Core.Models;
 
 namespace AiCodeGraph.Core;
 
-public interface IWorkspaceLoader
+public interface IWorkspaceLoader : IDisposable
 {
-    Task<Solution> LoadSolutionAsync(string solutionPath, CancellationToken cancellationToken = default);
+    Task<LoadedWorkspace> LoadSolutionAsync(string solutionPath, CancellationToken cancellationToken = default);
 }
