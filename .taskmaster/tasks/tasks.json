@@ -274,7 +274,7 @@
         "dependencies": [
           "1"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -282,9 +282,10 @@
             "description": "Define the complete SQLite schema including all 9 tables (Projects, Namespaces, Types, Methods, MethodCalls, TypeImplements, Metrics, IntentClusters, MethodClusterMap) plus a NormalizedMethods table for future phases, with appropriate foreign key constraints and performance indexes.",
             "dependencies": [],
             "details": "Create a SQL schema definition (as embedded resource or constants class) containing:\n\n1. All tables with correct column types and constraints:\n   - Projects (Id TEXT PK, Name TEXT, FilePath TEXT)\n   - Namespaces (Id TEXT PK, FullName TEXT, ProjectId TEXT FK)\n   - Types (Id TEXT PK, Name TEXT, FullName TEXT, Kind TEXT, NamespaceId TEXT FK)\n   - Methods (Id TEXT PK, Name TEXT, FullName TEXT, ReturnType TEXT, TypeId TEXT FK, StartLine INT, EndLine INT, FilePath TEXT)\n   - MethodCalls (CallerId TEXT FK, CalleeId TEXT FK, composite PK)\n   - TypeImplements (TypeId TEXT FK, InterfaceId TEXT FK, composite PK)\n   - Metrics (MethodId TEXT PK FK, CognitiveComplexity INT, LinesOfCode INT, NestingDepth INT)\n   - IntentClusters (Id TEXT PK, Label TEXT, Description TEXT)\n   - MethodClusterMap (MethodId TEXT FK, ClusterId TEXT FK, Score REAL, composite PK)\n   - NormalizedMethods (MethodId TEXT PK FK, NormalizedSource TEXT, TokenHash TEXT) for future duplicate detection\n\n2. Indexes for query performance:\n   - IX_Methods_FullName on Methods(FullName)\n   - IX_Types_FullName on Types(FullName)\n   - IX_Metrics_CognitiveComplexity on Metrics(CognitiveComplexity DESC)\n   - IX_MethodCalls_CalleeId on MethodCalls(CalleeId) for reverse lookups\n   - IX_Namespaces_ProjectId on Namespaces(ProjectId)\n   - IX_Types_NamespaceId on Types(NamespaceId)\n   - IX_Methods_TypeId on Methods(TypeId)\n\n3. Use PRAGMA foreign_keys = ON for constraint enforcement.\n4. Define table creation order respecting FK dependencies: Projects → Namespaces → Types → Methods → MethodCalls/TypeImplements/Metrics → IntentClusters → MethodClusterMap.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test schema creation against in-memory SQLite. Verify all tables exist with correct columns using PRAGMA table_info. Verify indexes exist using PRAGMA index_list. Test that FK constraints are enforced (inserting Method with invalid TypeId should fail). Test drop order doesn't violate FK constraints.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T21:00:11.652Z"
           },
           {
             "id": 2,
@@ -294,9 +295,10 @@
               1
             ],
             "details": "Create `StorageService` class using Microsoft.Data.Sqlite:\n\n1. Constructor accepts optional database path (default: `./ai-code-graph/graph.db`)\n2. Manage SqliteConnection lifecycle (implement IDisposable/IAsyncDisposable)\n3. `InitializeAsync()` method:\n   - Ensure directory exists for database file\n   - Drop all tables in reverse FK-dependency order (MethodClusterMap → IntentClusters → Metrics → TypeImplements → MethodCalls → Methods → Types → Namespaces → Projects → NormalizedMethods)\n   - Create all tables and indexes using schema from subtask 1\n   - Enable WAL mode for better concurrent read performance: PRAGMA journal_mode=WAL\n   - Enable foreign keys: PRAGMA foreign_keys = ON\n4. Add `GetConnectionString()` helper that builds connection string with appropriate settings\n5. Add internal `GetConnectionAsync()` method for use by other StorageService methods\n6. Use `Microsoft.Data.Sqlite` NuGet package with parameterized queries throughout\n7. Ensure thread-safety considerations for the connection (single writer, multiple readers with WAL)",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test InitializeAsync creates database file at specified path. Test with in-memory database (Data Source=:memory:) for fast unit tests. Test calling InitializeAsync twice recreates tables (verify data is cleared). Test directory creation when path doesn't exist. Test connection is properly disposed.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T21:00:11.670Z"
           },
           {
             "id": 3,
@@ -306,9 +308,10 @@
               2
             ],
             "details": "Implement three bulk insert methods on StorageService:\n\n1. `SaveCodeModelAsync(List<ProjectModel> projects)`:\n   - Wrap entire operation in a transaction for atomicity and performance\n   - Insert Projects, then Namespaces, then Types (with Kind), then Methods in FK order\n   - Insert TypeImplements relationships from TypeModel.ImplementedInterfaces\n   - Use parameterized INSERT statements with command reuse (create command once, rebind parameters)\n   - Batch in groups of 500 for memory efficiency on large solutions\n   - Handle the hierarchical model traversal: Project → Namespaces → Types → Methods\n\n2. `SaveCallGraphAsync(List<MethodCall> calls)`:\n   - Wrap in transaction\n   - Use INSERT OR IGNORE to handle duplicate edges gracefully\n   - Parameterized insert for (CallerId, CalleeId) pairs\n\n3. `SaveMetricsAsync(List<MethodMetrics> metrics)`:\n   - Wrap in transaction\n   - INSERT OR REPLACE to allow metric updates\n   - Insert (MethodId, CognitiveComplexity, LinesOfCode, NestingDepth)\n\n4. Performance considerations:\n   - Reuse SqliteCommand objects with parameter rebinding\n   - Use BEGIN/COMMIT transaction wrapping (massive perf improvement for SQLite)\n   - Target: 5000+ methods inserted in under 2 seconds",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test bulk insert of a realistic code model (multiple projects, namespaces, types, methods). Verify row counts match input. Test transaction rollback on failure (corrupt one insert, verify nothing persisted). Test SaveCallGraphAsync with duplicate edges (INSERT OR IGNORE). Benchmark with 5000+ method inserts to verify performance target. Test SaveMetricsAsync overwrites existing metrics correctly.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T21:00:11.677Z"
           },
           {
             "id": 4,
@@ -318,9 +321,10 @@
               3
             ],
             "details": "Implement query methods on StorageService:\n\n1. `GetMethodByIdAsync(string methodId)` → MethodModel?\n   - Join with Types, Namespaces for full context\n   - Return null if not found\n\n2. `GetCalleesAsync(string methodId)` → List<MethodModel>\n   - Query MethodCalls WHERE CallerId = @id, JOIN Methods for callee details\n   - Include callee's type and namespace info\n\n3. `GetCallersAsync(string methodId)` → List<MethodModel>\n   - Query MethodCalls WHERE CalleeId = @id, JOIN Methods for caller details\n\n4. `GetHotspotsAsync(int top = 20, string? sortBy = \"complexity\")` → List<(MethodModel, MethodMetrics)>\n   - Join Methods with Metrics\n   - ORDER BY CognitiveComplexity DESC (or LinesOfCode, NestingDepth based on sortBy)\n   - LIMIT @top\n\n5. `SearchMethodsAsync(string pattern)` → List<MethodModel>\n   - Use LIKE '%pattern%' on Methods.FullName for pattern matching\n   - Support wildcard patterns\n   - Return with type/namespace context\n\n6. `GetMethodsByTypeAsync(string typeId)` → List<MethodModel>\n   - All methods belonging to a type\n\n7. `GetInterfaceImplementorsAsync(string interfaceId)` → List<TypeModel>\n   - Query TypeImplements for implementing types\n\n8. All queries use parameterized statements to prevent SQL injection.\n9. Return domain model objects (not raw readers) for clean API boundaries.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test each query method with pre-populated test data. Test GetMethodById returns null for non-existent ID. Test GetCallees/GetCallers return correct graph relationships. Test GetHotspots returns methods sorted by complexity descending. Test SearchMethods with various patterns including partial matches. Test empty results return empty lists (not null). Integration test: insert data via Save methods, then query via Get methods.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T21:00:11.694Z"
           },
           {
             "id": 5,
@@ -330,14 +334,16 @@
               2
             ],
             "details": "Extend StorageService with additional tables and methods for later phases:\n\n1. **NormalizedMethods table** (for duplicate/clone detection - Task 11):\n   - Schema: MethodId TEXT PK FK→Methods, NormalizedSource TEXT, TokenHash TEXT\n   - Index on TokenHash for fast structural clone lookup\n   - `SaveNormalizedMethodsAsync(List<NormalizedMethod>)` - bulk insert with transaction\n   - `GetMethodsByTokenHashAsync(string hash)` → List<MethodModel> for finding structural clones\n\n2. **Embeddings storage** (for semantic search - Task 10):\n   - Schema: CREATE TABLE Embeddings (MethodId TEXT PK FK→Methods, Vector BLOB, ModelVersion TEXT)\n   - Store float[] as BLOB (serialize/deserialize with BinaryWriter/Reader or BitConverter)\n   - `SaveEmbeddingsAsync(List<(string MethodId, float[] Vector, string ModelVersion)>)` - bulk insert\n   - `GetAllEmbeddingsAsync()` → List<(string MethodId, float[] Vector)> for building in-memory index\n   - `GetEmbeddingAsync(string methodId)` → float[]?\n\n3. **IntentClusters and MethodClusterMap** save/query methods:\n   - `SaveClustersAsync(List<IntentCluster>)` - save cluster definitions\n   - `SaveMethodClusterMappingsAsync(List<MethodClusterMapping>)` - save method-to-cluster assignments\n   - `GetMethodsByClusterAsync(string clusterId)` → List<(MethodModel, float Score)>\n   - `GetClustersAsync()` → List<IntentCluster>\n\n4. All tables included in InitializeAsync drop/create cycle.\n5. Use parameterized queries and transactions for all bulk operations.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test NormalizedMethods insert and hash-based lookup. Test embedding serialization roundtrip (float[] → BLOB → float[] with precision preserved). Test SaveEmbeddingsAsync with 1000+ vectors for performance. Test cluster save and query returns correct method-cluster associations with scores. Verify all new tables are properly dropped and recreated by InitializeAsync. Test GetAllEmbeddingsAsync returns all stored vectors correctly deserialized.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T21:00:11.702Z"
           }
         ],
         "complexity": 5,
         "recommendedSubtasks": 5,
-        "expansionPrompt": "Break down the SQLite Storage Layer into subtasks: 1) Create database schema with all tables (Projects, Namespaces, Types, Methods, MethodCalls, TypeImplements, Metrics, IntentClusters, MethodClusterMap) and indexes, 2) Implement StorageService class with InitializeAsync (create/recreate tables), 3) Implement bulk insert methods with transactions (SaveCodeModelAsync, SaveCallGraphAsync, SaveMetricsAsync), 4) Implement query methods for CLI consumption (GetMethodById, GetCallees, GetCallers, GetHotspots, pattern matching), 5) Add NormalizedMethods table and vector storage schema for later phases. Use Microsoft.Data.Sqlite with parameterized queries throughout."
+        "expansionPrompt": "Break down the SQLite Storage Layer into subtasks: 1) Create database schema with all tables (Projects, Namespaces, Types, Methods, MethodCalls, TypeImplements, Metrics, IntentClusters, MethodClusterMap) and indexes, 2) Implement StorageService class with InitializeAsync (create/recreate tables), 3) Implement bulk insert methods with transactions (SaveCodeModelAsync, SaveCallGraphAsync, SaveMetricsAsync), 4) Implement query methods for CLI consumption (GetMethodById, GetCallees, GetCallers, GetHotspots, pattern matching), 5) Add NormalizedMethods table and vector storage schema for later phases. Use Microsoft.Data.Sqlite with parameterized queries throughout.",
+        "updatedAt": "2026-01-23T21:00:11.702Z"
       },
       {
         "id": "5",
@@ -1256,9 +1262,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-23T20:57:23.809Z",
+      "lastModified": "2026-01-23T21:00:11.702Z",
       "taskCount": 15,
-      "completedCount": 3,
+      "completedCount": 4,
       "tags": [
         "master"
       ]

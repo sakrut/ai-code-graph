@@ -1,16 +1,26 @@
+using AiCodeGraph.Core.Storage;
+
 namespace AiCodeGraph.Core;
 
 public class CodeGraphStorage : ICodeGraphStorage
 {
-    public Task InitializeAsync(CancellationToken cancellationToken = default)
+    private readonly StorageService _storage;
+
+    public CodeGraphStorage(string? dbPath = null)
     {
-        // SQLite initialization will be implemented in a later task
-        return Task.CompletedTask;
+        _storage = new StorageService(dbPath);
     }
 
-    public Task SaveAsync(CancellationToken cancellationToken = default)
+    public StorageService Storage => _storage;
+
+    public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        // SQLite save will be implemented in a later task
-        return Task.CompletedTask;
+        await _storage.InitializeAsync(cancellationToken);
+    }
+
+    public async Task SaveAsync(CancellationToken cancellationToken = default)
+    {
+        // No-op for now; explicit save methods on StorageService are used directly
+        await Task.CompletedTask;
     }
 }
