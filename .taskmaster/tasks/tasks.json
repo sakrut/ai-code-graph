@@ -996,7 +996,7 @@
           "10",
           "8"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1047,7 +1047,8 @@
         ],
         "complexity": 4,
         "recommendedSubtasks": 4,
-        "expansionPrompt": "Break down the Natural Language Search Command into subtasks: 1) Implement the search command definition with System.CommandLine (query argument, --top, --threshold, --format options), 2) Implement the search pipeline (load model → embed query → load index → kNN search → filter by threshold), 3) Implement result enrichment by joining vector search results with SQLite metadata (method details, file paths, complexity), 4) Implement table and JSON output formatting with deterministic ordering. This is primarily a CLI wiring task that combines the embedding engine and vector index from Task 10."
+        "expansionPrompt": "Break down the Natural Language Search Command into subtasks: 1) Implement the search command definition with System.CommandLine (query argument, --top, --threshold, --format options), 2) Implement the search pipeline (load model → embed query → load index → kNN search → filter by threshold), 3) Implement result enrichment by joining vector search results with SQLite metadata (method details, file paths, complexity), 4) Implement table and JSON output formatting with deterministic ordering. This is primarily a CLI wiring task that combines the embedding engine and vector index from Task 10.",
+        "updatedAt": "2026-01-23T21:27:08.194Z"
       },
       {
         "id": "13",
@@ -1303,9 +1304,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-23T21:25:19.240Z",
+      "lastModified": "2026-01-23T21:27:08.194Z",
       "taskCount": 15,
-      "completedCount": 11,
+      "completedCount": 12,
       "tags": [
         "master"
       ]

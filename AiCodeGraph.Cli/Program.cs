@@ -694,6 +694,100 @@ clustersCommand.SetAction(async (parseResult, cancellationToken) =>
     }
 });
 
+// --- search command ---
+var searchQueryArg = new Argument<string>("query") { Description = "Natural language search query" };
+var searchTopOption = new Option<int>("--top", "-t") { Description = "Number of results", DefaultValueFactory = _ => 10 };
+var searchThresholdOption = new Option<float>("--threshold") { Description = "Minimum similarity score", DefaultValueFactory = _ => 0.5f };
+var searchFormatOption = new Option<string>("--format", "-f") { Description = "table|json", DefaultValueFactory = _ => "table" };
+var searchDbOption = new Option<string>("--db") { Description = "Path to graph.db", DefaultValueFactory = _ => "./ai-code-graph/graph.db" };
+
+var searchCommand = new Command("search", "Search code by natural language intent")
+{
+    searchQueryArg, searchTopOption, searchThresholdOption, searchFormatOption, searchDbOption
+};
+
+searchCommand.SetAction(async (parseResult, cancellationToken) =>
+{
+    var query = parseResult.GetValue(searchQueryArg)!;
+    var top = parseResult.GetValue(searchTopOption);
+    var threshold = parseResult.GetValue(searchThresholdOption);
+    var format = parseResult.GetValue(searchFormatOption) ?? "table";
+    var dbPath = parseResult.GetValue(searchDbOption) ?? "./ai-code-graph/graph.db";
+
+    if (!File.Exists(dbPath))
+    {
+        Console.Error.WriteLine($"Error: Database not found at {dbPath}. Run 'analyze' first.");
+        Environment.ExitCode = 1;
+        return;
+    }
+
+    await using var storage = new StorageService(dbPath);
+    await storage.OpenAsync(cancellationToken);
+
+    var allEmbeddings = await storage.GetEmbeddingsAsync(cancellationToken);
+    if (allEmbeddings.Count == 0)
+    {
+        Console.Error.WriteLine("No embeddings found. Run 'analyze' first to build embeddings.");
+        Environment.ExitCode = 1;
+        return;
+    }
+
+    // Generate embedding for the query
+    using var embeddingEngine = new HashEmbeddingEngine();
+    var queryVector = embeddingEngine.GenerateEmbedding(query);
+
+    // Build index and search
+    var index = new VectorIndex();
+    index.BuildIndex(allEmbeddings);
+    var searchResults = index.Search(queryVector, top)
+        .Where(r => r.Score >= threshold)
+        .ToList();
+
+    if (searchResults.Count == 0)
+    {
+        Console.WriteLine($"No results found above threshold {threshold:F2}.");
+        return;
+    }
+
+    if (format == "json")
+    {
+        var enriched = new List<object>();
+        foreach (var (id, score) in searchResults)
+        {
+            var info = await storage.GetMethodInfoAsync(id, cancellationToken);
+            enriched.Add(new
+            {
+                methodId = id,
+                fullName = info?.FullName ?? id,
+                score = Math.Round(score, 4),
+                filePath = info?.FilePath,
+                line = info?.StartLine ?? 0
+            });
+        }
+
+        var json = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            query,
+            results = enriched,
+            metadata = new { top, threshold }
+        }, new System.Text.Json.JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
+        Console.WriteLine(json);
+    }
+    else
+    {
+        Console.WriteLine($"Search: \"{query}\"");
+        Console.WriteLine($"{"Score",6}  Method");
+        Console.WriteLine(new string('-', 70));
+        foreach (var (id, score) in searchResults)
+        {
+            var info = await storage.GetMethodInfoAsync(id, cancellationToken);
+            var name = info?.FullName ?? id;
+            var location = info?.FilePath != null ? $"  {Path.GetFileName(info.Value.FilePath)}:{info.Value.StartLine}" : "";
+            Console.WriteLine($"{score,6:F4}  {name}{location}");
+        }
+    }
+});
+
 rootCommand.Add(analyzeCommand);
 rootCommand.Add(callgraphCommand);
 rootCommand.Add(hotspotsCommand);
@@ -701,6 +795,7 @@ rootCommand.Add(treeCommand);
 rootCommand.Add(similarCommand);
 rootCommand.Add(duplicatesCommand);
 rootCommand.Add(clustersCommand);
+rootCommand.Add(searchCommand);
 
 var parseResult = CommandLineParser.Parse(rootCommand, args);
 return await parseResult.InvokeAsync();
