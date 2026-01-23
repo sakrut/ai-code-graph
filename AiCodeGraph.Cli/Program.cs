@@ -12,9 +12,10 @@ var serviceProvider = services.BuildServiceProvider();
 
 var rootCommand = new RootCommand("AI Code Graph - Roslyn-based static analysis tool for .NET codebases");
 
-var solutionPathArgument = new Argument<string>("solution-path")
+var solutionPathArgument = new Argument<string?>("solution-path")
 {
-    Description = "Path to the .sln file to analyze"
+    Description = "Path to the .sln file to analyze (auto-discovered if omitted)",
+    Arity = ArgumentArity.ZeroOrOne
 };
 
 var analyzeCommand = new Command("analyze", "Analyze a .NET solution and build the code graph")
@@ -24,7 +25,8 @@ var analyzeCommand = new Command("analyze", "Analyze a .NET solution and build t
 
 analyzeCommand.SetAction(async (parseResult, cancellationToken) =>
 {
-    var solutionPath = parseResult.GetValue(solutionPathArgument)!;
+    var explicitPath = parseResult.GetValue(solutionPathArgument);
+    var solutionPath = SolutionDiscovery.FindSolutionFile(explicitPath);
     var loader = serviceProvider.GetRequiredService<IWorkspaceLoader>();
     var storage = serviceProvider.GetRequiredService<ICodeGraphStorage>();
 
