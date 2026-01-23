@@ -10,6 +10,7 @@ using AiCodeGraph.Core.Duplicates;
 using AiCodeGraph.Core.Embeddings;
 using AiCodeGraph.Core.Normalization;
 using AiCodeGraph.Core.Storage;
+using AiCodeGraph.Cli.Mcp;
 
 var rootCommand = new RootCommand("AI Code Graph - Semantic code analysis for .NET");
 
@@ -1144,6 +1145,20 @@ rootCommand.Add(searchCommand);
 rootCommand.Add(exportCommand);
 rootCommand.Add(driftCommand);
 rootCommand.Add(contextCommand);
+
+// MCP server command
+var mcpDbOption = new Option<string>("--db") { Description = "Path to graph.db", DefaultValueFactory = _ => "./ai-code-graph/graph.db" };
+var mcpCommand = new Command("mcp", "Run as MCP server (JSON-RPC over stdin/stdout)")
+{
+    mcpDbOption
+};
+mcpCommand.SetAction(async (parseResult, cancellationToken) =>
+{
+    var dbPath = parseResult.GetValue(mcpDbOption) ?? "./ai-code-graph/graph.db";
+    var server = new McpServer(dbPath);
+    await server.RunAsync(cancellationToken);
+});
+rootCommand.Add(mcpCommand);
 
 var parseResult = CommandLineParser.Parse(rootCommand, args);
 return await parseResult.InvokeAsync();
