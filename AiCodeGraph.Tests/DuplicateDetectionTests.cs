@@ -500,6 +500,92 @@ public class DuplicateStorageTests
     }
 
     [Fact]
+    public async Task GetClonePairs_ConceptFilter()
+    {
+        await using var storage = new AiCodeGraph.Core.Storage.StorageService(":memory:");
+        await storage.InitializeAsync();
+
+        // Set up clusters
+        var clusters = new List<IntentCluster>
+        {
+            new("cluster-0", "permission check", "desc", new List<string> { "m1", "m2" }, 0.8f)
+        };
+        await storage.SaveClustersAsync(clusters);
+
+        // Set up clone pairs
+        var pairs = new List<ClonePair>
+        {
+            new("m1", "m2", 0.9f, 0.8f, 0.84f, CloneType.Type2),
+            new("m3", "m4", 0.5f, 0.9f, 0.74f, CloneType.Semantic) // not in any cluster
+        };
+        await storage.SaveClonePairsAsync(pairs);
+
+        var filtered = await storage.GetClonePairsAsync(conceptFilter: "permission");
+        Assert.Single(filtered);
+        Assert.Equal("m1", filtered[0].MethodIdA);
+    }
+
+    [Fact]
+    public async Task GetMethodsForExport_AllMethods()
+    {
+        await using var storage = new AiCodeGraph.Core.Storage.StorageService(":memory:");
+        await storage.InitializeAsync();
+
+        // Seed a method
+        var method = new AiCodeGraph.Core.Models.CodeGraph.MethodModel(
+            "m1", "GetUser", "App.UserService.GetUser(int)", "User",
+            [], "UserService.cs", 10, 20, Microsoft.CodeAnalysis.Accessibility.Public,
+            false, false, false, false, false);
+        var type = new AiCodeGraph.Core.Models.CodeGraph.TypeModel(
+            "t1", "UserService", "App.UserService",
+            AiCodeGraph.Core.Models.CodeGraph.TypeKind.Class,
+            [method], [], Microsoft.CodeAnalysis.Accessibility.Public,
+            false, false, false, false, [], []);
+        var ns = new AiCodeGraph.Core.Models.CodeGraph.NamespaceModel("ns1", "App", [type], []);
+        var project = new AiCodeGraph.Core.Models.CodeGraph.ProjectModel("p1", "TestApp", "test.csproj", [ns]);
+        await storage.SaveCodeModelAsync([new AiCodeGraph.Core.Models.CodeGraph.ExtractionResult(project, [])]);
+
+        var results = await storage.GetMethodsForExportAsync();
+        Assert.Single(results);
+        Assert.Equal("m1", results[0].Id);
+        Assert.Equal("App.UserService.GetUser(int)", results[0].FullName);
+    }
+
+    [Fact]
+    public async Task GetMethodsForExport_ConceptFilter()
+    {
+        await using var storage = new AiCodeGraph.Core.Storage.StorageService(":memory:");
+        await storage.InitializeAsync();
+
+        // Seed methods
+        var methods = new List<AiCodeGraph.Core.Models.CodeGraph.MethodModel>
+        {
+            new("m1", "GetUser", "App.GetUser()", "void", [], null, 1, 5,
+                Microsoft.CodeAnalysis.Accessibility.Public, false, false, false, false, false),
+            new("m2", "DeleteUser", "App.DeleteUser()", "void", [], null, 6, 10,
+                Microsoft.CodeAnalysis.Accessibility.Public, false, false, false, false, false)
+        };
+        var type = new AiCodeGraph.Core.Models.CodeGraph.TypeModel(
+            "t1", "Svc", "App.Svc", AiCodeGraph.Core.Models.CodeGraph.TypeKind.Class,
+            methods, [], Microsoft.CodeAnalysis.Accessibility.Public,
+            false, false, false, false, [], []);
+        var ns = new AiCodeGraph.Core.Models.CodeGraph.NamespaceModel("ns1", "App", [type], []);
+        var project = new AiCodeGraph.Core.Models.CodeGraph.ProjectModel("p1", "App", "app.csproj", [ns]);
+        await storage.SaveCodeModelAsync([new AiCodeGraph.Core.Models.CodeGraph.ExtractionResult(project, [])]);
+
+        // Add cluster for m1 only
+        var clusters = new List<IntentCluster>
+        {
+            new("c1", "user access", "desc", new List<string> { "m1" }, 0.8f)
+        };
+        await storage.SaveClustersAsync(clusters);
+
+        var filtered = await storage.GetMethodsForExportAsync("user access");
+        Assert.Single(filtered);
+        Assert.Equal("m1", filtered[0].Id);
+    }
+
+    [Fact]
     public async Task SaveClusters_OverwritesExisting()
     {
         await using var storage = new AiCodeGraph.Core.Storage.StorageService(":memory:");

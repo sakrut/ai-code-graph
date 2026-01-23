@@ -560,12 +560,13 @@ similarCommand.SetAction(async (parseResult, cancellationToken) =>
 var dupTopOption = new Option<int>("--top", "-t") { Description = "Number of results", DefaultValueFactory = _ => 20 };
 var dupThresholdOption = new Option<float>("--threshold") { Description = "Minimum hybrid score", DefaultValueFactory = _ => 0.5f };
 var dupTypeOption = new Option<string?>("--type") { Description = "Filter by clone type: Type1|Type2|Semantic" };
+var dupConceptOption = new Option<string?>("--concept") { Description = "Filter by intent cluster label" };
 var dupFormatOption = new Option<string>("--format", "-f") { Description = "table|json", DefaultValueFactory = _ => "table" };
 var dupDbOption = new Option<string>("--db") { Description = "Path to graph.db", DefaultValueFactory = _ => "./ai-code-graph/graph.db" };
 
 var duplicatesCommand = new Command("duplicates", "Show detected code clones")
 {
-    dupTopOption, dupThresholdOption, dupTypeOption, dupFormatOption, dupDbOption
+    dupTopOption, dupThresholdOption, dupTypeOption, dupConceptOption, dupFormatOption, dupDbOption
 };
 
 duplicatesCommand.SetAction(async (parseResult, cancellationToken) =>
@@ -573,6 +574,7 @@ duplicatesCommand.SetAction(async (parseResult, cancellationToken) =>
     var top = parseResult.GetValue(dupTopOption);
     var threshold = parseResult.GetValue(dupThresholdOption);
     var typeStr = parseResult.GetValue(dupTypeOption);
+    var concept = parseResult.GetValue(dupConceptOption);
     var format = parseResult.GetValue(dupFormatOption) ?? "table";
     var dbPath = parseResult.GetValue(dupDbOption) ?? "./ai-code-graph/graph.db";
 
@@ -588,7 +590,7 @@ duplicatesCommand.SetAction(async (parseResult, cancellationToken) =>
     await using var storage = new StorageService(dbPath);
     await storage.OpenAsync(cancellationToken);
 
-    var pairs = await storage.GetClonePairsAsync(threshold, typeFilter, cancellationToken);
+    var pairs = await storage.GetClonePairsAsync(threshold, typeFilter, concept, cancellationToken);
     pairs = pairs.Take(top).ToList();
 
     if (pairs.Count == 0)
@@ -788,6 +790,79 @@ searchCommand.SetAction(async (parseResult, cancellationToken) =>
     }
 });
 
+// --- export command ---
+var exportConceptOption = new Option<string?>("--concept") { Description = "Filter by concept/cluster label" };
+var exportFormatOption = new Option<string>("--format", "-f") { Description = "json|csv", DefaultValueFactory = _ => "json" };
+var exportDbOption = new Option<string>("--db") { Description = "Path to graph.db", DefaultValueFactory = _ => "./ai-code-graph/graph.db" };
+
+var exportCommand = new Command("export", "Export code graph data")
+{
+    exportConceptOption, exportFormatOption, exportDbOption
+};
+
+exportCommand.SetAction(async (parseResult, cancellationToken) =>
+{
+    var concept = parseResult.GetValue(exportConceptOption);
+    var format = parseResult.GetValue(exportFormatOption) ?? "json";
+    var dbPath = parseResult.GetValue(exportDbOption) ?? "./ai-code-graph/graph.db";
+
+    if (!File.Exists(dbPath))
+    {
+        Console.Error.WriteLine($"Error: Database not found at {dbPath}. Run 'analyze' first.");
+        Environment.ExitCode = 1;
+        return;
+    }
+
+    await using var storage = new StorageService(dbPath);
+    await storage.OpenAsync(cancellationToken);
+
+    var methods = await storage.GetMethodsForExportAsync(concept, cancellationToken);
+    if (methods.Count == 0)
+    {
+        Console.WriteLine("No methods found.");
+        return;
+    }
+
+    var methodIds = methods.Select(m => m.Id).ToHashSet();
+    var relationships = await storage.GetCallGraphForMethodsAsync(methodIds, cancellationToken);
+
+    if (format == "csv")
+    {
+        Console.WriteLine("Id,FullName,ReturnType,FilePath,Line,Complexity,LOC,Nesting,ClusterLabel");
+        foreach (var m in methods)
+        {
+            var filePath = CsvEscape(m.FilePath ?? "");
+            var label = CsvEscape(m.ClusterLabel ?? "");
+            Console.WriteLine($"{CsvEscape(m.Id)},{CsvEscape(m.FullName)},{CsvEscape(m.ReturnType)},{filePath},{m.StartLine},{m.Complexity},{m.Loc},{m.Nesting},{label}");
+        }
+    }
+    else
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            methods = methods.Select(m => new
+            {
+                id = m.Id,
+                fullName = m.FullName,
+                returnType = m.ReturnType,
+                filePath = m.FilePath,
+                line = m.StartLine,
+                complexity = m.Complexity,
+                loc = m.Loc,
+                nesting = m.Nesting,
+                cluster = m.ClusterLabel
+            }),
+            relationships = relationships.OrderBy(r => r.CallerId).ThenBy(r => r.CalleeId).Select(r => new
+            {
+                caller = r.CallerId,
+                callee = r.CalleeId
+            }),
+            metadata = new { methodCount = methods.Count, relationshipCount = relationships.Count, conceptFilter = concept }
+        }, new System.Text.Json.JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
+        Console.WriteLine(json);
+    }
+});
+
 rootCommand.Add(analyzeCommand);
 rootCommand.Add(callgraphCommand);
 rootCommand.Add(hotspotsCommand);
@@ -796,6 +871,7 @@ rootCommand.Add(similarCommand);
 rootCommand.Add(duplicatesCommand);
 rootCommand.Add(clustersCommand);
 rootCommand.Add(searchCommand);
+rootCommand.Add(exportCommand);
 
 var parseResult = CommandLineParser.Parse(rootCommand, args);
 return await parseResult.InvokeAsync();
@@ -831,6 +907,13 @@ static int CountMethodsInNamespace(NamespaceModel ns)
 static int CountMethodsInType(TypeModel type)
 {
     return type.Methods.Count + type.NestedTypes.Sum(CountMethodsInType);
+}
+
+static string CsvEscape(string value)
+{
+    if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
+        return $"\"{value.Replace("\"", "\"\"")}\"";
+    return value;
 }
 
 static void PrintCallTree(string nodeId, List<(string From, string To)> edges, List<(string Id, string FullName, int Depth, string Direction)> nodes, int currentDepth, int maxDepth, HashSet<string> printed)

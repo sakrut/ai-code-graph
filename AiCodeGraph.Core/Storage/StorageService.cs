@@ -537,18 +537,38 @@ public class StorageService : IAsyncDisposable, IDisposable
         }
     }
 
-    public async Task<List<ClonePair>> GetClonePairsAsync(float minThreshold = 0f, CloneType? typeFilter = null, CancellationToken cancellationToken = default)
+    public async Task<List<ClonePair>> GetClonePairsAsync(float minThreshold = 0f, CloneType? typeFilter = null, string? conceptFilter = null, CancellationToken cancellationToken = default)
     {
         EnsureConnection();
         using var cmd = _connection!.CreateCommand();
         var conditions = new List<string>();
         if (minThreshold > 0)
-            conditions.Add("HybridScore >= @threshold");
+            conditions.Add("cp.HybridScore >= @threshold");
         if (typeFilter.HasValue)
-            conditions.Add("CloneType = @type");
-        var where = conditions.Count > 0 ? "WHERE " + string.Join(" AND ", conditions) : "";
+            conditions.Add("cp.CloneType = @type");
 
-        cmd.CommandText = $"SELECT MethodIdA, MethodIdB, StructuralSimilarity, SemanticSimilarity, HybridScore, CloneType FROM ClonePairs {where} ORDER BY HybridScore DESC";
+        string query;
+        if (conceptFilter != null)
+        {
+            conditions.Add("ic.Label LIKE @concept");
+            var where = conditions.Count > 0 ? "WHERE " + string.Join(" AND ", conditions) : "";
+            query = $"""
+                SELECT DISTINCT cp.MethodIdA, cp.MethodIdB, cp.StructuralSimilarity, cp.SemanticSimilarity, cp.HybridScore, cp.CloneType
+                FROM ClonePairs cp
+                JOIN MethodClusterMap mcm ON mcm.MethodId = cp.MethodIdA OR mcm.MethodId = cp.MethodIdB
+                JOIN IntentClusters ic ON ic.Id = mcm.ClusterId
+                {where}
+                ORDER BY cp.HybridScore DESC
+                """;
+            cmd.Parameters.AddWithValue("@concept", $"%{conceptFilter}%");
+        }
+        else
+        {
+            var where = conditions.Count > 0 ? "WHERE " + string.Join(" AND ", conditions) : "";
+            query = $"SELECT cp.MethodIdA, cp.MethodIdB, cp.StructuralSimilarity, cp.SemanticSimilarity, cp.HybridScore, cp.CloneType FROM ClonePairs cp {where} ORDER BY cp.HybridScore DESC";
+        }
+
+        cmd.CommandText = query;
         if (minThreshold > 0)
             cmd.Parameters.AddWithValue("@threshold", minThreshold);
         if (typeFilter.HasValue)
@@ -670,6 +690,77 @@ public class StorageService : IAsyncDisposable, IDisposable
             members.GetValueOrDefault(kv.Key, new List<string>()),
             kv.Value.Cohesion
         )).ToList();
+    }
+
+    public async Task<List<(string Id, string Name, string FullName, string ReturnType, string? FilePath, int StartLine, int Complexity, int Loc, int Nesting, string? ClusterLabel)>> GetMethodsForExportAsync(string? conceptFilter = null, CancellationToken cancellationToken = default)
+    {
+        EnsureConnection();
+        using var cmd = _connection!.CreateCommand();
+
+        if (conceptFilter != null)
+        {
+            cmd.CommandText = """
+                SELECT m.Id, m.Name, m.FullName, m.ReturnType, m.FilePath, m.StartLine,
+                       COALESCE(met.CognitiveComplexity, 0), COALESCE(met.LinesOfCode, 0), COALESCE(met.NestingDepth, 0),
+                       ic.Label
+                FROM Methods m
+                JOIN MethodClusterMap mcm ON mcm.MethodId = m.Id
+                JOIN IntentClusters ic ON ic.Id = mcm.ClusterId
+                LEFT JOIN Metrics met ON met.MethodId = m.Id
+                WHERE ic.Label LIKE @concept
+                ORDER BY m.Id
+                """;
+            cmd.Parameters.AddWithValue("@concept", $"%{conceptFilter}%");
+        }
+        else
+        {
+            cmd.CommandText = """
+                SELECT m.Id, m.Name, m.FullName, m.ReturnType, m.FilePath, m.StartLine,
+                       COALESCE(met.CognitiveComplexity, 0), COALESCE(met.LinesOfCode, 0), COALESCE(met.NestingDepth, 0),
+                       ic.Label
+                FROM Methods m
+                LEFT JOIN Metrics met ON met.MethodId = m.Id
+                LEFT JOIN MethodClusterMap mcm ON mcm.MethodId = m.Id
+                LEFT JOIN IntentClusters ic ON ic.Id = mcm.ClusterId
+                ORDER BY m.Id
+                """;
+        }
+
+        var results = new List<(string, string, string, string, string?, int, int, int, int, string?)>();
+        using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            results.Add((
+                reader.GetString(0),
+                reader.GetString(1),
+                reader.GetString(2),
+                reader.GetString(3),
+                reader.IsDBNull(4) ? null : reader.GetString(4),
+                reader.GetInt32(5),
+                reader.GetInt32(6),
+                reader.GetInt32(7),
+                reader.GetInt32(8),
+                reader.IsDBNull(9) ? null : reader.GetString(9)));
+        }
+        return results;
+    }
+
+    public async Task<List<(string CallerId, string CalleeId)>> GetCallGraphForMethodsAsync(HashSet<string> methodIds, CancellationToken cancellationToken = default)
+    {
+        EnsureConnection();
+        using var cmd = _connection!.CreateCommand();
+        cmd.CommandText = "SELECT CallerId, CalleeId FROM MethodCalls";
+
+        var results = new List<(string, string)>();
+        using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            var caller = reader.GetString(0);
+            var callee = reader.GetString(1);
+            if (methodIds.Contains(caller) || methodIds.Contains(callee))
+                results.Add((caller, callee));
+        }
+        return results;
     }
 
     private void EnsureConnection()

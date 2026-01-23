@@ -1061,7 +1061,7 @@
           "8",
           "11"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1113,7 +1113,8 @@
         ],
         "complexity": 4,
         "recommendedSubtasks": 4,
-        "expansionPrompt": "Break down the Duplicates CLI Command into subtasks: 1) Implement the duplicates command definition with System.CommandLine (--concept, --threshold, --type, --top, --format options), 2) Implement query logic against SQLite clone pairs with concept/type/threshold filtering, 3) Implement the export command for filtered subsets of the code graph, 4) Implement table and JSON output formatting for both commands with deterministic ordering. This is a query-and-display task over data already computed by Task 11."
+        "expansionPrompt": "Break down the Duplicates CLI Command into subtasks: 1) Implement the duplicates command definition with System.CommandLine (--concept, --threshold, --type, --top, --format options), 2) Implement query logic against SQLite clone pairs with concept/type/threshold filtering, 3) Implement the export command for filtered subsets of the code graph, 4) Implement table and JSON output formatting for both commands with deterministic ordering. This is a query-and-display task over data already computed by Task 11.",
+        "updatedAt": "2026-01-23T21:29:31.566Z"
       },
       {
         "id": "14",
@@ -1304,9 +1305,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-23T21:27:08.194Z",
+      "lastModified": "2026-01-23T21:29:31.567Z",
       "taskCount": 15,
-      "completedCount": 12,
+      "completedCount": 13,
       "tags": [
         "master"
       ]
