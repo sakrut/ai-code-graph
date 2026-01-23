@@ -293,6 +293,108 @@ public class StorageService : IAsyncDisposable, IDisposable
         return results;
     }
 
+    public async Task OpenAsync(CancellationToken cancellationToken = default)
+    {
+        _connection = new SqliteConnection($"Data Source={_dbPath}");
+        await _connection.OpenAsync(cancellationToken);
+    }
+
+    public async Task<(string Id, string Name, string FullName, string? FilePath, int StartLine)?> GetMethodInfoAsync(string methodId, CancellationToken cancellationToken = default)
+    {
+        EnsureConnection();
+        using var cmd = _connection!.CreateCommand();
+        cmd.CommandText = "SELECT Id, Name, FullName, FilePath, StartLine FROM Methods WHERE Id = @id";
+        cmd.Parameters.AddWithValue("@id", methodId);
+
+        using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        if (await reader.ReadAsync(cancellationToken))
+        {
+            return (
+                reader.GetString(0),
+                reader.GetString(1),
+                reader.GetString(2),
+                reader.IsDBNull(3) ? null : reader.GetString(3),
+                reader.GetInt32(4)
+            );
+        }
+        return null;
+    }
+
+    public async Task<List<(string Id, string Name, string FullName, int Complexity, int Loc, int Nesting, string? FilePath, int StartLine)>> GetHotspotsWithThresholdAsync(int top = 20, int? threshold = null, CancellationToken cancellationToken = default)
+    {
+        EnsureConnection();
+        using var cmd = _connection!.CreateCommand();
+        var where = threshold.HasValue ? "WHERE met.CognitiveComplexity >= @threshold" : "";
+        cmd.CommandText = $"""
+            SELECT m.Id, m.Name, m.FullName, met.CognitiveComplexity, met.LinesOfCode, met.NestingDepth, m.FilePath, m.StartLine
+            FROM Methods m JOIN Metrics met ON m.Id = met.MethodId
+            {where}
+            ORDER BY met.CognitiveComplexity DESC
+            LIMIT @top
+            """;
+        cmd.Parameters.AddWithValue("@top", top);
+        if (threshold.HasValue)
+            cmd.Parameters.AddWithValue("@threshold", threshold.Value);
+
+        var results = new List<(string, string, string, int, int, int, string?, int)>();
+        using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            results.Add((
+                reader.GetString(0),
+                reader.GetString(1),
+                reader.GetString(2),
+                reader.GetInt32(3),
+                reader.GetInt32(4),
+                reader.GetInt32(5),
+                reader.IsDBNull(6) ? null : reader.GetString(6),
+                reader.GetInt32(7)
+            ));
+        }
+        return results;
+    }
+
+    public async Task<List<(string ProjectName, string NamespaceName, string TypeName, string TypeKind, string MethodName, string ReturnType)>> GetTreeAsync(string? namespaceFilter = null, string? typeFilter = null, CancellationToken cancellationToken = default)
+    {
+        EnsureConnection();
+        using var cmd = _connection!.CreateCommand();
+        var conditions = new List<string>();
+        if (namespaceFilter != null)
+            conditions.Add("n.FullName LIKE @ns");
+        if (typeFilter != null)
+            conditions.Add("t.Name LIKE @type");
+        var where = conditions.Count > 0 ? "WHERE " + string.Join(" AND ", conditions) : "";
+
+        cmd.CommandText = $"""
+            SELECT p.Name, n.FullName, t.Name, t.Kind, m.Name, m.ReturnType
+            FROM Projects p
+            JOIN Namespaces n ON n.ProjectId = p.Id
+            JOIN Types t ON t.NamespaceId = n.Id
+            JOIN Methods m ON m.TypeId = t.Id
+            {where}
+            ORDER BY p.Name, n.FullName, t.Name, m.Name
+            """;
+        if (namespaceFilter != null)
+            cmd.Parameters.AddWithValue("@ns", $"{namespaceFilter}%");
+        if (typeFilter != null)
+            cmd.Parameters.AddWithValue("@type", $"%{typeFilter}%");
+
+        var results = new List<(string, string, string, string, string, string)>();
+        using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            results.Add((
+                reader.GetString(0),
+                reader.GetString(1),
+                reader.GetString(2),
+                reader.GetString(3),
+                reader.GetString(4),
+                reader.GetString(5)
+            ));
+        }
+        return results;
+    }
+
     private void EnsureConnection()
     {
         if (_connection == null)

@@ -159,7 +159,283 @@ analyzeCommand.SetAction(async (parseResult, cancellationToken) =>
     }
 });
 
+// --- callgraph command ---
+var methodArgument = new Argument<string>("method") { Description = "Method name or pattern to search for" };
+var depthOption = new Option<int>("--depth", "-d") { Description = "Traversal depth", DefaultValueFactory = _ => 2 };
+var directionOption = new Option<string>("--direction") { Description = "callers|callees|both", DefaultValueFactory = _ => "both" };
+var cgFormatOption = new Option<string>("--format", "-f") { Description = "tree|json", DefaultValueFactory = _ => "tree" };
+var cgDbOption = new Option<string>("--db") { Description = "Path to graph.db", DefaultValueFactory = _ => "./ai-code-graph/graph.db" };
+
+var callgraphCommand = new Command("callgraph", "Explore method call graph")
+{
+    methodArgument, depthOption, directionOption, cgFormatOption, cgDbOption
+};
+
+callgraphCommand.SetAction(async (parseResult, cancellationToken) =>
+{
+    var method = parseResult.GetValue(methodArgument)!;
+    var depth = parseResult.GetValue(depthOption);
+    var direction = parseResult.GetValue(directionOption) ?? "both";
+    var format = parseResult.GetValue(cgFormatOption) ?? "tree";
+    var dbPath = parseResult.GetValue(cgDbOption) ?? "./ai-code-graph/graph.db";
+
+    if (!File.Exists(dbPath))
+    {
+        Console.Error.WriteLine($"Error: Database not found at {dbPath}. Run 'analyze' first.");
+        Environment.ExitCode = 1;
+        return;
+    }
+
+    await using var storage = new StorageService(dbPath);
+    await storage.OpenAsync(cancellationToken);
+
+    var matches = await storage.SearchMethodsAsync(method, cancellationToken);
+    if (matches.Count == 0)
+    {
+        Console.Error.WriteLine($"No methods found matching '{method}'.");
+        Environment.ExitCode = 1;
+        return;
+    }
+
+    if (matches.Count > 1 && !matches.Any(m => m.FullName == method))
+    {
+        Console.WriteLine($"Multiple methods match '{method}':");
+        foreach (var m in matches.Take(10))
+            Console.WriteLine($"  {m.FullName}");
+        if (matches.Count > 10)
+            Console.WriteLine($"  ... and {matches.Count - 10} more");
+        Console.WriteLine("Please use a more specific name.");
+        return;
+    }
+
+    var rootId = matches.First(m => m.FullName == method || matches.Count == 1).Id;
+    var rootInfo = await storage.GetMethodInfoAsync(rootId, cancellationToken);
+
+    // BFS traversal
+    var visited = new HashSet<string>();
+    var nodes = new List<(string Id, string FullName, int Depth, string Direction)>();
+    var edges = new List<(string From, string To)>();
+    var queue = new Queue<(string Id, int Depth)>();
+
+    queue.Enqueue((rootId, 0));
+    visited.Add(rootId);
+
+    while (queue.Count > 0)
+    {
+        var (currentId, currentDepth) = queue.Dequeue();
+        var info = await storage.GetMethodInfoAsync(currentId, cancellationToken);
+        if (info == null) continue;
+        nodes.Add((currentId, info.Value.FullName, currentDepth, currentDepth == 0 ? "root" : ""));
+
+        if (currentDepth >= depth) continue;
+
+        if (direction is "callees" or "both")
+        {
+            foreach (var calleeId in await storage.GetCalleesAsync(currentId, cancellationToken))
+            {
+                edges.Add((currentId, calleeId));
+                if (visited.Add(calleeId))
+                    queue.Enqueue((calleeId, currentDepth + 1));
+            }
+        }
+        if (direction is "callers" or "both")
+        {
+            foreach (var callerId in await storage.GetCallersAsync(currentId, cancellationToken))
+            {
+                edges.Add((callerId, currentId));
+                if (visited.Add(callerId))
+                    queue.Enqueue((callerId, currentDepth + 1));
+            }
+        }
+    }
+
+    if (format == "json")
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            root = new { id = rootId, name = rootInfo?.FullName },
+            nodes = nodes.OrderBy(n => n.FullName).Select(n => new { n.Id, name = n.FullName, n.Depth }),
+            edges = edges.OrderBy(e => e.From).ThenBy(e => e.To).Select(e => new { from = e.From, to = e.To }),
+            metadata = new { depth, direction }
+        }, new System.Text.Json.JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
+        Console.WriteLine(json);
+    }
+    else
+    {
+        Console.WriteLine($"{rootInfo?.FullName ?? rootId}");
+        PrintCallTree(rootId, edges, nodes, 1, depth, new HashSet<string> { rootId });
+    }
+});
+
+// --- hotspots command ---
+var topOption = new Option<int>("--top", "-t") { Description = "Number of results", DefaultValueFactory = _ => 20 };
+var thresholdOption = new Option<int?>("--threshold") { Description = "Minimum complexity score" };
+var hsFormatOption = new Option<string>("--format", "-f") { Description = "table|json", DefaultValueFactory = _ => "table" };
+var hsDbOption = new Option<string>("--db") { Description = "Path to graph.db", DefaultValueFactory = _ => "./ai-code-graph/graph.db" };
+
+var hotspotsCommand = new Command("hotspots", "Show complexity hotspots")
+{
+    topOption, thresholdOption, hsFormatOption, hsDbOption
+};
+
+hotspotsCommand.SetAction(async (parseResult, cancellationToken) =>
+{
+    var top = parseResult.GetValue(topOption);
+    var threshold = parseResult.GetValue(thresholdOption);
+    var format = parseResult.GetValue(hsFormatOption) ?? "table";
+    var dbPath = parseResult.GetValue(hsDbOption) ?? "./ai-code-graph/graph.db";
+
+    if (!File.Exists(dbPath))
+    {
+        Console.Error.WriteLine($"Error: Database not found at {dbPath}. Run 'analyze' first.");
+        Environment.ExitCode = 1;
+        return;
+    }
+
+    await using var storage = new StorageService(dbPath);
+    await storage.OpenAsync(cancellationToken);
+
+    var hotspots = await storage.GetHotspotsWithThresholdAsync(top, threshold, cancellationToken);
+
+    if (hotspots.Count == 0)
+    {
+        Console.WriteLine("No hotspots found.");
+        return;
+    }
+
+    if (format == "json")
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            hotspots = hotspots.Select(h => new
+            {
+                method = h.FullName,
+                complexity = h.Complexity,
+                loc = h.Loc,
+                maxNesting = h.Nesting,
+                location = h.FilePath != null ? $"{h.FilePath}:{h.StartLine}" : null
+            }),
+            metadata = new { total = hotspots.Count, threshold, top }
+        }, new System.Text.Json.JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
+        Console.WriteLine(json);
+    }
+    else
+    {
+        var nameWidth = Math.Min(60, hotspots.Max(h => h.FullName.Length));
+        Console.WriteLine($"{"Method".PadRight(nameWidth)}  {"CC",4}  {"LOC",4}  {"Nest",4}  Location");
+        Console.WriteLine(new string('-', nameWidth + 30));
+        foreach (var h in hotspots)
+        {
+            var name = h.FullName.Length > nameWidth ? h.FullName[..(nameWidth - 3)] + "..." : h.FullName;
+            var location = h.FilePath != null ? $"{Path.GetFileName(h.FilePath)}:{h.StartLine}" : "";
+            Console.WriteLine($"{name.PadRight(nameWidth)}  {h.Complexity,4}  {h.Loc,4}  {h.Nesting,4}  {location}");
+        }
+    }
+});
+
+// --- tree command ---
+var nsFilterOption = new Option<string?>("--namespace", "-n") { Description = "Filter by namespace prefix" };
+var typeFilterOption = new Option<string?>("--type") { Description = "Filter by type name" };
+var treeFormatOption = new Option<string>("--format", "-f") { Description = "tree|json", DefaultValueFactory = _ => "tree" };
+var treeDbOption = new Option<string>("--db") { Description = "Path to graph.db", DefaultValueFactory = _ => "./ai-code-graph/graph.db" };
+
+var treeCommand = new Command("tree", "Display code structure tree")
+{
+    nsFilterOption, typeFilterOption, treeFormatOption, treeDbOption
+};
+
+treeCommand.SetAction(async (parseResult, cancellationToken) =>
+{
+    var nsFilter = parseResult.GetValue(nsFilterOption);
+    var typeFilter = parseResult.GetValue(typeFilterOption);
+    var format = parseResult.GetValue(treeFormatOption) ?? "tree";
+    var dbPath = parseResult.GetValue(treeDbOption) ?? "./ai-code-graph/graph.db";
+
+    if (!File.Exists(dbPath))
+    {
+        Console.Error.WriteLine($"Error: Database not found at {dbPath}. Run 'analyze' first.");
+        Environment.ExitCode = 1;
+        return;
+    }
+
+    await using var storage = new StorageService(dbPath);
+    await storage.OpenAsync(cancellationToken);
+
+    var rows = await storage.GetTreeAsync(nsFilter, typeFilter, cancellationToken);
+
+    if (rows.Count == 0)
+    {
+        Console.WriteLine("No results found.");
+        return;
+    }
+
+    if (format == "json")
+    {
+        var hierarchy = rows
+            .GroupBy(r => r.ProjectName)
+            .Select(pg => new
+            {
+                name = pg.Key,
+                namespaces = pg.GroupBy(r => r.NamespaceName).OrderBy(g => g.Key).Select(ng => new
+                {
+                    name = ng.Key,
+                    types = ng.GroupBy(r => (r.TypeName, r.TypeKind)).OrderBy(g => g.Key.TypeName).Select(tg => new
+                    {
+                        name = tg.Key.TypeName,
+                        kind = tg.Key.TypeKind.ToLower(),
+                        methods = tg.OrderBy(r => r.MethodName).Select(r => new { name = r.MethodName, returnType = r.ReturnType })
+                    })
+                })
+            });
+
+        var json = System.Text.Json.JsonSerializer.Serialize(new { projects = hierarchy },
+            new System.Text.Json.JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
+        Console.WriteLine(json);
+    }
+    else
+    {
+        var lastProject = "";
+        var lastNs = "";
+        var lastType = "";
+
+        foreach (var row in rows)
+        {
+            if (row.ProjectName != lastProject)
+            {
+                Console.WriteLine(row.ProjectName);
+                lastProject = row.ProjectName;
+                lastNs = "";
+                lastType = "";
+            }
+            if (row.NamespaceName != lastNs)
+            {
+                Console.WriteLine($"  {row.NamespaceName}");
+                lastNs = row.NamespaceName;
+                lastType = "";
+            }
+            if (row.TypeName != lastType)
+            {
+                var kindTag = row.TypeKind switch
+                {
+                    "Class" => "[C]",
+                    "Interface" => "[I]",
+                    "Record" => "[R]",
+                    "Struct" => "[S]",
+                    "Enum" => "[E]",
+                    _ => "[?]"
+                };
+                Console.WriteLine($"    {kindTag} {row.TypeName}");
+                lastType = row.TypeName;
+            }
+            Console.WriteLine($"        {row.ReturnType} {row.MethodName}()");
+        }
+    }
+});
+
 rootCommand.Add(analyzeCommand);
+rootCommand.Add(callgraphCommand);
+rootCommand.Add(hotspotsCommand);
+rootCommand.Add(treeCommand);
 
 var parseResult = CommandLineParser.Parse(rootCommand, args);
 return await parseResult.InvokeAsync();
@@ -195,4 +471,32 @@ static int CountMethodsInNamespace(NamespaceModel ns)
 static int CountMethodsInType(TypeModel type)
 {
     return type.Methods.Count + type.NestedTypes.Sum(CountMethodsInType);
+}
+
+static void PrintCallTree(string nodeId, List<(string From, string To)> edges, List<(string Id, string FullName, int Depth, string Direction)> nodes, int currentDepth, int maxDepth, HashSet<string> printed)
+{
+    if (currentDepth > maxDepth) return;
+    var indent = new string(' ', currentDepth * 2);
+
+    // callees
+    foreach (var edge in edges.Where(e => e.From == nodeId))
+    {
+        var node = nodes.FirstOrDefault(n => n.Id == edge.To);
+        if (node == default) continue;
+        var marker = printed.Add(edge.To) ? "" : " (*)";
+        Console.WriteLine($"{indent}\u2192 {node.FullName}{marker}");
+        if (marker == "")
+            PrintCallTree(edge.To, edges, nodes, currentDepth + 1, maxDepth, printed);
+    }
+
+    // callers
+    foreach (var edge in edges.Where(e => e.To == nodeId))
+    {
+        var node = nodes.FirstOrDefault(n => n.Id == edge.From);
+        if (node == default) continue;
+        var marker = printed.Add(edge.From) ? "" : " (*)";
+        Console.WriteLine($"{indent}\u2190 {node.FullName}{marker}");
+        if (marker == "")
+            PrintCallTree(edge.From, edges, nodes, currentDepth + 1, maxDepth, printed);
+    }
 }
