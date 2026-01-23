@@ -763,6 +763,64 @@ public class StorageService : IAsyncDisposable, IDisposable
         return results;
     }
 
+    public async Task<(int CognitiveComplexity, int LinesOfCode, int NestingDepth)?> GetMethodMetricsAsync(string methodId, CancellationToken cancellationToken = default)
+    {
+        EnsureConnection();
+        using var cmd = _connection!.CreateCommand();
+        cmd.CommandText = "SELECT CognitiveComplexity, LinesOfCode, NestingDepth FROM Metrics WHERE MethodId = @id";
+        cmd.Parameters.AddWithValue("@id", methodId);
+        using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        if (await reader.ReadAsync(cancellationToken))
+            return (reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2));
+        return null;
+    }
+
+    public async Task<(string Label, int MemberCount, float Cohesion)?> GetMethodClusterAsync(string methodId, CancellationToken cancellationToken = default)
+    {
+        EnsureConnection();
+        using var cmd = _connection!.CreateCommand();
+        cmd.CommandText = """
+            SELECT ic.Label, ic.MemberCount, ic.Cohesion
+            FROM MethodClusterMap mcm JOIN IntentClusters ic ON mcm.ClusterId = ic.Id
+            WHERE mcm.MethodId = @id
+            """;
+        cmd.Parameters.AddWithValue("@id", methodId);
+        using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        if (await reader.ReadAsync(cancellationToken))
+            return (reader.GetString(0), reader.GetInt32(1), reader.GetFloat(2));
+        return null;
+    }
+
+    public async Task<List<(string OtherMethodId, string OtherFullName, float HybridScore, CloneType Type)>> GetMethodDuplicatesAsync(string methodId, CancellationToken cancellationToken = default)
+    {
+        EnsureConnection();
+        using var cmd = _connection!.CreateCommand();
+        cmd.CommandText = """
+            SELECT cp.MethodIdA, cp.MethodIdB, cp.HybridScore, cp.CloneType, ma.FullName, mb.FullName
+            FROM ClonePairs cp
+            LEFT JOIN Methods ma ON cp.MethodIdA = ma.Id
+            LEFT JOIN Methods mb ON cp.MethodIdB = mb.Id
+            WHERE cp.MethodIdA = @id OR cp.MethodIdB = @id
+            ORDER BY cp.HybridScore DESC
+            """;
+        cmd.Parameters.AddWithValue("@id", methodId);
+        var results = new List<(string, string, float, CloneType)>();
+        using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            var idA = reader.GetString(0);
+            var idB = reader.GetString(1);
+            var score = reader.GetFloat(2);
+            var type = Enum.Parse<CloneType>(reader.GetString(3));
+            var nameA = reader.IsDBNull(4) ? idA : reader.GetString(4);
+            var nameB = reader.IsDBNull(5) ? idB : reader.GetString(5);
+            var otherId = idA == methodId ? idB : idA;
+            var otherName = idA == methodId ? nameB : nameA;
+            results.Add((otherId, otherName, score, type));
+        }
+        return results;
+    }
+
     private void EnsureConnection()
     {
         if (_connection == null)

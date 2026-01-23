@@ -1022,6 +1022,117 @@ driftCommand.SetAction(async (parseResult, cancellationToken) =>
     Environment.ExitCode = hasDrift ? 1 : 0;
 });
 
+// Context command - compact combined method summary for Claude Code integration
+var ctxMethodArg = new Argument<string>("method") { Description = "Method name or pattern" };
+var ctxDbOption = new Option<string>("--db") { Description = "Path to graph.db", DefaultValueFactory = _ => "./ai-code-graph/graph.db" };
+var contextCommand = new Command("context", "Get compact method context (complexity, callers, callees, cluster, duplicates)")
+{
+    ctxMethodArg, ctxDbOption
+};
+
+contextCommand.SetAction(async (parseResult, cancellationToken) =>
+{
+    var method = parseResult.GetValue(ctxMethodArg)!;
+    var dbPath = parseResult.GetValue(ctxDbOption) ?? "./ai-code-graph/graph.db";
+
+    if (!File.Exists(dbPath))
+    {
+        Console.Error.WriteLine($"Error: Database not found at {dbPath}. Run 'analyze' first.");
+        Environment.ExitCode = 1;
+        return;
+    }
+
+    await using var storage = new StorageService(dbPath);
+    await storage.OpenAsync(cancellationToken);
+
+    var matches = await storage.SearchMethodsAsync(method, cancellationToken);
+    if (matches.Count == 0)
+    {
+        Console.Error.WriteLine($"Method not found: '{method}'");
+        Environment.ExitCode = 1;
+        return;
+    }
+
+    // If multiple matches and none exact, list them
+    if (matches.Count > 1 && !matches.Any(m => m.FullName.Contains(method, StringComparison.OrdinalIgnoreCase) && m.FullName.Split('.').Last().Split('(').First() == method.Split('.').Last().Split('(').First()))
+    {
+        Console.WriteLine($"Multiple matches for '{method}':");
+        foreach (var m in matches.Take(5))
+            Console.WriteLine($"  {m.FullName}");
+        if (matches.Count > 5)
+            Console.WriteLine($"  ... and {matches.Count - 5} more");
+        return;
+    }
+
+    var targetId = matches.Count == 1
+        ? matches[0].Id
+        : matches.First(m => m.FullName.Contains(method, StringComparison.OrdinalIgnoreCase)).Id;
+
+    var info = await storage.GetMethodInfoAsync(targetId, cancellationToken);
+    if (info == null) return;
+
+    // Method identity
+    Console.WriteLine($"Method: {info.Value.FullName}");
+    if (info.Value.FilePath != null)
+        Console.WriteLine($"File: {info.Value.FilePath}:{info.Value.StartLine}");
+
+    // Metrics
+    var metrics = await storage.GetMethodMetricsAsync(targetId, cancellationToken);
+    if (metrics != null)
+        Console.WriteLine($"Complexity: CC={metrics.Value.CognitiveComplexity} LOC={metrics.Value.LinesOfCode} Nesting={metrics.Value.NestingDepth}");
+
+    // Callers
+    var callers = await storage.GetCallersAsync(targetId, cancellationToken);
+    if (callers.Count > 0)
+    {
+        var callerNames = new List<string>();
+        foreach (var cid in callers.Take(5))
+        {
+            var ci = await storage.GetMethodInfoAsync(cid, cancellationToken);
+            callerNames.Add(ci?.Name ?? cid);
+        }
+        var suffix = callers.Count > 5 ? $" (+{callers.Count - 5} more)" : "";
+        Console.WriteLine($"Callers ({callers.Count}): {string.Join(", ", callerNames)}{suffix}");
+    }
+
+    // Callees
+    var callees = await storage.GetCalleesAsync(targetId, cancellationToken);
+    if (callees.Count > 0)
+    {
+        var calleeNames = new List<string>();
+        foreach (var cid in callees.Take(5))
+        {
+            var ci = await storage.GetMethodInfoAsync(cid, cancellationToken);
+            calleeNames.Add(ci?.Name ?? cid);
+        }
+        var suffix = callees.Count > 5 ? $" (+{callees.Count - 5} more)" : "";
+        Console.WriteLine($"Callees ({callees.Count}): {string.Join(", ", calleeNames)}{suffix}");
+    }
+
+    // Cluster
+    var cluster = await storage.GetMethodClusterAsync(targetId, cancellationToken);
+    if (cluster != null)
+        Console.WriteLine($"Cluster: \"{cluster.Value.Label}\" ({cluster.Value.MemberCount} members, cohesion: {cluster.Value.Cohesion:F2})");
+
+    // Duplicates
+    var dupes = await storage.GetMethodDuplicatesAsync(targetId, cancellationToken);
+    if (dupes.Count > 0)
+    {
+        var dupeStrs = dupes.Take(3).Select(d =>
+        {
+            var name = d.OtherFullName;
+            // Extract Type.Method from full qualified name
+            var parenIdx = name.IndexOf('(');
+            var nameWithoutParams = parenIdx >= 0 ? name[..parenIdx] : name;
+            var parts = nameWithoutParams.Split('.');
+            var shortName = parts.Length >= 2 ? $"{parts[^2]}.{parts[^1]}" : parts[^1];
+            return $"{shortName} ({d.HybridScore:F2})";
+        });
+        var suffix = dupes.Count > 3 ? $" (+{dupes.Count - 3} more)" : "";
+        Console.WriteLine($"Duplicates ({dupes.Count}): {string.Join(", ", dupeStrs)}{suffix}");
+    }
+});
+
 rootCommand.Add(analyzeCommand);
 rootCommand.Add(callgraphCommand);
 rootCommand.Add(hotspotsCommand);
@@ -1032,6 +1143,7 @@ rootCommand.Add(clustersCommand);
 rootCommand.Add(searchCommand);
 rootCommand.Add(exportCommand);
 rootCommand.Add(driftCommand);
+rootCommand.Add(contextCommand);
 
 var parseResult = CommandLineParser.Parse(rootCommand, args);
 return await parseResult.InvokeAsync();
