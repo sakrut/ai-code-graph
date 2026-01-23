@@ -733,7 +733,7 @@
           "3",
           "4"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -741,9 +741,10 @@
             "description": "Create a utility class that splits compound identifiers into their constituent tokens, handling PascalCase, camelCase, acronyms (e.g., HTTPClient → [HTTP, Client]), underscores, and edge cases like consecutive uppercase letters.",
             "dependencies": [],
             "details": "Create an `IdentifierTokenizer` static class with a `Tokenize(string identifier)` method that returns `IReadOnlyList<string>`. Implement splitting logic: 1) Split on underscores first, 2) For each segment, detect transitions between lowercase→uppercase (camelCase boundary), uppercase→uppercase+lowercase (acronym boundary like 'HTTPClient' → 'HTTP'+'Client'), 3) Handle edge cases: single-letter words, all-caps identifiers, numeric segments ('Get2ndItem' → ['Get', '2nd', 'Item']), trailing acronyms ('getURL' → ['get', 'URL']). Add a `TokenizeAndNormalize(string identifier)` method that returns lowercase tokens. Include comprehensive unit tests covering: standard PascalCase ('GetCustomerById' → ['Get','Customer','By','Id']), acronyms ('XMLHTTPRequest' → ['XML','HTTP','Request']), camelCase ('removeTag' → ['remove','Tag']), mixed ('getURLForID' → ['get','URL','For','ID']), underscored ('get_customer_id' → ['get','customer','id']).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests verifying: PascalCase splitting (GetCustomerById → [Get, Customer, By, Id]), acronym handling (HTTPClient → [HTTP, Client], XMLParser → [XML, Parser]), camelCase (getElementById → [get, Element, By, Id]), edge cases (iOS → [i, OS], ID → [ID]), underscore splitting, numeric segments, empty/null input handling. Verify lowercase normalization produces consistent results.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T21:16:00.126Z"
           },
           {
             "id": 2,
@@ -751,9 +752,10 @@
             "description": "Build the structural signature generator that walks a Roslyn SyntaxNode tree and produces a canonical, normalized string representation preserving control flow shape while replacing literals and local variable names with positional placeholders.",
             "dependencies": [],
             "details": "Create a `StructuralSignatureBuilder` class with a `Build(SyntaxNode methodSyntax)` method returning a canonical string. Implement a CSharpSyntaxWalker or recursive visitor that: 1) Replaces all string literals with 'LIT_STR', numeric literals with 'LIT_NUM', boolean literals with 'LIT_BOOL', null with 'LIT_NULL', 2) Replaces local variable declarations and references with positional names (v0, v1, v2) based on declaration order, 3) Preserves control flow keywords and structure (if/else/for/foreach/while/do/switch/case/try/catch/finally), 4) Preserves method call names but normalizes the receiver to 'recv' (e.g., 'this.Foo()' and 'obj.Foo()' both become 'recv.Foo()'), 5) Preserves operators and expression structure, 6) Outputs a deterministic, whitespace-normalized string. Track variable name mappings in a dictionary during traversal to ensure consistent positional naming.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test that two methods with identical logic but different variable names produce the same structural signature. Test literal replacement (strings, numbers, booleans, null all replaced). Test control flow preservation (if/for/while structures retained). Test method call normalization (different receivers produce same output). Test determinism: same input always produces same output. Test with nested control flow, multiple variables, and complex expressions.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T21:16:00.142Z"
           },
           {
             "id": 3,
@@ -763,9 +765,10 @@
               1
             ],
             "details": "Create a `SemanticPayloadBuilder` class with a `Build(MethodModel method, SyntaxNode methodSyntax)` method returning a concatenated natural language string. Implementation: 1) Tokenize and lowercase the method name using IdentifierTokenizer ('RemoveCustomerTag' → 'remove customer tag'), 2) Tokenize parameter type names and include them ('List<Customer>' → 'list customer'), 3) Include the return type tokenized, 4) Walk the syntax tree to find all InvocationExpressions and tokenize called method names, 5) Extract string literal values from the method body as potential intent signals, 6) Concatenate all tokens into a space-separated natural language string with section markers or ordering: '[method] remove customer tag [params] string customer id [returns] bool [calls] find customer delete tag [literals] customer not found'. Ensure deduplication of repeated tokens and consistent ordering for determinism.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test that method name is properly split and included (RemoveCustomerTag → 'remove customer tag'). Test parameter types are tokenized and included. Test return type inclusion. Test that called method names are extracted from syntax tree and tokenized. Test string literals are included. Test overall payload is deterministic for same input. Test with methods having no parameters, void return, no method calls. Test deduplication of repeated tokens.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T21:16:00.176Z"
           },
           {
             "id": 4,
@@ -776,9 +779,10 @@
               3
             ],
             "details": "Create the `NormalizedMethod` record type with properties: MethodId (string), StructuralSignature (string), SemanticPayload (string). Create the `IntentNormalizer` class that: 1) Takes dependencies on StructuralSignatureBuilder and SemanticPayloadBuilder (inject via constructor for testability), 2) Implements `NormalizedMethod Normalize(MethodModel method, SyntaxNode methodSyntax)` that calls both builders and returns the combined result, 3) Implements `IReadOnlyList<NormalizedMethod> NormalizeAll(IEnumerable<(MethodModel, SyntaxNode)> methods)` for batch processing, 4) Handles error cases gracefully (null syntax nodes, methods without bodies like abstract/interface methods - produce empty structural signature but still generate semantic payload from declaration), 5) Add logging for normalization statistics (methods processed, failures). Ensure the class is registered in the DI container if the project uses one.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Integration test: normalize a complete method and verify both structural signature and semantic payload are populated and non-empty. Test with abstract methods (no body) produces semantic payload but empty/minimal structural signature. Test batch normalization processes all methods. Test error handling for null inputs. Test that NormalizedMethod record equality works correctly for deduplication scenarios. Verify determinism by normalizing same method twice and comparing results.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T21:16:00.190Z"
           },
           {
             "id": 5,
@@ -788,14 +792,16 @@
               4
             ],
             "details": "Add a `NormalizedMethods` table to the SQLite schema with columns: MethodId (TEXT PRIMARY KEY, FK to Methods), StructuralSignature (TEXT NOT NULL), SemanticPayload (TEXT NOT NULL), NormalizedAt (TEXT, ISO 8601 timestamp). Create or extend a repository class with methods: 1) `SaveNormalizedMethod(NormalizedMethod method)` - upsert a single normalized method, 2) `SaveNormalizedMethods(IEnumerable<NormalizedMethod> methods)` - batch upsert with transaction for performance, 3) `GetNormalizedMethod(string methodId)` - retrieve by ID, 4) `GetAllNormalizedMethods()` - retrieve all for batch embedding generation, 5) `GetMethodsNeedingNormalization()` - find methods without normalization entries (for incremental processing). Use parameterized queries to prevent SQL injection. Add migration logic to create the table if it doesn't exist. Ensure the foreign key to the Methods table is properly defined.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test table creation and migration (table created if not exists, idempotent). Test save and retrieve round-trip (save NormalizedMethod, read back, verify all fields match). Test batch save with transaction (multiple methods saved atomically). Test upsert behavior (saving same MethodId twice updates the record). Test GetMethodsNeedingNormalization returns only methods without normalization. Test foreign key constraint (cannot save normalization for non-existent method). Test with empty database.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T21:16:00.198Z"
           }
         ],
         "complexity": 5,
         "recommendedSubtasks": 5,
-        "expansionPrompt": "Break down the Intent Normalization Module into subtasks: 1) Implement identifier tokenizer with PascalCase/camelCase splitting and acronym handling (HTTPClient → [HTTP, Client]), 2) Implement structural signature generation (replace literals with placeholders, normalize variable names to positional, preserve control flow structure), 3) Implement semantic payload generation (combine split identifiers, parameter types, return type, called method names into natural language text), 4) Create IntentNormalizer class that combines structural and semantic normalization for each method, 5) Add storage for normalized data (NormalizedMethods table in SQLite). The key challenge is producing consistent, deterministic normalizations."
+        "expansionPrompt": "Break down the Intent Normalization Module into subtasks: 1) Implement identifier tokenizer with PascalCase/camelCase splitting and acronym handling (HTTPClient → [HTTP, Client]), 2) Implement structural signature generation (replace literals with placeholders, normalize variable names to positional, preserve control flow structure), 3) Implement semantic payload generation (combine split identifiers, parameter types, return type, called method names into natural language text), 4) Create IntentNormalizer class that combines structural and semantic normalization for each method, 5) Add storage for normalized data (NormalizedMethods table in SQLite). The key challenge is producing consistent, deterministic normalizations.",
+        "updatedAt": "2026-01-23T21:16:00.198Z"
       },
       {
         "id": "10",
@@ -1289,9 +1295,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-23T21:13:01.038Z",
+      "lastModified": "2026-01-23T21:16:00.198Z",
       "taskCount": 15,
-      "completedCount": 8,
+      "completedCount": 9,
       "tags": [
         "master"
       ]

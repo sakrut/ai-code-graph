@@ -87,8 +87,8 @@ internal static class SchemaDefinition
         """
         CREATE TABLE NormalizedMethods (
             MethodId TEXT PRIMARY KEY REFERENCES Methods(Id),
-            NormalizedSource TEXT,
-            TokenHash TEXT
+            StructuralSignature TEXT,
+            SemanticPayload TEXT
         );
         """,
         """
@@ -124,6 +124,6 @@ internal static class SchemaDefinition
         "CREATE INDEX IX_Namespaces_ProjectId ON Namespaces(ProjectId);",
         "CREATE INDEX IX_Metrics_CognitiveComplexity ON Metrics(CognitiveComplexity DESC);",
         "CREATE INDEX IX_MethodCalls_CalleeId ON MethodCalls(CalleeId);",
-        "CREATE INDEX IX_NormalizedMethods_TokenHash ON NormalizedMethods(TokenHash);"
+        "CREATE INDEX IX_NormalizedMethods_Signature ON NormalizedMethods(StructuralSignature);"
     ];
 }

@@ -5,6 +5,7 @@ using AiCodeGraph.Core;
 using AiCodeGraph.Core.CallGraph;
 using AiCodeGraph.Core.Metrics;
 using AiCodeGraph.Core.Models.CodeGraph;
+using AiCodeGraph.Core.Normalization;
 using AiCodeGraph.Core.Storage;
 
 var rootCommand = new RootCommand("AI Code Graph - Semantic code analysis for .NET");
@@ -100,7 +101,14 @@ analyzeCommand.SetAction(async (parseResult, cancellationToken) =>
         var metrics = metricsEngine.ComputeMetrics(workspace);
         Console.WriteLine($" done ({stageTimer.Elapsed.TotalSeconds:F1}s)");
 
-        // 6. Store results
+        // 6. Normalize methods
+        Console.Write("Normalizing methods...");
+        stageTimer.Restart();
+        var normalizer = new IntentNormalizer();
+        var normalized = normalizer.NormalizeAll(workspace);
+        Console.WriteLine($" done ({stageTimer.Elapsed.TotalSeconds:F1}s)");
+
+        // 7. Store results
         Console.Write("Storing results...");
         stageTimer.Restart();
         Directory.CreateDirectory(output);
@@ -114,6 +122,9 @@ analyzeCommand.SetAction(async (parseResult, cancellationToken) =>
             cancellationToken);
         await storage.SaveMetricsAsync(
             metrics.Select(m => (m.MethodId, m.CognitiveComplexity, m.LinesOfCode, m.MaxNestingDepth)).ToList(),
+            cancellationToken);
+        await storage.SaveNormalizedMethodsAsync(
+            normalized.Select(n => (n.MethodId, n.StructuralSignature, n.SemanticPayload)).ToList(),
             cancellationToken);
         Console.WriteLine($" done ({stageTimer.Elapsed.TotalSeconds:F1}s)");
 

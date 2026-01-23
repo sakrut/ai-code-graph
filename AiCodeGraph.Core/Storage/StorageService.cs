@@ -293,6 +293,37 @@ public class StorageService : IAsyncDisposable, IDisposable
         return results;
     }
 
+    public async Task SaveNormalizedMethodsAsync(List<(string MethodId, string StructuralSignature, string SemanticPayload)> normalized, CancellationToken cancellationToken = default)
+    {
+        EnsureConnection();
+        using var transaction = _connection!.BeginTransaction();
+
+        try
+        {
+            using var cmd = _connection!.CreateCommand();
+            cmd.Transaction = transaction;
+            cmd.CommandText = "INSERT OR REPLACE INTO NormalizedMethods (MethodId, StructuralSignature, SemanticPayload) VALUES (@id, @sig, @payload)";
+            var idParam = cmd.Parameters.Add("@id", SqliteType.Text);
+            var sigParam = cmd.Parameters.Add("@sig", SqliteType.Text);
+            var payloadParam = cmd.Parameters.Add("@payload", SqliteType.Text);
+
+            foreach (var (methodId, sig, payload) in normalized)
+            {
+                idParam.Value = methodId;
+                sigParam.Value = sig;
+                payloadParam.Value = payload;
+                await cmd.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+            transaction.Commit();
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
+    }
+
     public async Task OpenAsync(CancellationToken cancellationToken = default)
     {
         _connection = new SqliteConnection($"Data Source={_dbPath}");
