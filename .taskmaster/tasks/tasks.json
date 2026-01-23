@@ -356,7 +356,7 @@
           "2",
           "3"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -364,9 +364,10 @@
             "description": "Define the MethodCallEdge record type with CallKind enum and create the CallGraphBuilder class with its public API signature and helper method stubs.",
             "dependencies": [],
             "details": "1. Create `CallKind` enum with values: Direct, Virtual, Interface, Delegate, Constructor, Extension, Operator.\n2. Create `MethodCallEdge` record: `(string CallerId, string CalleeId, CallKind Kind, string? Location)` where Location captures file/line for diagnostics.\n3. Create `CallGraphBuilder` class with:\n   - `public List<MethodCallEdge> BuildCallGraph(LoadedWorkspace workspace, List<ProjectModel> codeModel)` as main entry point\n   - Private helper stubs for each resolution strategy\n   - A `Dictionary<string, List<string>>` for interface-to-implementations mapping\n   - A `HashSet<MethodCallEdge>` to deduplicate edges\n   - Logging for skipped external method calls\n4. Create `CallGraphResult` wrapper class with helper methods: `GetCallers(string methodId)`, `GetCallees(string methodId)` for bidirectional traversal.\n5. Place all types in a `CallGraph` namespace/folder within the Core project.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test that CallKind enum has all expected values. Test MethodCallEdge equality/hashing for deduplication. Test CallGraphResult bidirectional traversal with manually constructed edge lists. Verify empty input produces empty result without errors.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T21:04:10.293Z"
           },
           {
             "id": 2,
@@ -376,9 +377,10 @@
               1
             ],
             "details": "1. For each project in the code model, get the corresponding `Compilation` from LoadedWorkspace.\n2. For each MethodModel, reconstruct the lookup path: use the fully-qualified name and parameter types to locate the `IMethodSymbol` via `Compilation.GetTypeByMetadataName()` then `.GetMembers()`.\n3. Handle all method-like declarations: `MethodDeclarationSyntax`, `ConstructorDeclarationSyntax`, `DestructorDeclarationSyntax`, `OperatorDeclarationSyntax`, `ConversionOperatorDeclarationSyntax`, `AccessorDeclarationSyntax` (property getters/setters), and `LocalFunctionStatementSyntax`.\n4. Handle expression-bodied members (`ArrowExpressionClauseSyntax`) which don't have a Block body but still contain invocable expressions.\n5. Handle partial methods by combining declarations across syntax trees.\n6. Cache the mapping `Dictionary<string, (IMethodSymbol Symbol, SyntaxNode Node, SemanticModel Model)>` for reuse during invocation resolution.\n7. Handle generic method instantiations by mapping back to the `OriginalDefinition` or `ReducedFrom` symbol.\n8. Log warnings for MethodModels that cannot be resolved (e.g., generated code, missing references).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test with fixture containing regular methods, constructors, expression-bodied members, property accessors, and partial methods. Verify each MethodModel resolves to the correct SyntaxNode. Test that generic methods map correctly. Verify warning is logged for unresolvable methods.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T21:04:10.313Z"
           },
           {
             "id": 3,
@@ -388,9 +390,10 @@
               2
             ],
             "details": "1. For each resolved method SyntaxNode, get all descendant `InvocationExpressionSyntax` nodes from the body (Block or ArrowExpressionClause).\n2. For each invocation, call `semanticModel.GetSymbolInfo(invocation)` to get the resolved symbol.\n3. Handle `SymbolInfo.Symbol` (resolved) vs `SymbolInfo.CandidateSymbols` (ambiguous/overloaded) - for candidates, add edges to all candidate methods within the solution.\n4. Map the resolved `IMethodSymbol` back to a MethodModel ID:\n   - Use `OriginalDefinition` to handle generic instantiations (e.g., `List<int>.Add` → `List<T>.Add`)\n   - Use `ReducedFrom` to handle extension method calls resolved to their static form\n   - Build a reverse lookup `Dictionary<ISymbol, string>` using SymbolEqualityComparer.Default\n5. Skip methods where the resolved symbol belongs to assemblies outside the solution (external calls) - log these at Debug level.\n6. Create edges with `CallKind.Direct` for standard resolved invocations.\n7. Handle chained method calls (fluent APIs) where each `.Method()` in a chain is a separate invocation.\n8. Handle `nameof()` expressions - these are NOT invocations and should be skipped.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test with fixture containing: simple method calls, chained calls, generic method calls, overloaded methods, static method calls, and nameof expressions. Verify correct edges are created for each. Verify external calls are skipped but logged. Test ambiguous resolution creates edges to all candidates.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T21:04:10.321Z"
           },
           {
             "id": 4,
@@ -400,9 +403,10 @@
               2
             ],
             "details": "1. Find all `ObjectCreationExpressionSyntax` nodes in method bodies.\n2. Use `semanticModel.GetSymbolInfo(objectCreation)` to resolve the constructor `IMethodSymbol`.\n3. Handle `ImplicitObjectCreationExpressionSyntax` (target-typed `new()`) which requires type inference from context.\n4. Handle `BaseConstructorInitializerSyntax` (`: base(...)`) and `ThisConstructorInitializerSyntax` (`: this(...)`) in constructor declarations.\n5. Create edges with `CallKind.Constructor`.\n6. Handle object initializer expressions - property setters in `{ Prop = value }` may invoke property setters which are method-like.\n7. Handle collection initializer expressions which invoke `.Add()` methods implicitly.\n8. Handle array creation expressions (`new int[] { ... }`) - these don't invoke constructors but should be recognized and skipped.\n9. Map resolved constructor IMethodSymbols back to MethodModel IDs using the same reverse lookup from subtask 3.\n10. Handle `Activator.CreateInstance<T>()` and similar reflection-based construction - log as unresolvable.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test with fixtures containing: explicit new, target-typed new(), base/this constructor chains, object initializers with property setters, collection initializers. Verify constructor edges are created with correct CallKind. Verify array creation is skipped. Test implicit Add() calls in collection initializers.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T21:04:10.331Z"
           },
           {
             "id": 5,
@@ -412,9 +416,10 @@
               3
             ],
             "details": "1. Pre-build an interface implementation map from the code model:\n   - For each TypeModel with `ImplementedInterfaces`, map interface method IDs to the implementing type's corresponding method IDs.\n   - Handle explicit interface implementations (e.g., `IFoo.Bar()`) which have different naming patterns.\n   - Handle implicit interface implementations where the method name matches.\n2. When an invocation resolves to an `IMethodSymbol` where `ContainingType.TypeKind == TypeKind.Interface`:\n   - Create an edge with `CallKind.Interface` to the interface method itself.\n   - Look up all known implementations from the pre-built map.\n   - Create additional edges with `CallKind.Interface` to each implementation.\n3. Handle generic interface implementations (e.g., `IComparable<T>`) by matching on the unbound generic interface.\n4. Handle interface inheritance chains (e.g., `IFoo : IBar` where IBar.Method is called but implemented in a class implementing IFoo).\n5. Handle cases where the implementation map is incomplete (abstract classes implementing only some interface methods) - log these.\n6. Store the interface map in CallGraphBuilder for reuse across all method bodies.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test with fixture containing: simple interface + implementation, multiple implementations of same interface, explicit interface implementation, generic interfaces, interface inheritance chains. Verify interface calls create edges to all known implementations. Verify abstract partial implementations are handled gracefully.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T21:04:10.343Z"
           },
           {
             "id": 6,
@@ -424,9 +429,10 @@
               3
             ],
             "details": "1. **Virtual/Override dispatch:**\n   - When invocation resolves to a virtual/abstract method (`IMethodSymbol.IsVirtual || IsAbstract || IsOverride`):\n     - Create edge with `CallKind.Virtual` to the declared method.\n     - Walk the type hierarchy to find all overrides: use `IMethodSymbol.OverriddenMethod` chain upward and find all types that override it downward.\n     - Build override lookup: for each type in the solution, check if it overrides the target method.\n     - Create edges to each override with `CallKind.Virtual`.\n   - Handle `base.Method()` calls which bypass virtual dispatch - these should be `CallKind.Direct` to the specific base implementation.\n2. **Delegate invocations:**\n   - Detect delegate invocations: `delegateVariable(args)` or `delegateVariable.Invoke(args)` patterns.\n   - For typed delegates (Func<>, Action<>, custom delegate types), the target is generally unknown at static analysis time.\n   - When the delegate is assigned from a method group in the same method/class, resolve the target.\n   - Handle event invocations (`EventName?.Invoke(...)`) - mark as `CallKind.Delegate`.\n   - Track delegate assignments via `+=` to identify potential targets for events.\n3. Handle `sealed` override methods - these don't need further dispatch resolution.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test with fixture containing: virtual method with multiple overrides, abstract method implementations, base.Method() calls, sealed overrides, delegate variables assigned from method groups, event += subscriptions and invocations. Verify virtual calls create edges to all overrides. Verify base calls are Direct. Verify delegate invocations are captured.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T21:04:10.359Z"
           },
           {
             "id": 7,
@@ -439,14 +445,16 @@
               6
             ],
             "details": "1. **LINQ and extension methods:**\n   - LINQ query syntax (`from x in y select z`) is lowered to method calls - find the underlying `InvocationExpressionSyntax` nodes generated by the compiler or use `GetSymbolInfo()` on query clause syntax nodes.\n   - LINQ method syntax (`.Where().Select()`) is already handled as chained invocations, but ensure extension method resolution uses `ReducedFrom` to map back to the static extension method definition.\n   - Handle custom extension methods defined in the solution.\n2. **Lambda and anonymous methods:**\n   - Lambdas passed as arguments (e.g., `.Where(x => x.IsValid())`) contain invocations within their bodies.\n   - Recursively walk lambda bodies (`LambdaExpressionSyntax`, `AnonymousMethodExpressionSyntax`) for invocations.\n   - Attribute the discovered calls to the containing method (the lambda's enclosing method).\n3. **Conditional access (`?.`):**\n   - `ConditionalAccessExpressionSyntax` wraps invocations differently: the method call is inside a `MemberBindingExpressionSyntax`.\n   - Use `GetSymbolInfo()` on the overall conditional access to resolve the target.\n4. **Operator overloads:**\n   - Binary/unary operator expressions may resolve to user-defined operator methods.\n   - Check `semanticModel.GetSymbolInfo(binaryExpression)` for operator overloads defined in solution types.\n   - Create edges with `CallKind.Operator` (add to CallKind enum if needed, otherwise use Direct).\n5. **Implicit conversions:**\n   - User-defined implicit/explicit conversion operators invoked implicitly in assignments or casts.\n   - Use `GetConversion()` or `GetSymbolInfo()` on cast expressions.\n6. **Pattern matching invocations:** Handle `is` patterns that invoke `Deconstruct` methods.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test with fixture containing: LINQ query syntax, LINQ method chains, lambdas with internal calls, nested lambdas, conditional access (?.) invocations, operator overloads (+, ==), implicit conversions, extension methods from solution, and Deconstruct patterns. Verify LINQ resolves to correct extension methods. Verify lambda body calls are attributed to the enclosing method. Verify conditional access resolves correctly. Verify operator overloads create edges.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T21:04:10.367Z"
           }
         ],
         "complexity": 8,
         "recommendedSubtasks": 7,
-        "expansionPrompt": "Break down the Call Graph Builder into subtasks: 1) Create MethodCallEdge model and CallGraphBuilder class skeleton, 2) Implement syntax node location for method declarations (map MethodModel back to SyntaxNodes via SemanticModel), 3) Implement InvocationExpression resolution using SemanticModel.GetSymbolInfo() for direct method calls, 4) Handle ObjectCreationExpression as constructor calls and member access patterns, 5) Implement interface dispatch resolution (interface method → known implementations mapping), 6) Handle virtual/override dispatch and delegate invocations, 7) Handle LINQ expressions, lambda invocations, and edge cases (extension methods, operator overloads, conditional access). This is the most technically challenging analysis task due to the many invocation patterns in C#."
+        "expansionPrompt": "Break down the Call Graph Builder into subtasks: 1) Create MethodCallEdge model and CallGraphBuilder class skeleton, 2) Implement syntax node location for method declarations (map MethodModel back to SyntaxNodes via SemanticModel), 3) Implement InvocationExpression resolution using SemanticModel.GetSymbolInfo() for direct method calls, 4) Handle ObjectCreationExpression as constructor calls and member access patterns, 5) Implement interface dispatch resolution (interface method → known implementations mapping), 6) Handle virtual/override dispatch and delegate invocations, 7) Handle LINQ expressions, lambda invocations, and edge cases (extension methods, operator overloads, conditional access). This is the most technically challenging analysis task due to the many invocation patterns in C#.",
+        "updatedAt": "2026-01-23T21:04:10.367Z"
       },
       {
         "id": "6",
@@ -1262,9 +1270,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-23T21:00:11.702Z",
+      "lastModified": "2026-01-23T21:04:10.367Z",
       "taskCount": 15,
-      "completedCount": 4,
+      "completedCount": 5,
       "tags": [
         "master"
       ]
