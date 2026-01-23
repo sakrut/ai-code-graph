@@ -43,6 +43,28 @@ dotnet pack AiCodeGraph.Cli           # Package as global tool
 - Tests follow pattern `{ClassName}Tests.cs` in the Tests project
 - CLI commands return exit code 0 on success
 
+## Auto-Context: Code Graph Integration
+
+When modifying methods in this codebase, run the context command first if `./ai-code-graph/graph.db` exists:
+
+```bash
+ai-code-graph context "MethodName" --db ./ai-code-graph/graph.db
+```
+
+This returns complexity, callers, callees, cluster membership, and duplicates in one call. Use this information to:
+- Avoid increasing complexity of already-complex methods (CC > 10)
+- Update callers if you change a method's signature or behavior
+- Apply the same fix to duplicates when fixing bugs
+- Understand which intent cluster a method belongs to before refactoring
+
+Available slash commands:
+- `/context <method>` - Full method context before editing
+- `/hotspots` - Top complexity hotspots
+- `/duplicates` - Detected code clones
+- `/drift` - Architectural drift from baseline
+
+To rebuild the graph after significant changes: `ai-code-graph analyze -s AiCodeGraph.sln`
+
 ## Task Master AI Instructions
 **Import Task Master's development workflow commands and guidelines, treat as if import is in the main CLAUDE.md file.**
 @./.taskmaster/CLAUDE.md
