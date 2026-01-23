@@ -813,7 +813,7 @@
         "dependencies": [
           "9"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -821,9 +821,10 @@
             "description": "Select the all-MiniLM-L6-v2 ONNX embedding model and implement infrastructure to download, cache, and validate the model file on first run.",
             "dependencies": [],
             "details": "1. Add `Microsoft.ML.OnnxRuntime` NuGet package to the project.\n2. Create a `ModelManager` class responsible for:\n   - Checking if the model exists at `./ai-code-graph/models/all-MiniLM-L6-v2.onnx`\n   - Downloading the ONNX model from HuggingFace if not present (use HttpClient with progress reporting)\n   - Validating the downloaded file (check file size, optionally SHA256 hash)\n   - Providing the model path to the EmbeddingEngine\n3. Handle cross-platform path considerations (Windows/Linux/Mac).\n4. Include the tokenizer vocabulary file (`vocab.txt`) for the model's WordPiece tokenizer.\n5. Add configuration options for custom model paths.\n6. Consider retry logic for failed downloads and partial download resume support.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test that ModelManager correctly identifies when model is missing and triggers download. Mock HttpClient to verify download logic without network calls. Test path resolution on different platforms. Test validation rejects corrupted/incomplete files. Test that subsequent calls use cached model without re-downloading.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T21:18:43.586Z"
           },
           {
             "id": 2,
@@ -833,9 +834,10 @@
               1
             ],
             "details": "1. Implement `EmbeddingEngine : IDisposable` class:\n   - Initialize `InferenceSession` with the ONNX model path\n   - Configure session options (thread count, execution provider)\n   - Implement proper disposal of the InferenceSession\n2. Implement WordPiece tokenizer matching all-MiniLM-L6-v2 requirements:\n   - Load `vocab.txt` vocabulary file\n   - Implement text preprocessing: lowercase, Unicode normalization, punctuation handling\n   - Implement WordPiece subword tokenization with `[UNK]` handling\n   - Add special tokens: `[CLS]` at start, `[SEP]` at end\n   - Generate `input_ids`, `attention_mask`, and `token_type_ids` tensors\n   - Handle max sequence length (512 tokens) with truncation\n3. Implement `float[] GenerateEmbedding(string text)` method:\n   - Tokenize input text\n   - Create OrtValue tensors for model input\n   - Run inference\n   - Apply mean pooling over token embeddings (using attention mask)\n   - L2-normalize the resulting vector\n   - Return 384-dimensional float array\n4. Key challenge: Ensuring tokenizer output exactly matches the model's expected input format.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test that GenerateEmbedding returns a 384-dimensional vector. Test that the same input always produces the same embedding (determinism). Test that semantically similar texts produce high cosine similarity (>0.7). Test that dissimilar texts produce low similarity (<0.3). Test max sequence length truncation. Test special character and Unicode handling in tokenizer. Test proper resource disposal.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T21:18:43.601Z"
           },
           {
             "id": 3,
@@ -845,9 +847,10 @@
               2
             ],
             "details": "1. Implement `List<(string MethodId, float[] Vector)> GenerateEmbeddings(List<NormalizedMethod> methods, IProgress<int>? progress = null, CancellationToken ct = default)` method:\n   - Accept a list of NormalizedMethod objects (from Task 9's semantic payload normalization)\n   - Build semantic text from each method's normalized payload (combine name, parameters, body summary, doc comments)\n   - Process in configurable batch sizes (default: 32) to balance memory and throughput\n   - Report progress after each batch completion\n   - Support cancellation between batches\n2. Implement text preparation logic:\n   - Concatenate method signature, doc comments, and normalized body into a single embedding input string\n   - Truncate to reasonable length before tokenization\n3. Consider parallel tokenization (CPU-bound) with sequential inference (GPU/CPU bound through ONNX)\n4. Add logging for batch processing statistics (methods/second, total time)\n5. Handle errors gracefully: log and skip methods that fail tokenization, don't abort entire batch.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test batch processing produces same results as individual processing. Test progress reporting fires correct number of times. Test cancellation stops processing mid-batch. Test error handling: one bad input doesn't crash the batch. Benchmark: measure throughput for 100, 1000, 5000 methods. Test that method ID mapping is preserved correctly in output.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T21:18:43.612Z"
           },
           {
             "id": 4,
@@ -857,9 +860,10 @@
               2
             ],
             "details": "1. Implement `VectorIndex` class:\n   ```csharp\n   public class VectorIndex\n   {\n       private List<(string Id, float[] Vector)> _items;\n       private int _dimensions; // 384 for MiniLM\n       \n       public void BuildIndex(List<(string Id, float[] Vector)> items);\n       public List<(string Id, float Score)> Search(float[] query, int topK = 10);\n       public void AddItem(string id, float[] vector);\n       public void RemoveItem(string id);\n       public int Count { get; }\n   }\n   ```\n2. Implement cosine similarity calculation:\n   - `CosineSimilarity(float[] a, float[] b)` using dot product / (magnitude_a * magnitude_b)\n   - Pre-normalize vectors during BuildIndex for faster search (then cosine = dot product)\n   - Use SIMD intrinsics (`System.Numerics.Vector<float>`) for vectorized dot product computation\n3. Implement brute-force search:\n   - Compute similarity against all indexed vectors\n   - Use a min-heap or partial sort to efficiently find top-K results\n   - Return results sorted by descending similarity score\n4. Validate input dimensions match expected (384)\n5. Thread-safety: use `ReaderWriterLockSlim` for concurrent read access during search\n6. Consider future HNSW upgrade path: define `IVectorIndex` interface for abstraction.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test with known vectors: insert [1,0,0], [0,1,0], [0,0,1] and verify query [1,0,0] returns first item with score 1.0. Test top-K returns correct number of results. Test cosine similarity correctness against reference implementation. Test with 384-dimensional vectors matching real embedding output. Benchmark search performance with 10K, 50K vectors. Test thread-safety with concurrent reads during search. Test edge cases: empty index, K > count, duplicate IDs.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T21:18:43.622Z"
           },
           {
             "id": 5,
@@ -869,9 +873,10 @@
               4
             ],
             "details": "1. Add persistence methods to VectorIndex:\n   ```csharp\n   public void SaveToDisk(string path);\n   public void LoadFromDisk(string path);\n   ```\n2. Design binary file format:\n   - Header: magic bytes (4 bytes), version (4 bytes), dimension count (4 bytes), item count (4 bytes)\n   - For each item: ID length (4 bytes), ID string (UTF-8), vector data (dimensions * 4 bytes as float32)\n   - Footer: checksum (optional, for integrity verification)\n3. Implementation details:\n   - Use `BinaryWriter`/`BinaryReader` for efficient serialization\n   - Write vectors directory to `./ai-code-graph/vectors/index.bin`\n   - Support versioning in format header for future format changes\n   - Memory-map large files if needed (for future optimization)\n4. Directory management:\n   - Create `./ai-code-graph/vectors/` directory if it doesn't exist\n   - Support configurable base path\n5. Handle corruption gracefully: validate header on load, provide clear error messages\n6. Add metadata file alongside binary (JSON with creation timestamp, method count, model version used)",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test round-trip: build index, save to disk, load into new instance, verify search produces identical results. Test file format versioning: load v1 file with v2 code gracefully. Test corruption detection: truncated file, bad magic bytes, wrong dimensions. Test with empty index. Test with large index (50K vectors) for performance. Verify file size matches expected (header + count * (id_size + 384*4)). Test metadata file is written and readable.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T21:18:43.635Z"
           },
           {
             "id": 6,
@@ -882,14 +887,16 @@
               5
             ],
             "details": "1. Create `EmbeddingCache` class:\n   ```csharp\n   public class EmbeddingCache\n   {\n       public List<string> GetChangedMethodIds(List<NormalizedMethod> currentMethods);\n       public void UpdateCache(List<(string MethodId, float[] Vector)> newEmbeddings);\n       public List<(string MethodId, float[] Vector)> GetCachedEmbeddings();\n       public void RemoveStaleEntries(List<string> currentMethodIds);\n   }\n   ```\n2. Change detection strategy:\n   - Store a content hash (SHA256 or xxHash for speed) of each method's semantic payload alongside its embedding\n   - On re-analysis, compute hash of current method payload\n   - Compare with stored hash: if different, mark for re-embedding\n   - Handle new methods (no cached hash) and removed methods (stale cache entries)\n3. Cache storage:\n   - Store hash map as JSON or binary file: `./ai-code-graph/vectors/cache-manifest.json`\n   - Format: `{ \"methodId\": { \"hash\": \"abc123\", \"vectorOffset\": 0 } }`\n4. Integration with EmbeddingEngine:\n   - Create orchestration method that coordinates cache checking, selective re-embedding, and cache updating\n   - Merge new embeddings with cached ones for complete index rebuild\n5. Handle edge cases:\n   - Model version change (invalidate all cache)\n   - Renamed methods (new ID = new embedding needed, old removed)\n   - Store model version in manifest to detect model changes",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test that unchanged methods are not re-embedded (mock EmbeddingEngine, verify it's not called for cached methods). Test that modified methods trigger re-embedding. Test that new methods are embedded. Test that removed methods are purged from cache. Test model version change invalidates entire cache. Test hash consistency: same input always produces same hash. Test manifest file round-trip serialization. Integration test: modify one method in a set of 100, verify only 1 embedding is regenerated.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T21:18:43.642Z"
           }
         ],
         "complexity": 8,
         "recommendedSubtasks": 6,
-        "expansionPrompt": "Break down the Local Embedding Engine and Vector Index into subtasks: 1) Research and select ONNX embedding model (all-MiniLM-L6-v2) and set up model download/caching infrastructure, 2) Implement EmbeddingEngine class using Microsoft.ML.OnnxRuntime with proper tokenization for the selected model, 3) Implement batch embedding generation with progress reporting, 4) Implement VectorIndex class with cosine similarity search (flat brute-force for v1, consider HNSW for larger codebases), 5) Implement vector persistence (save/load to disk in binary format), 6) Add embedding caching logic (detect changed methods, only regenerate necessary embeddings). Key challenge: ONNX runtime setup with correct tokenizer configuration for the selected model."
+        "expansionPrompt": "Break down the Local Embedding Engine and Vector Index into subtasks: 1) Research and select ONNX embedding model (all-MiniLM-L6-v2) and set up model download/caching infrastructure, 2) Implement EmbeddingEngine class using Microsoft.ML.OnnxRuntime with proper tokenization for the selected model, 3) Implement batch embedding generation with progress reporting, 4) Implement VectorIndex class with cosine similarity search (flat brute-force for v1, consider HNSW for larger codebases), 5) Implement vector persistence (save/load to disk in binary format), 6) Add embedding caching logic (detect changed methods, only regenerate necessary embeddings). Key challenge: ONNX runtime setup with correct tokenizer configuration for the selected model.",
+        "updatedAt": "2026-01-23T21:18:43.642Z"
       },
       {
         "id": "11",
@@ -902,7 +909,7 @@
           "9",
           "10"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -975,7 +982,8 @@
         ],
         "complexity": 7,
         "recommendedSubtasks": 6,
-        "expansionPrompt": "Break down the Duplicate Detection and Intent Clustering into subtasks: 1) Implement StructuralCloneDetector using edit distance or token-level Jaccard similarity on structural signatures, 2) Implement SemanticCloneDetector using kNN search on embedding vectors with threshold filtering, 3) Implement hybrid scoring formula (α * structural + (1-α) * semantic) with configurable weights, 4) Implement IntentClusterer using DBSCAN or agglomerative clustering on embedding vectors, 5) Implement cluster auto-labeling using most common identifier tokens among members, 6) Store clone pairs and clusters in SQLite (ClonePairs table, IntentClusters, MethodClusterMap). The clustering algorithm choice significantly impacts result quality."
+        "expansionPrompt": "Break down the Duplicate Detection and Intent Clustering into subtasks: 1) Implement StructuralCloneDetector using edit distance or token-level Jaccard similarity on structural signatures, 2) Implement SemanticCloneDetector using kNN search on embedding vectors with threshold filtering, 3) Implement hybrid scoring formula (α * structural + (1-α) * semantic) with configurable weights, 4) Implement IntentClusterer using DBSCAN or agglomerative clustering on embedding vectors, 5) Implement cluster auto-labeling using most common identifier tokens among members, 6) Store clone pairs and clusters in SQLite (ClonePairs table, IntentClusters, MethodClusterMap). The clustering algorithm choice significantly impacts result quality.",
+        "updatedAt": "2026-01-23T21:25:19.239Z"
       },
       {
         "id": "12",
@@ -1295,9 +1303,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-23T21:16:00.198Z",
+      "lastModified": "2026-01-23T21:25:19.240Z",
       "taskCount": 15,
-      "completedCount": 9,
+      "completedCount": 11,
       "tags": [
         "master"
       ]

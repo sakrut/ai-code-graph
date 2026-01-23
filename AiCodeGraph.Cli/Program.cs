@@ -5,6 +5,8 @@ using AiCodeGraph.Core;
 using AiCodeGraph.Core.CallGraph;
 using AiCodeGraph.Core.Metrics;
 using AiCodeGraph.Core.Models.CodeGraph;
+using AiCodeGraph.Core.Duplicates;
+using AiCodeGraph.Core.Embeddings;
 using AiCodeGraph.Core.Normalization;
 using AiCodeGraph.Core.Storage;
 
@@ -108,7 +110,16 @@ analyzeCommand.SetAction(async (parseResult, cancellationToken) =>
         var normalized = normalizer.NormalizeAll(workspace);
         Console.WriteLine($" done ({stageTimer.Elapsed.TotalSeconds:F1}s)");
 
-        // 7. Store results
+        // 7. Generate embeddings
+        Console.Write("Generating embeddings...");
+        stageTimer.Restart();
+        using var embeddingEngine = new HashEmbeddingEngine();
+        var embeddingResults = normalized
+            .Select(n => (n.MethodId, Vector: embeddingEngine.GenerateEmbedding(n.SemanticPayload), Model: "hash-v1"))
+            .ToList();
+        Console.WriteLine($" done ({stageTimer.Elapsed.TotalSeconds:F1}s)");
+
+        // 8. Store results
         Console.Write("Storing results...");
         stageTimer.Restart();
         Directory.CreateDirectory(output);
@@ -126,9 +137,28 @@ analyzeCommand.SetAction(async (parseResult, cancellationToken) =>
         await storage.SaveNormalizedMethodsAsync(
             normalized.Select(n => (n.MethodId, n.StructuralSignature, n.SemanticPayload)).ToList(),
             cancellationToken);
+        await storage.SaveEmbeddingsAsync(embeddingResults, cancellationToken);
         Console.WriteLine($" done ({stageTimer.Elapsed.TotalSeconds:F1}s)");
 
-        // 7. Summary
+        // 9. Detect duplicates and cluster methods
+        Console.Write("Detecting duplicates...");
+        stageTimer.Restart();
+        var structuralDetector = new StructuralCloneDetector();
+        var semanticDetector = new SemanticCloneDetector();
+        var hybridScorer = new HybridScorer();
+
+        var structuralClones = structuralDetector.DetectClones(normalized);
+        var embeddingPairs = embeddingResults.Select(e => (e.MethodId, e.Vector)).ToList();
+        var semanticClones = semanticDetector.DetectClones(embeddingPairs);
+        var clonePairs = hybridScorer.Merge(structuralClones, semanticClones);
+        await storage.SaveClonePairsAsync(clonePairs, cancellationToken);
+
+        var clusterer = new IntentClusterer();
+        var clusters = clusterer.ClusterMethods(normalized, embeddingPairs);
+        await storage.SaveClustersAsync(clusters, cancellationToken);
+        Console.WriteLine($" done ({stageTimer.Elapsed.TotalSeconds:F1}s)");
+
+        // Summary
         totalTimer.Stop();
         var totalProjects = extractionResults.Count;
         var totalTypes = extractionResults.Sum(r => CountTypes(r.Model));
@@ -141,6 +171,8 @@ analyzeCommand.SetAction(async (parseResult, cancellationToken) =>
         Console.WriteLine($"  Types:          {totalTypes:N0}");
         Console.WriteLine($"  Methods:        {totalMethods:N0}");
         Console.WriteLine($"  Call edges:     {edges.Count:N0}");
+        Console.WriteLine($"  Clone pairs:    {clonePairs.Count:N0}");
+        Console.WriteLine($"  Clusters:       {clusters.Count:N0}");
         Console.WriteLine($"  Avg complexity: {avgComplexity:F1}");
         Console.WriteLine($"  Duration:       {totalTimer.Elapsed.TotalSeconds:F1}s");
         Console.WriteLine($"  Output:         {Path.GetFullPath(dbPath)}");
@@ -443,10 +475,232 @@ treeCommand.SetAction(async (parseResult, cancellationToken) =>
     }
 });
 
+// --- similar command ---
+var simMethodArg = new Argument<string>("method") { Description = "Method name to find similar methods for" };
+var simTopOption = new Option<int>("--top", "-t") { Description = "Number of results", DefaultValueFactory = _ => 10 };
+var simFormatOption = new Option<string>("--format", "-f") { Description = "table|json", DefaultValueFactory = _ => "table" };
+var simDbOption = new Option<string>("--db") { Description = "Path to graph.db", DefaultValueFactory = _ => "./ai-code-graph/graph.db" };
+
+var similarCommand = new Command("similar", "Find methods with similar intent")
+{
+    simMethodArg, simTopOption, simFormatOption, simDbOption
+};
+
+similarCommand.SetAction(async (parseResult, cancellationToken) =>
+{
+    var method = parseResult.GetValue(simMethodArg)!;
+    var top = parseResult.GetValue(simTopOption);
+    var format = parseResult.GetValue(simFormatOption) ?? "table";
+    var dbPath = parseResult.GetValue(simDbOption) ?? "./ai-code-graph/graph.db";
+
+    if (!File.Exists(dbPath))
+    {
+        Console.Error.WriteLine($"Error: Database not found at {dbPath}. Run 'analyze' first.");
+        Environment.ExitCode = 1;
+        return;
+    }
+
+    await using var storage = new StorageService(dbPath);
+    await storage.OpenAsync(cancellationToken);
+
+    var matches = await storage.SearchMethodsAsync(method, cancellationToken);
+    if (matches.Count == 0)
+    {
+        Console.Error.WriteLine($"No methods found matching '{method}'.");
+        Environment.ExitCode = 1;
+        return;
+    }
+
+    var targetId = matches.First().Id;
+    var allEmbeddings = await storage.GetEmbeddingsAsync(cancellationToken);
+
+    if (allEmbeddings.Count == 0)
+    {
+        Console.Error.WriteLine("No embeddings found. Run 'analyze' first.");
+        Environment.ExitCode = 1;
+        return;
+    }
+
+    var targetEmbedding = allEmbeddings.FirstOrDefault(e => e.MethodId == targetId);
+    if (targetEmbedding.Vector == null)
+    {
+        Console.Error.WriteLine($"No embedding found for method '{method}'.");
+        Environment.ExitCode = 1;
+        return;
+    }
+
+    var index = new VectorIndex();
+    index.BuildIndex(allEmbeddings.Where(e => e.MethodId != targetId).ToList());
+    var results = index.Search(targetEmbedding.Vector, top);
+
+    if (format == "json")
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            query = matches.First().FullName,
+            results = results.Select(r => new { id = r.Id, score = Math.Round(r.Score, 4) }),
+            metadata = new { top }
+        }, new System.Text.Json.JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
+        Console.WriteLine(json);
+    }
+    else
+    {
+        Console.WriteLine($"Methods similar to: {matches.First().FullName}");
+        Console.WriteLine(new string('-', 60));
+        foreach (var (id, score) in results)
+        {
+            var info = await storage.GetMethodInfoAsync(id, cancellationToken);
+            var name = info?.FullName ?? id;
+            Console.WriteLine($"  {score:F4}  {name}");
+        }
+    }
+});
+
+// --- duplicates command ---
+var dupTopOption = new Option<int>("--top", "-t") { Description = "Number of results", DefaultValueFactory = _ => 20 };
+var dupThresholdOption = new Option<float>("--threshold") { Description = "Minimum hybrid score", DefaultValueFactory = _ => 0.5f };
+var dupTypeOption = new Option<string?>("--type") { Description = "Filter by clone type: Type1|Type2|Semantic" };
+var dupFormatOption = new Option<string>("--format", "-f") { Description = "table|json", DefaultValueFactory = _ => "table" };
+var dupDbOption = new Option<string>("--db") { Description = "Path to graph.db", DefaultValueFactory = _ => "./ai-code-graph/graph.db" };
+
+var duplicatesCommand = new Command("duplicates", "Show detected code clones")
+{
+    dupTopOption, dupThresholdOption, dupTypeOption, dupFormatOption, dupDbOption
+};
+
+duplicatesCommand.SetAction(async (parseResult, cancellationToken) =>
+{
+    var top = parseResult.GetValue(dupTopOption);
+    var threshold = parseResult.GetValue(dupThresholdOption);
+    var typeStr = parseResult.GetValue(dupTypeOption);
+    var format = parseResult.GetValue(dupFormatOption) ?? "table";
+    var dbPath = parseResult.GetValue(dupDbOption) ?? "./ai-code-graph/graph.db";
+
+    if (!File.Exists(dbPath))
+    {
+        Console.Error.WriteLine($"Error: Database not found at {dbPath}. Run 'analyze' first.");
+        Environment.ExitCode = 1;
+        return;
+    }
+
+    CloneType? typeFilter = typeStr != null ? Enum.Parse<CloneType>(typeStr, ignoreCase: true) : null;
+
+    await using var storage = new StorageService(dbPath);
+    await storage.OpenAsync(cancellationToken);
+
+    var pairs = await storage.GetClonePairsAsync(threshold, typeFilter, cancellationToken);
+    pairs = pairs.Take(top).ToList();
+
+    if (pairs.Count == 0)
+    {
+        Console.WriteLine("No clone pairs found.");
+        return;
+    }
+
+    if (format == "json")
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            clones = pairs.Select(p => new
+            {
+                methodA = p.MethodIdA,
+                methodB = p.MethodIdB,
+                structural = Math.Round(p.StructuralSimilarity, 4),
+                semantic = Math.Round(p.SemanticSimilarity, 4),
+                hybrid = Math.Round(p.HybridScore, 4),
+                type = p.Type.ToString()
+            }),
+            metadata = new { total = pairs.Count, threshold, typeFilter = typeStr }
+        }, new System.Text.Json.JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
+        Console.WriteLine(json);
+    }
+    else
+    {
+        Console.WriteLine($"{"Type",-10} {"Hybrid",6} {"Struct",6} {"Seman",6}  Method A / Method B");
+        Console.WriteLine(new string('-', 80));
+        foreach (var p in pairs)
+        {
+            var infoA = await storage.GetMethodInfoAsync(p.MethodIdA, cancellationToken);
+            var infoB = await storage.GetMethodInfoAsync(p.MethodIdB, cancellationToken);
+            var nameA = infoA?.FullName ?? p.MethodIdA;
+            var nameB = infoB?.FullName ?? p.MethodIdB;
+            Console.WriteLine($"{p.Type,-10} {p.HybridScore,6:F3} {p.StructuralSimilarity,6:F3} {p.SemanticSimilarity,6:F3}  {nameA}");
+            Console.WriteLine($"{"",10} {"",6} {"",6} {"",6}  {nameB}");
+        }
+    }
+});
+
+// --- clusters command ---
+var clFormatOption = new Option<string>("--format", "-f") { Description = "table|json", DefaultValueFactory = _ => "table" };
+var clDbOption = new Option<string>("--db") { Description = "Path to graph.db", DefaultValueFactory = _ => "./ai-code-graph/graph.db" };
+
+var clustersCommand = new Command("clusters", "Show intent clusters")
+{
+    clFormatOption, clDbOption
+};
+
+clustersCommand.SetAction(async (parseResult, cancellationToken) =>
+{
+    var format = parseResult.GetValue(clFormatOption) ?? "table";
+    var dbPath = parseResult.GetValue(clDbOption) ?? "./ai-code-graph/graph.db";
+
+    if (!File.Exists(dbPath))
+    {
+        Console.Error.WriteLine($"Error: Database not found at {dbPath}. Run 'analyze' first.");
+        Environment.ExitCode = 1;
+        return;
+    }
+
+    await using var storage = new StorageService(dbPath);
+    await storage.OpenAsync(cancellationToken);
+
+    var clusters = await storage.GetClustersAsync(cancellationToken);
+
+    if (clusters.Count == 0)
+    {
+        Console.WriteLine("No clusters found.");
+        return;
+    }
+
+    if (format == "json")
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            clusters = clusters.Select(c => new
+            {
+                id = c.Id,
+                label = c.Label,
+                description = c.Description,
+                cohesion = Math.Round(c.Cohesion, 4),
+                members = c.MethodIds
+            })
+        }, new System.Text.Json.JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
+        Console.WriteLine(json);
+    }
+    else
+    {
+        foreach (var cluster in clusters)
+        {
+            Console.WriteLine($"[{cluster.Id}] {cluster.Label} (cohesion: {cluster.Cohesion:F2}, members: {cluster.MethodIds.Count})");
+            foreach (var methodId in cluster.MethodIds.Take(5))
+            {
+                var info = await storage.GetMethodInfoAsync(methodId, cancellationToken);
+                Console.WriteLine($"    {info?.FullName ?? methodId}");
+            }
+            if (cluster.MethodIds.Count > 5)
+                Console.WriteLine($"    ... and {cluster.MethodIds.Count - 5} more");
+            Console.WriteLine();
+        }
+    }
+});
+
 rootCommand.Add(analyzeCommand);
 rootCommand.Add(callgraphCommand);
 rootCommand.Add(hotspotsCommand);
 rootCommand.Add(treeCommand);
+rootCommand.Add(similarCommand);
+rootCommand.Add(duplicatesCommand);
+rootCommand.Add(clustersCommand);
 
 var parseResult = CommandLineParser.Parse(rootCommand, args);
 return await parseResult.InvokeAsync();

@@ -4,6 +4,7 @@ internal static class SchemaDefinition
 {
     internal static readonly string[] DropTables =
     [
+        "DROP TABLE IF EXISTS ClonePairs;",
         "DROP TABLE IF EXISTS MethodClusterMap;",
         "DROP TABLE IF EXISTS IntentClusters;",
         "DROP TABLE IF EXISTS Embeddings;",
@@ -99,17 +100,29 @@ internal static class SchemaDefinition
         );
         """,
         """
+        CREATE TABLE ClonePairs (
+            MethodIdA TEXT NOT NULL,
+            MethodIdB TEXT NOT NULL,
+            StructuralSimilarity REAL NOT NULL DEFAULT 0.0,
+            SemanticSimilarity REAL NOT NULL DEFAULT 0.0,
+            HybridScore REAL NOT NULL DEFAULT 0.0,
+            CloneType TEXT NOT NULL,
+            PRIMARY KEY (MethodIdA, MethodIdB)
+        );
+        """,
+        """
         CREATE TABLE IntentClusters (
             Id TEXT PRIMARY KEY,
             Label TEXT NOT NULL,
-            Description TEXT
+            Description TEXT,
+            Cohesion REAL NOT NULL DEFAULT 0.0,
+            MemberCount INTEGER NOT NULL DEFAULT 0
         );
         """,
         """
         CREATE TABLE MethodClusterMap (
-            MethodId TEXT NOT NULL REFERENCES Methods(Id),
+            MethodId TEXT NOT NULL,
             ClusterId TEXT NOT NULL REFERENCES IntentClusters(Id),
-            Score REAL NOT NULL DEFAULT 0.0,
             PRIMARY KEY (MethodId, ClusterId)
         );
         """
@@ -124,6 +137,9 @@ internal static class SchemaDefinition
         "CREATE INDEX IX_Namespaces_ProjectId ON Namespaces(ProjectId);",
         "CREATE INDEX IX_Metrics_CognitiveComplexity ON Metrics(CognitiveComplexity DESC);",
         "CREATE INDEX IX_MethodCalls_CalleeId ON MethodCalls(CalleeId);",
-        "CREATE INDEX IX_NormalizedMethods_Signature ON NormalizedMethods(StructuralSignature);"
+        "CREATE INDEX IX_NormalizedMethods_Signature ON NormalizedMethods(StructuralSignature);",
+        "CREATE INDEX IX_ClonePairs_HybridScore ON ClonePairs(HybridScore DESC);",
+        "CREATE INDEX IX_ClonePairs_CloneType ON ClonePairs(CloneType);",
+        "CREATE INDEX IX_MethodClusterMap_ClusterId ON MethodClusterMap(ClusterId);"
     ];
 }

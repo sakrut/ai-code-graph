@@ -1,3 +1,4 @@
+using AiCodeGraph.Core.Duplicates;
 using AiCodeGraph.Core.Models.CodeGraph;
 using Microsoft.Data.Sqlite;
 
@@ -293,6 +294,68 @@ public class StorageService : IAsyncDisposable, IDisposable
         return results;
     }
 
+    public async Task SaveEmbeddingsAsync(List<(string MethodId, float[] Vector, string ModelVersion)> embeddings, CancellationToken cancellationToken = default)
+    {
+        EnsureConnection();
+        using var transaction = _connection!.BeginTransaction();
+
+        try
+        {
+            using var cmd = _connection!.CreateCommand();
+            cmd.Transaction = transaction;
+            cmd.CommandText = "INSERT OR REPLACE INTO Embeddings (MethodId, Vector, ModelVersion) VALUES (@id, @vec, @model)";
+            var idParam = cmd.Parameters.Add("@id", SqliteType.Text);
+            var vecParam = cmd.Parameters.Add("@vec", SqliteType.Blob);
+            var modelParam = cmd.Parameters.Add("@model", SqliteType.Text);
+
+            foreach (var (methodId, vector, modelVersion) in embeddings)
+            {
+                idParam.Value = methodId;
+                vecParam.Value = VectorToBytes(vector);
+                modelParam.Value = modelVersion;
+                await cmd.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+            transaction.Commit();
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
+    }
+
+    public async Task<List<(string MethodId, float[] Vector)>> GetEmbeddingsAsync(CancellationToken cancellationToken = default)
+    {
+        EnsureConnection();
+        using var cmd = _connection!.CreateCommand();
+        cmd.CommandText = "SELECT MethodId, Vector FROM Embeddings";
+
+        var results = new List<(string, float[])>();
+        using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            var id = reader.GetString(0);
+            var bytes = (byte[])reader[1];
+            results.Add((id, BytesToVector(bytes)));
+        }
+        return results;
+    }
+
+    private static byte[] VectorToBytes(float[] vector)
+    {
+        var bytes = new byte[vector.Length * 4];
+        Buffer.BlockCopy(vector, 0, bytes, 0, bytes.Length);
+        return bytes;
+    }
+
+    private static float[] BytesToVector(byte[] bytes)
+    {
+        var vector = new float[bytes.Length / 4];
+        Buffer.BlockCopy(bytes, 0, vector, 0, bytes.Length);
+        return vector;
+    }
+
     public async Task SaveNormalizedMethodsAsync(List<(string MethodId, string StructuralSignature, string SemanticPayload)> normalized, CancellationToken cancellationToken = default)
     {
         EnsureConnection();
@@ -424,6 +487,189 @@ public class StorageService : IAsyncDisposable, IDisposable
             ));
         }
         return results;
+    }
+
+    public async Task SaveClonePairsAsync(List<ClonePair> clonePairs, CancellationToken cancellationToken = default)
+    {
+        EnsureConnection();
+        using var transaction = _connection!.BeginTransaction();
+
+        try
+        {
+            // Clear existing
+            using (var delCmd = _connection!.CreateCommand())
+            {
+                delCmd.Transaction = transaction;
+                delCmd.CommandText = "DELETE FROM ClonePairs";
+                await delCmd.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+            using var cmd = _connection!.CreateCommand();
+            cmd.Transaction = transaction;
+            cmd.CommandText = """
+                INSERT INTO ClonePairs (MethodIdA, MethodIdB, StructuralSimilarity, SemanticSimilarity, HybridScore, CloneType)
+                VALUES (@a, @b, @ss, @sem, @hs, @type)
+                """;
+            var aParam = cmd.Parameters.Add("@a", SqliteType.Text);
+            var bParam = cmd.Parameters.Add("@b", SqliteType.Text);
+            var ssParam = cmd.Parameters.Add("@ss", SqliteType.Real);
+            var semParam = cmd.Parameters.Add("@sem", SqliteType.Real);
+            var hsParam = cmd.Parameters.Add("@hs", SqliteType.Real);
+            var typeParam = cmd.Parameters.Add("@type", SqliteType.Text);
+
+            foreach (var pair in clonePairs)
+            {
+                aParam.Value = pair.MethodIdA;
+                bParam.Value = pair.MethodIdB;
+                ssParam.Value = pair.StructuralSimilarity;
+                semParam.Value = pair.SemanticSimilarity;
+                hsParam.Value = pair.HybridScore;
+                typeParam.Value = pair.Type.ToString();
+                await cmd.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+            transaction.Commit();
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
+    }
+
+    public async Task<List<ClonePair>> GetClonePairsAsync(float minThreshold = 0f, CloneType? typeFilter = null, CancellationToken cancellationToken = default)
+    {
+        EnsureConnection();
+        using var cmd = _connection!.CreateCommand();
+        var conditions = new List<string>();
+        if (minThreshold > 0)
+            conditions.Add("HybridScore >= @threshold");
+        if (typeFilter.HasValue)
+            conditions.Add("CloneType = @type");
+        var where = conditions.Count > 0 ? "WHERE " + string.Join(" AND ", conditions) : "";
+
+        cmd.CommandText = $"SELECT MethodIdA, MethodIdB, StructuralSimilarity, SemanticSimilarity, HybridScore, CloneType FROM ClonePairs {where} ORDER BY HybridScore DESC";
+        if (minThreshold > 0)
+            cmd.Parameters.AddWithValue("@threshold", minThreshold);
+        if (typeFilter.HasValue)
+            cmd.Parameters.AddWithValue("@type", typeFilter.Value.ToString());
+
+        var results = new List<ClonePair>();
+        using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            results.Add(new ClonePair(
+                reader.GetString(0),
+                reader.GetString(1),
+                reader.GetFloat(2),
+                reader.GetFloat(3),
+                reader.GetFloat(4),
+                Enum.Parse<CloneType>(reader.GetString(5))));
+        }
+        return results;
+    }
+
+    public async Task SaveClustersAsync(List<IntentCluster> clusters, CancellationToken cancellationToken = default)
+    {
+        EnsureConnection();
+        using var transaction = _connection!.BeginTransaction();
+
+        try
+        {
+            // Clear existing
+            using (var delCmd = _connection!.CreateCommand())
+            {
+                delCmd.Transaction = transaction;
+                delCmd.CommandText = "DELETE FROM MethodClusterMap; DELETE FROM IntentClusters;";
+                await delCmd.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+            using var clusterCmd = _connection!.CreateCommand();
+            clusterCmd.Transaction = transaction;
+            clusterCmd.CommandText = """
+                INSERT INTO IntentClusters (Id, Label, Description, Cohesion, MemberCount)
+                VALUES (@id, @label, @desc, @cohesion, @count)
+                """;
+            var idParam = clusterCmd.Parameters.Add("@id", SqliteType.Text);
+            var labelParam = clusterCmd.Parameters.Add("@label", SqliteType.Text);
+            var descParam = clusterCmd.Parameters.Add("@desc", SqliteType.Text);
+            var cohesionParam = clusterCmd.Parameters.Add("@cohesion", SqliteType.Real);
+            var countParam = clusterCmd.Parameters.Add("@count", SqliteType.Integer);
+
+            using var mapCmd = _connection!.CreateCommand();
+            mapCmd.Transaction = transaction;
+            mapCmd.CommandText = "INSERT INTO MethodClusterMap (MethodId, ClusterId) VALUES (@mid, @cid)";
+            var midParam = mapCmd.Parameters.Add("@mid", SqliteType.Text);
+            var cidParam = mapCmd.Parameters.Add("@cid", SqliteType.Text);
+
+            foreach (var cluster in clusters)
+            {
+                idParam.Value = cluster.Id;
+                labelParam.Value = cluster.Label;
+                descParam.Value = (object?)cluster.Description ?? DBNull.Value;
+                cohesionParam.Value = cluster.Cohesion;
+                countParam.Value = cluster.MethodIds.Count;
+                await clusterCmd.ExecuteNonQueryAsync(cancellationToken);
+
+                cidParam.Value = cluster.Id;
+                foreach (var methodId in cluster.MethodIds)
+                {
+                    midParam.Value = methodId;
+                    await mapCmd.ExecuteNonQueryAsync(cancellationToken);
+                }
+            }
+
+            transaction.Commit();
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
+    }
+
+    public async Task<List<IntentCluster>> GetClustersAsync(CancellationToken cancellationToken = default)
+    {
+        EnsureConnection();
+
+        // Load clusters
+        var clusters = new Dictionary<string, (string Label, string? Desc, float Cohesion, int Count)>();
+        using (var cmd = _connection!.CreateCommand())
+        {
+            cmd.CommandText = "SELECT Id, Label, Description, Cohesion, MemberCount FROM IntentClusters ORDER BY MemberCount DESC";
+            using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                clusters[reader.GetString(0)] = (
+                    reader.GetString(1),
+                    reader.IsDBNull(2) ? null : reader.GetString(2),
+                    reader.GetFloat(3),
+                    reader.GetInt32(4));
+            }
+        }
+
+        // Load members
+        var members = new Dictionary<string, List<string>>();
+        using (var cmd = _connection!.CreateCommand())
+        {
+            cmd.CommandText = "SELECT ClusterId, MethodId FROM MethodClusterMap";
+            using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                var cid = reader.GetString(0);
+                if (!members.ContainsKey(cid))
+                    members[cid] = new List<string>();
+                members[cid].Add(reader.GetString(1));
+            }
+        }
+
+        return clusters.Select(kv => new IntentCluster(
+            kv.Key,
+            kv.Value.Label,
+            kv.Value.Desc ?? "",
+            members.GetValueOrDefault(kv.Key, new List<string>()),
+            kv.Value.Cohesion
+        )).ToList();
     }
 
     private void EnsureConnection()
