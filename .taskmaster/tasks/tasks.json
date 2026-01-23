@@ -554,7 +554,7 @@
           "5",
           "6"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -562,9 +562,10 @@
             "description": "Install the System.CommandLine NuGet package and create the basic CLI infrastructure including RootCommand with description, version info, and help text generation. Set up Program.cs as the entry point that builds and invokes the command tree.",
             "dependencies": [],
             "details": "Add System.CommandLine NuGet package to the CLI project. Create Program.cs with a RootCommand configured with description 'AI Code Graph - Semantic code analysis for .NET'. Configure the command builder to include automatic help (--help) and version (--version) options. Set up the async Main method to invoke rootCommand.InvokeAsync(args). Ensure the CLI project references the Core project for access to services.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Verify the CLI builds and runs without errors. Test that --help displays the root description and available commands. Test that running with no arguments shows help text. Test that --version displays version information.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T21:09:43.441Z"
           },
           {
             "id": 2,
@@ -574,9 +575,10 @@
               1
             ],
             "details": "Create the analyze Command instance with description 'Analyze the codebase and build the code graph'. Add Option<string>('--solution', 'Path to .sln file') as optional. Add Option<string>('--output', default './ai-code-graph', 'Output directory'). Add Option<bool>('--verbose', 'Enable verbose output'). Register the command with rootCommand.AddCommand(analyzeCommand). Set up the command handler binding to wire options to the handler method parameters using SetHandler.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test that 'analyze --help' shows all three options with descriptions. Test that default values are applied when options are not specified. Test that invalid option names produce error messages.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T21:09:43.461Z"
           },
           {
             "id": 3,
@@ -586,9 +588,10 @@
               2
             ],
             "details": "Implement async Task<int> ExecuteAnalyze(string? solutionPath, string output, bool verbose) method. Step 1: If solutionPath is null, auto-discover .sln file in current directory. Validate the solution file exists. Step 2: Create WorkspaceLoader and call LoadSolutionAsync. Step 3: Create CodeModelExtractor and extract the code model from the loaded workspace. Step 4: Create CallGraphBuilder and build the call graph from the code model. Step 5: Create MetricsEngine and compute metrics. Step 6: Create output directory if not exists, then use StorageService to persist results. Wire up DI or manual instantiation of each service. Pass CancellationToken through the pipeline for graceful cancellation support.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Integration test: run analyze command against the test fixture solution and verify the pipeline completes successfully. Verify StorageService produces output in the specified directory. Mock individual services to test orchestration logic in isolation. Test solution auto-discovery when --solution is not provided.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T21:09:43.478Z"
           },
           {
             "id": 4,
@@ -598,9 +601,10 @@
               3
             ],
             "details": "Use a Stopwatch to track total elapsed time and per-stage timing. Print progress messages to Console during each pipeline stage (e.g., 'Loading workspace...', 'Extracting code model...', 'Building call graph...', 'Computing metrics...', 'Storing results...'). When verbose mode is enabled, print additional detail such as per-project compilation status. After pipeline completion, print formatted summary: 'Analysis complete:\\n  Projects: {count}\\n  Types: {count}\\n  Methods: {count}\\n  Call edges: {count}\\n  Avg complexity: {value:F1}\\n  Duration: {elapsed:F1}s'. Extract counts from the code model and metrics results.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test that summary output contains correct counts by running against a known fixture solution. Test that --verbose flag produces additional output lines. Capture console output in tests to verify formatting. Test elapsed time is reported and is a reasonable positive value.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T21:09:43.487Z"
           },
           {
             "id": 5,
@@ -610,14 +614,16 @@
               3
             ],
             "details": "Wrap the pipeline execution in try-catch blocks to handle common failure modes: FileNotFoundException when solution doesn't exist, InvalidOperationException for workspace loading failures, and general exceptions. Print user-friendly error messages to Console.Error (e.g., 'Error: Solution file not found: {path}'). In verbose mode, include stack traces. Return exit code 0 on success, 1 for general errors, 2 for invalid arguments. Before storing results, call Directory.CreateDirectory(output) to ensure the output directory exists. Handle the case where the output path is invalid or inaccessible. Add a top-level exception handler in Program.cs to catch unhandled exceptions and return a non-zero exit code with a message.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test that missing solution file returns exit code non-zero with descriptive message. Test that invalid output path produces an error. Test that output directory is created when it doesn't exist. Test that successful run returns exit code 0. Test that verbose mode includes additional error details.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-23T21:09:43.495Z"
           }
         ],
         "complexity": 5,
         "recommendedSubtasks": 5,
-        "expansionPrompt": "Break down the CLI Framework and Analyze Command into subtasks: 1) Set up System.CommandLine with RootCommand and basic CLI infrastructure (help text, version), 2) Implement the analyze command definition with options (--solution, --output, --verbose), 3) Implement the AnalyzeCommand handler that orchestrates the full pipeline (workspace→model→callgraph→metrics→storage), 4) Add progress reporting with elapsed time and summary statistics output, 5) Implement error handling, exit codes, and output directory management. This is primarily an orchestration task that wires together previously-built components."
+        "expansionPrompt": "Break down the CLI Framework and Analyze Command into subtasks: 1) Set up System.CommandLine with RootCommand and basic CLI infrastructure (help text, version), 2) Implement the analyze command definition with options (--solution, --output, --verbose), 3) Implement the AnalyzeCommand handler that orchestrates the full pipeline (workspace→model→callgraph→metrics→storage), 4) Add progress reporting with elapsed time and summary statistics output, 5) Implement error handling, exit codes, and output directory management. This is primarily an orchestration task that wires together previously-built components.",
+        "updatedAt": "2026-01-23T21:09:43.495Z"
       },
       {
         "id": "8",
@@ -1276,9 +1282,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-23T21:06:50.144Z",
+      "lastModified": "2026-01-23T21:09:43.496Z",
       "taskCount": 15,
-      "completedCount": 6,
+      "completedCount": 7,
       "tags": [
         "master"
       ]
