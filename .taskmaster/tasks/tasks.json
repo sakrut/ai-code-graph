@@ -1127,7 +1127,7 @@
           "7",
           "11"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1193,7 +1193,8 @@
         ],
         "complexity": 6,
         "recommendedSubtasks": 5,
-        "expansionPrompt": "Break down the Diff and Drift Detection Engine into subtasks: 1) Implement baseline snapshot management (save current DB as baseline, --save-baseline flag on analyze command), 2) Implement DriftDetector.Compare() method that opens both databases and computes diffs (new/removed methods, complexity changes), 3) Implement complexity regression detection with configurable thresholds (>25% increase or crossing absolute threshold), 4) Implement intent scattering detection (cluster gaining members in new namespaces), 5) Implement drift CLI command with summary/detail/json output formats. The comparison logic requires opening two SQLite databases simultaneously and performing set operations."
+        "expansionPrompt": "Break down the Diff and Drift Detection Engine into subtasks: 1) Implement baseline snapshot management (save current DB as baseline, --save-baseline flag on analyze command), 2) Implement DriftDetector.Compare() method that opens both databases and computes diffs (new/removed methods, complexity changes), 3) Implement complexity regression detection with configurable thresholds (>25% increase or crossing absolute threshold), 4) Implement intent scattering detection (cluster gaining members in new namespaces), 5) Implement drift CLI command with summary/detail/json output formats. The comparison logic requires opening two SQLite databases simultaneously and performing set operations.",
+        "updatedAt": "2026-01-23T21:32:15.804Z"
       },
       {
         "id": "15",
@@ -1305,9 +1306,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-23T21:29:31.567Z",
+      "lastModified": "2026-01-23T21:32:15.804Z",
       "taskCount": 15,
-      "completedCount": 13,
+      "completedCount": 14,
       "tags": [
         "master"
       ]
