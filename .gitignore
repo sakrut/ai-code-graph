@@ -1,34 +1,35 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-dev-debug.log
-
-# Dependency directories
-node_modules/
-
-# Environment variables
-.env
-
-# Editor directories and files
-.idea
-.vscode
-*.suo
-*.ntvs*
-*.njsproj
-*.sw?
-*.user
-.vs/
-
-# OS specific
-.DS_Store
-
 # .NET build artifacts
 bin/
 obj/
 nupkg/
+*.nupkg
+
+# IDE
+.idea/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.vs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
 
 # AI Code Graph output
 ai-code-graph/
+
+# Test results
+TestResults/
+*.trx
+
+# NuGet
+*.nupkg
+packages/
+
+# Logs
+*.log
