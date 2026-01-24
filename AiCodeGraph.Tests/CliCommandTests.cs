@@ -6,8 +6,14 @@ namespace AiCodeGraph.Tests;
 
 public class CliCommandTests : TempDirectoryFixture
 {
+#if DEBUG
+    private const string BuildConfiguration = "Debug";
+#else
+    private const string BuildConfiguration = "Release";
+#endif
+
     private static readonly string CliDll = Path.GetFullPath(
-        Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "AiCodeGraph.Cli", "bin", "Debug", "net8.0", "AiCodeGraph.Cli.dll"));
+        Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "AiCodeGraph.Cli", "bin", BuildConfiguration, "net8.0", "AiCodeGraph.Cli.dll"));
 
     public CliCommandTests() : base("cli-test") { }
 
