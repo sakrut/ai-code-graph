@@ -1117,6 +1117,50 @@ contextCommand.SetAction(async (parseResult, cancellationToken) =>
     if (cluster != null)
         Console.WriteLine($"Cluster: \"{cluster.Value.Label}\" ({cluster.Value.MemberCount} members, cohesion: {cluster.Value.Cohesion:F2})");
 
+    // Recent cluster activity
+    if (cluster != null)
+    {
+        var clusters = await storage.GetClustersAsync(cancellationToken);
+        var myCluster = clusters.FirstOrDefault(c => c.MethodIds.Contains(targetId));
+        if (myCluster != null && myCluster.MethodIds.Count > 1)
+        {
+            var recentChanges = new List<(string MethodName, TimeSpan Age)>();
+            foreach (var memberId in myCluster.MethodIds.Where(id => id != targetId).Take(10))
+            {
+                var memberInfo = await storage.GetMethodInfoAsync(memberId, cancellationToken);
+                if (memberInfo?.FilePath == null || !File.Exists(memberInfo.Value.FilePath)) continue;
+                try
+                {
+                    var psi = new System.Diagnostics.ProcessStartInfo("git", $"log -1 --format=%ct -- \"{memberInfo.Value.FilePath}\"")
+                    {
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    };
+                    using var process = System.Diagnostics.Process.Start(psi);
+                    if (process != null)
+                    {
+                        var output = (await process.StandardOutput.ReadToEndAsync(cancellationToken)).Trim();
+                        await process.WaitForExitAsync(cancellationToken);
+                        if (long.TryParse(output, out var ts))
+                        {
+                            var age = DateTimeOffset.UtcNow - DateTimeOffset.FromUnixTimeSeconds(ts);
+                            recentChanges.Add((memberInfo.Value.Name, age));
+                        }
+                    }
+                }
+                catch { /* skip on git errors */ }
+            }
+            if (recentChanges.Count > 0)
+            {
+                var top3 = recentChanges.OrderBy(r => r.Age).Take(3);
+                var formatted = string.Join(", ", top3.Select(r => $"{r.MethodName} ({FormatAge(r.Age)})"));
+                Console.WriteLine($"Recent cluster activity: {formatted}");
+            }
+        }
+    }
+
     // Duplicates
     var dupes = await storage.GetMethodDuplicatesAsync(targetId, cancellationToken);
     if (dupes.Count > 0)
@@ -2259,6 +2303,15 @@ static void PrintAnalysisSummary(
     Console.WriteLine($"  Avg complexity: {avgComplexity:F1}");
     Console.WriteLine($"  Duration:       {totalTimer.Elapsed.TotalSeconds:F1}s");
     Console.WriteLine($"  Output:         {Path.GetFullPath(dbPath)}");
+}
+
+static string FormatAge(TimeSpan age)
+{
+    if (age.TotalDays < 1) return "today";
+    if (age.TotalDays < 2) return "1d ago";
+    if (age.TotalDays < 30) return $"{(int)age.TotalDays}d ago";
+    if (age.TotalDays < 365) return $"{(int)(age.TotalDays / 30)}mo ago";
+    return $"{(int)(age.TotalDays / 365)}y ago";
 }
 
 static async Task<List<string>> GetChangedCsFiles(string fromRef, string toRef, CancellationToken ct)
