@@ -2986,7 +2986,7 @@
           "40",
           "41"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -3049,7 +3049,8 @@
         ],
         "complexity": 7,
         "recommendedSubtasks": 5,
-        "expansionPrompt": "Break down into: (1) Create CouplingAnalyzer class with namespace/type grouping logic, (2) Implement Ca/Ce counting by comparing caller/callee membership across groups, (3) Compute Instability and Distance from Main Sequence metrics, (4) Register CLI command with options and output formatters, (5) Add MCP tool, slash command, and tests with cross-namespace fixture dependencies"
+        "expansionPrompt": "Break down into: (1) Create CouplingAnalyzer class with namespace/type grouping logic, (2) Implement Ca/Ce counting by comparing caller/callee membership across groups, (3) Compute Instability and Distance from Main Sequence metrics, (4) Register CLI command with options and output formatters, (5) Add MCP tool, slash command, and tests with cross-namespace fixture dependencies",
+        "updatedAt": "2026-01-24T13:40:09.016Z"
       },
       {
         "id": "47",
@@ -3376,9 +3377,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-24T13:37:27.238Z",
+      "lastModified": "2026-01-24T13:40:09.017Z",
       "taskCount": 50,
-      "completedCount": 47,
+      "completedCount": 48,
       "tags": [
         "master"
       ]

@@ -257,6 +257,17 @@ public class McpServer
                         ["top"] = new JsonObject { ["type"] = "integer", ["description"] = "Number of results", ["default"] = 10 }
                     },
                     ["required"] = new JsonArray { "query" }
+                }),
+            CreateToolDef("cg_coupling",
+                "Show afferent/efferent coupling and instability metrics",
+                new JsonObject
+                {
+                    ["type"] = "object",
+                    ["properties"] = new JsonObject
+                    {
+                        ["level"] = new JsonObject { ["type"] = "string", ["description"] = "namespace|type", ["default"] = "namespace" },
+                        ["top"] = new JsonObject { ["type"] = "integer", ["description"] = "Number of results", ["default"] = 20 }
+                    }
                 })
         };
 
@@ -296,6 +307,7 @@ public class McpServer
                 "cg_analyze" => await ToolAnalyze(args, ct),
                 "cg_churn" => await ToolGetChurn(args, ct),
                 "cg_semantic_search" => await ToolSemanticSearch(args, ct),
+                "cg_coupling" => await ToolGetCoupling(args, ct),
                 _ => $"Unknown tool: {toolName}"
             };
 
@@ -977,6 +989,29 @@ public class McpServer
             }
             return string.Join("\n", lines);
         }
+    }
+
+    private async Task<string> ToolGetCoupling(JsonNode? args, CancellationToken ct)
+    {
+        var level = args?["level"]?.GetValue<string>() ?? "namespace";
+        var top = args?["top"]?.GetValue<int>() ?? 20;
+
+        var analyzer = new CouplingAnalyzer();
+        var results = await analyzer.AnalyzeAsync(_storage!, level, ct);
+        results = results.Take(top).ToList();
+
+        if (results.Count == 0)
+            return "No coupling data found.";
+
+        var lines = new List<string> { $"Coupling metrics (level: {level}):", "" };
+        lines.Add($"{"Name",-40} {"Ca",4} {"Ce",4} {"I",5} {"A",5} {"D",5}");
+        lines.Add(new string('-', 66));
+        foreach (var r in results)
+        {
+            var name = r.Name.Length > 38 ? r.Name[..35] + "..." : r.Name;
+            lines.Add($"{name,-40} {r.AfferentCoupling,4} {r.EfferentCoupling,4} {r.Instability,5:F2} {r.Abstractness,5:F2} {r.DistanceFromMain,5:F2}");
+        }
+        return string.Join("\n", lines);
     }
 
     private static IEmbeddingEngine CreateOpenAiEngineFromMetadata(string? model, int dimensions)
