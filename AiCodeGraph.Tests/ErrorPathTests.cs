@@ -9,6 +9,43 @@ namespace AiCodeGraph.Tests;
 
 public class ErrorPathTests
 {
+    // --- Helper methods ---
+
+    private static void DeleteFileWithRetry(string path)
+    {
+        if (!File.Exists(path))
+            return;
+
+        // On Windows, SQLite may keep files locked briefly after connection disposal
+        var attempts = 0;
+        var maxAttempts = 10;
+        var delay = 50; // ms
+
+        while (attempts < maxAttempts)
+        {
+            try
+            {
+                if (attempts > 0)
+                {
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+                    Thread.Sleep(delay);
+                }
+
+                File.Delete(path);
+                return; // Success
+            }
+            catch (IOException) when (attempts < maxAttempts - 1)
+            {
+                attempts++;
+                delay *= 2; // Exponential backoff
+            }
+        }
+
+        // Final attempt - let it throw if it still fails
+        File.Delete(path);
+    }
+
     // --- StorageService error paths ---
 
     [Fact]
@@ -147,7 +184,7 @@ public class ErrorPathTests
         }
         finally
         {
-            File.Delete(tempCurrent);
+            DeleteFileWithRetry(tempCurrent);
         }
     }
 
@@ -186,8 +223,8 @@ public class ErrorPathTests
         }
         finally
         {
-            File.Delete(currentPath);
-            File.Delete(baselinePath);
+            DeleteFileWithRetry(currentPath);
+            DeleteFileWithRetry(baselinePath);
         }
     }
 
