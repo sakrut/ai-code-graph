@@ -279,4 +279,56 @@ namespace MyApp
         Assert.Contains(edges, e => e.Kind == CallKind.Constructor);
         Assert.Contains(edges, e => e.Kind == CallKind.Direct && e.CalleeId.Contains("DoWork"));
     }
+
+    [Fact]
+    public void DetectsCallsFromTopLevelStatements()
+    {
+        var source = @"
+MyApp.Service.DoWork();
+
+namespace MyApp
+{
+    public class Service
+    {
+        public static void DoWork() { }
+    }
+}";
+        var workspace = TestHelpers.CreateConsoleWorkspace(source);
+        var edges = _builder.BuildCallGraph(workspace);
+
+        Assert.Contains(edges, e =>
+            e.CallerId == CallGraphBuilder.TopLevelEntryPointId &&
+            e.CalleeId.Contains("DoWork"));
+    }
+
+    [Fact]
+    public void DetectsLocalFunctionsInTopLevelStatements()
+    {
+        var source = @"
+Helper();
+
+void Helper()
+{
+    MyApp.Service.DoWork();
+}
+
+namespace MyApp
+{
+    public class Service
+    {
+        public static void DoWork() { }
+    }
+}";
+        var workspace = TestHelpers.CreateConsoleWorkspace(source);
+        var edges = _builder.BuildCallGraph(workspace);
+
+        // Top-level statements call Helper
+        Assert.Contains(edges, e =>
+            e.CallerId == CallGraphBuilder.TopLevelEntryPointId &&
+            e.CalleeId.Contains("Helper"));
+        // Helper calls DoWork
+        Assert.Contains(edges, e =>
+            e.CallerId.Contains("Helper") &&
+            e.CalleeId.Contains("DoWork"));
+    }
 }

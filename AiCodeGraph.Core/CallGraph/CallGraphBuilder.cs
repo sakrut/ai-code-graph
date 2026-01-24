@@ -8,6 +8,8 @@ namespace AiCodeGraph.Core.CallGraph;
 
 public class CallGraphBuilder
 {
+    public const string TopLevelEntryPointId = ".$TopLevelStatements()";
+
     private readonly HashSet<MethodCallEdge> _edges = new();
     private readonly Dictionary<ISymbol, string> _symbolToId = new(SymbolEqualityComparer.Default);
 
@@ -87,6 +89,37 @@ public class CallGraphBuilder
             }
 
             ResolveInvocationsInBody(callerId, body, semanticModel);
+        }
+
+        // Handle top-level statements (C# 9+)
+        var globalStatements = root.DescendantNodes().OfType<GlobalStatementSyntax>().ToList();
+        if (globalStatements.Count > 0)
+        {
+            foreach (var globalStatement in globalStatements)
+            {
+                ResolveInvocationsInBody(TopLevelEntryPointId, globalStatement.Statement, semanticModel);
+            }
+
+            // Also walk top-level local functions
+            foreach (var localFunc in root.DescendantNodes().OfType<LocalFunctionStatementSyntax>())
+            {
+                if (localFunc.Parent is GlobalStatementSyntax)
+                {
+                    var symbol = semanticModel.GetDeclaredSymbol(localFunc);
+                    if (symbol != null)
+                    {
+                        var localFuncId = GetSymbolId(symbol);
+                        if (localFuncId != null)
+                        {
+                            _edges.Add(new MethodCallEdge(TopLevelEntryPointId, localFuncId, CallKind.Direct));
+                            if (localFunc.Body != null)
+                                ResolveInvocationsInBody(localFuncId, localFunc.Body, semanticModel);
+                            else if (localFunc.ExpressionBody != null)
+                                ResolveInvocationsInBody(localFuncId, localFunc.ExpressionBody, semanticModel);
+                        }
+                    }
+                }
+            }
         }
     }
 

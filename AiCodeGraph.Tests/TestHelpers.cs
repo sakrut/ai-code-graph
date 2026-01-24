@@ -33,6 +33,19 @@ public static class TestHelpers
         return new LoadedWorkspace(null!, compilations, Array.Empty<WorkspaceDiagnosticInfo>());
     }
 
+    public static LoadedWorkspace CreateConsoleWorkspace(string source)
+    {
+        var tree = CSharpSyntaxTree.ParseText(source);
+        var compilation = CSharpCompilation.Create("TestAssembly",
+            new[] { tree },
+            new[] { MetadataReference.CreateFromFile(typeof(object).Assembly.Location) },
+            new CSharpCompilationOptions(OutputKind.ConsoleApplication));
+
+        var projectId = ProjectId.CreateNewId();
+        var compilations = new Dictionary<ProjectId, Compilation> { { projectId, compilation } };
+        return new LoadedWorkspace(null!, compilations, Array.Empty<WorkspaceDiagnosticInfo>());
+    }
+
     public static int CountMethodsInType(TypeModel type)
     {
         return type.Methods.Count + type.NestedTypes.Sum(CountMethodsInType);
