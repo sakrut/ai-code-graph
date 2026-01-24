@@ -2729,7 +2729,7 @@
           "40",
           "41"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -2783,7 +2783,8 @@
         ],
         "complexity": 6,
         "recommendedSubtasks": 4,
-        "expansionPrompt": "Break down into: (1) Create OpenAiEmbeddingEngine class implementing IEmbeddingEngine with HttpClient setup and API URL configuration, (2) Implement batching logic (100 texts per call) with request/response serialization, (3) Add exponential backoff retry logic for rate limits (429) and transient errors, (4) Write tests with mocked HttpMessageHandler covering batch splitting, retries, and error handling"
+        "expansionPrompt": "Break down into: (1) Create OpenAiEmbeddingEngine class implementing IEmbeddingEngine with HttpClient setup and API URL configuration, (2) Implement batching logic (100 texts per call) with request/response serialization, (3) Add exponential backoff retry logic for rate limits (429) and transient errors, (4) Write tests with mocked HttpMessageHandler covering batch splitting, retries, and error handling",
+        "updatedAt": "2026-01-24T13:26:59.568Z"
       },
       {
         "id": "43",
@@ -3370,9 +3371,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-24T13:25:05.716Z",
+      "lastModified": "2026-01-24T13:26:59.569Z",
       "taskCount": 50,
-      "completedCount": 41,
+      "completedCount": 42,
       "tags": [
         "master"
       ]
