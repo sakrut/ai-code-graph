@@ -414,6 +414,81 @@ public class IntentClustererTests
         var ids = clusters.Select(c => c.Id).ToList();
         Assert.Equal(ids.Count, ids.Distinct().Count());
     }
+
+    [Fact]
+    public void ClusterMethods_VerbNounPair_ProducesDescriptiveLabel()
+    {
+        var sharedVector = _engine.GenerateEmbedding("save user data");
+        var methods = new List<NormalizedMethod>
+        {
+            new("MyApp.UserService.SaveUser()", "sig1", "save user"),
+            new("MyApp.UserService.SaveOrder()", "sig2", "save order"),
+            new("MyApp.UserService.SaveProfile()", "sig3", "save profile")
+        };
+        var embeddings = new List<(string MethodId, float[] Vector)>
+        {
+            ("MyApp.UserService.SaveUser()", sharedVector),
+            ("MyApp.UserService.SaveOrder()", sharedVector),
+            ("MyApp.UserService.SaveProfile()", sharedVector)
+        };
+
+        var clusterer = new IntentClusterer(epsilon: 0.1f, minPoints: 2);
+        var clusters = clusterer.ClusterMethods(methods, embeddings);
+
+        Assert.NotEmpty(clusters);
+        var label = clusters[0].Label;
+        Assert.Contains("save", label, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("/", label); // No old format
+    }
+
+    [Fact]
+    public void ClusterMethods_TestMethods_ProducesTestLabel()
+    {
+        var sharedVector = _engine.GenerateEmbedding("test user validation");
+        var methods = new List<NormalizedMethod>
+        {
+            new("AiCodeGraph.Tests.UserTests.ValidateInput_ReturnsTrue()", "sig1", "test"),
+            new("AiCodeGraph.Tests.UserTests.ValidateEmail_ReturnsTrue()", "sig2", "test"),
+            new("AiCodeGraph.Tests.UserTests.ValidateAddress_ReturnsTrue()", "sig3", "test")
+        };
+        var embeddings = new List<(string MethodId, float[] Vector)>
+        {
+            ("AiCodeGraph.Tests.UserTests.ValidateInput_ReturnsTrue()", sharedVector),
+            ("AiCodeGraph.Tests.UserTests.ValidateEmail_ReturnsTrue()", sharedVector),
+            ("AiCodeGraph.Tests.UserTests.ValidateAddress_ReturnsTrue()", sharedVector)
+        };
+
+        var clusterer = new IntentClusterer(epsilon: 0.1f, minPoints: 2);
+        var clusters = clusterer.ClusterMethods(methods, embeddings);
+
+        Assert.NotEmpty(clusters);
+        Assert.Contains("unit tests", clusters[0].Label);
+        Assert.Contains("User", clusters[0].Label);
+    }
+
+    [Fact]
+    public void ClusterMethods_NamespaceContext_IncludesClassName()
+    {
+        var sharedVector = _engine.GenerateEmbedding("storage operations");
+        var methods = new List<NormalizedMethod>
+        {
+            new("MyApp.StorageService.SaveAsync()", "sig1", "storage save"),
+            new("MyApp.StorageService.LoadAsync()", "sig2", "storage load"),
+            new("MyApp.StorageService.DeleteAsync()", "sig3", "storage delete")
+        };
+        var embeddings = new List<(string MethodId, float[] Vector)>
+        {
+            ("MyApp.StorageService.SaveAsync()", sharedVector),
+            ("MyApp.StorageService.LoadAsync()", sharedVector),
+            ("MyApp.StorageService.DeleteAsync()", sharedVector)
+        };
+
+        var clusterer = new IntentClusterer(epsilon: 0.1f, minPoints: 2);
+        var clusters = clusterer.ClusterMethods(methods, embeddings);
+
+        Assert.NotEmpty(clusters);
+        Assert.Contains("StorageService", clusters[0].Label);
+    }
 }
 
 public class DuplicateStorageTests

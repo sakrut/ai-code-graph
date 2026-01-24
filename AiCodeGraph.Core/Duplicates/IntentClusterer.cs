@@ -173,46 +173,123 @@ public class IntentClusterer
 
     private static string GenerateLabel(List<string> memberIds, Dictionary<string, NormalizedMethod> methodMap)
     {
-        var verbCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        var nounCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var pairCounts = new Dictionary<(string Verb, string Noun), int>(new VerbNounComparer());
+        var namespaceCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        bool allTests = true;
 
         foreach (var id in memberIds)
         {
             if (!methodMap.TryGetValue(id, out _)) continue;
 
             var shortName = ExtractShortName(id);
-            var segments = SplitPascalCase(shortName);
-            if (segments.Count == 0) continue;
+            var namespacePart = ExtractNamespaceContext(id);
 
-            var verb = segments[0];
-            if (!Stopwords.Contains(verb) && verb.Length > 1)
+            if (!string.IsNullOrEmpty(namespacePart))
             {
-                verbCounts.TryGetValue(verb, out var vc);
-                verbCounts[verb] = vc + 1;
+                namespaceCounts.TryGetValue(namespacePart, out var nc);
+                namespaceCounts[namespacePart] = nc + 1;
             }
 
+            if (!IsTestMethod(shortName, id))
+                allTests = false;
+
+            var segments = SplitPascalCase(shortName);
+            if (segments.Count < 2) continue;
+
+            var verb = segments[0];
+            if (Stopwords.Contains(verb) || verb.Length <= 1) continue;
+
+            // Pair verb with first meaningful noun
             for (int i = 1; i < segments.Count; i++)
             {
                 var noun = segments[i];
-                if (!Stopwords.Contains(noun) && noun.Length > 2)
-                {
-                    nounCounts.TryGetValue(noun, out var nc);
-                    nounCounts[noun] = nc + 1;
-                }
+                if (Stopwords.Contains(noun) || noun.Length <= 2) continue;
+                var key = (verb, noun);
+                pairCounts.TryGetValue(key, out var pc);
+                pairCounts[key] = pc + 1;
+                break;
             }
         }
 
-        var topVerb = verbCounts.OrderByDescending(kv => kv.Value).FirstOrDefault().Key;
-        var topNoun = nounCounts.OrderByDescending(kv => kv.Value).FirstOrDefault().Key;
+        if (allTests && memberIds.Count > 1)
+            return GenerateTestLabel(namespaceCounts);
 
-        if (topVerb != null && topNoun != null)
-            return $"{topVerb.ToLowerInvariant()}/{topNoun.ToLowerInvariant()} operations";
+        return FormatLabel(pairCounts, namespaceCounts);
+    }
+
+    private static string ExtractNamespaceContext(string methodId)
+    {
+        var parenIdx = methodId.IndexOf('(');
+        var nameOnly = parenIdx >= 0 ? methodId[..parenIdx] : methodId;
+        var parts = nameOnly.Split('.');
+        if (parts.Length >= 2)
+            return parts[^2];
+        return string.Empty;
+    }
+
+    private static bool IsTestMethod(string shortName, string fullId)
+    {
+        var testIndicators = new[] { "Test", "Tests", "Should", "Verify", "Assert", "Fact", "Theory" };
+        var segments = SplitPascalCase(shortName);
+        if (segments.Any(s => testIndicators.Contains(s, StringComparer.OrdinalIgnoreCase)))
+            return true;
+        return fullId.Contains("Tests.", StringComparison.OrdinalIgnoreCase) ||
+               fullId.Contains("Test.", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string GenerateTestLabel(Dictionary<string, int> namespaceCounts)
+    {
+        var topNamespace = namespaceCounts.OrderByDescending(kv => kv.Value).FirstOrDefault().Key;
+        if (!string.IsNullOrEmpty(topNamespace))
+        {
+            var subject = topNamespace.Replace("Tests", "").Replace("Test", "");
+            if (!string.IsNullOrEmpty(subject))
+                return $"{subject} unit tests";
+        }
+        return "unit tests";
+    }
+
+    private static string FormatLabel(
+        Dictionary<(string Verb, string Noun), int> pairCounts,
+        Dictionary<string, int> namespaceCounts)
+    {
+        var topPair = pairCounts.OrderByDescending(kv => kv.Value).FirstOrDefault();
+        var topNamespace = namespaceCounts.OrderByDescending(kv => kv.Value).FirstOrDefault().Key;
+
+        if (topPair.Key != default && topPair.Value >= 2)
+        {
+            var label = $"{topPair.Key.Verb} {topPair.Key.Noun}";
+            if (!string.IsNullOrEmpty(topNamespace) &&
+                !label.Contains(topNamespace, StringComparison.OrdinalIgnoreCase))
+                return $"{topNamespace} {label.ToLowerInvariant()} operations";
+            return $"{label} operations";
+        }
+
+        var topVerb = pairCounts.Keys
+            .GroupBy(k => k.Verb, StringComparer.OrdinalIgnoreCase)
+            .OrderByDescending(g => g.Count())
+            .FirstOrDefault()?.Key;
+
+        if (topVerb != null && !string.IsNullOrEmpty(topNamespace))
+            return $"{topNamespace} {topVerb.ToLowerInvariant()} operations";
         if (topVerb != null)
-            return $"{topVerb.ToLowerInvariant()} operations";
-        if (topNoun != null)
-            return $"{topNoun.ToLowerInvariant()} handlers";
+            return $"{topVerb} operations";
+        if (!string.IsNullOrEmpty(topNamespace))
+            return $"{topNamespace} operations";
 
         return "miscellaneous";
+    }
+
+    private class VerbNounComparer : IEqualityComparer<(string Verb, string Noun)>
+    {
+        public bool Equals((string Verb, string Noun) x, (string Verb, string Noun) y) =>
+            string.Equals(x.Verb, y.Verb, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(x.Noun, y.Noun, StringComparison.OrdinalIgnoreCase);
+
+        public int GetHashCode((string Verb, string Noun) obj) =>
+            HashCode.Combine(
+                obj.Verb.ToLowerInvariant().GetHashCode(),
+                obj.Noun.ToLowerInvariant().GetHashCode());
     }
 
     private static List<string> SplitPascalCase(string name)
