@@ -94,7 +94,7 @@ public class McpServer
     {
         var tools = new JsonArray
         {
-            CreateToolDef("get_context",
+            CreateToolDef("cg_get_context",
                 "Get compact method context: complexity, callers, callees, cluster, duplicates",
                 new JsonObject
                 {
@@ -105,7 +105,7 @@ public class McpServer
                     },
                     ["required"] = new JsonArray { "method" }
                 }),
-            CreateToolDef("get_hotspots",
+            CreateToolDef("cg_get_hotspots",
                 "Get top complexity hotspots",
                 new JsonObject
                 {
@@ -116,7 +116,7 @@ public class McpServer
                         ["threshold"] = new JsonObject { ["type"] = "integer", ["description"] = "Minimum complexity threshold" }
                     }
                 }),
-            CreateToolDef("search_code",
+            CreateToolDef("cg_search_code",
                 "Search code by natural language intent",
                 new JsonObject
                 {
@@ -128,7 +128,7 @@ public class McpServer
                     },
                     ["required"] = new JsonArray { "query" }
                 }),
-            CreateToolDef("get_duplicates",
+            CreateToolDef("cg_get_duplicates",
                 "Get detected code clones, optionally for a specific method",
                 new JsonObject
                 {
@@ -139,7 +139,7 @@ public class McpServer
                         ["top"] = new JsonObject { ["type"] = "integer", ["description"] = "Number of results", ["default"] = 10 }
                     }
                 }),
-            CreateToolDef("get_callgraph",
+            CreateToolDef("cg_get_callgraph",
                 "Explore method call graph: callers, callees, or both directions",
                 new JsonObject
                 {
@@ -152,7 +152,7 @@ public class McpServer
                     },
                     ["required"] = new JsonArray { "method" }
                 }),
-            CreateToolDef("get_tree",
+            CreateToolDef("cg_get_tree",
                 "Display code structure: projects, namespaces, types, and methods",
                 new JsonObject
                 {
@@ -163,7 +163,7 @@ public class McpServer
                         ["type"] = new JsonObject { ["type"] = "string", ["description"] = "Optional: filter by type name" }
                     }
                 }),
-            CreateToolDef("get_similar",
+            CreateToolDef("cg_get_similar",
                 "Find methods with similar semantic intent",
                 new JsonObject
                 {
@@ -175,14 +175,14 @@ public class McpServer
                     },
                     ["required"] = new JsonArray { "method" }
                 }),
-            CreateToolDef("get_clusters",
+            CreateToolDef("cg_get_clusters",
                 "List intent clusters: groups of methods with similar purpose",
                 new JsonObject
                 {
                     ["type"] = "object",
                     ["properties"] = new JsonObject()
                 }),
-            CreateToolDef("export_graph",
+            CreateToolDef("cg_export_graph",
                 "Export code graph data (methods, relationships, metrics) as JSON",
                 new JsonObject
                 {
@@ -192,7 +192,7 @@ public class McpServer
                         ["concept"] = new JsonObject { ["type"] = "string", ["description"] = "Optional: filter by cluster label/concept" }
                     }
                 }),
-            CreateToolDef("get_drift",
+            CreateToolDef("cg_get_drift",
                 "Detect architectural drift from a baseline snapshot",
                 new JsonObject
                 {
@@ -202,7 +202,7 @@ public class McpServer
                         ["baseline"] = new JsonObject { ["type"] = "string", ["description"] = "Path to baseline.db (default: auto-detect next to graph.db)" }
                     }
                 }),
-            CreateToolDef("analyze",
+            CreateToolDef("cg_analyze",
                 "Analyze a .NET solution and build/rebuild the code graph database",
                 new JsonObject
                 {
@@ -223,10 +223,10 @@ public class McpServer
         var toolName = message["params"]?["name"]?.GetValue<string>();
         var args = message["params"]?["arguments"];
 
-        if (toolName != "analyze" && !File.Exists(_dbPath))
+        if (toolName != "cg_analyze" && !File.Exists(_dbPath))
             return CreateToolResult(id, $"Error: Database not found at {_dbPath}. Run 'ai-code-graph analyze' first.", true);
 
-        if (toolName != "analyze" && _storage == null)
+        if (toolName != "cg_analyze" && _storage == null)
         {
             _storage = new StorageService(_dbPath);
             await _storage.OpenAsync(ct);
@@ -236,17 +236,17 @@ public class McpServer
         {
             var result = toolName switch
             {
-                "get_context" => await ToolGetContext(args, ct),
-                "get_hotspots" => await ToolGetHotspots(args, ct),
-                "search_code" => await ToolSearchCode(args, ct),
-                "get_duplicates" => await ToolGetDuplicates(args, ct),
-                "get_callgraph" => await ToolGetCallgraph(args, ct),
-                "get_tree" => await ToolGetTree(args, ct),
-                "get_similar" => await ToolGetSimilar(args, ct),
-                "get_clusters" => await ToolGetClusters(ct),
-                "export_graph" => await ToolExportGraph(args, ct),
-                "get_drift" => await ToolGetDrift(args, ct),
-                "analyze" => await ToolAnalyze(args, ct),
+                "cg_get_context" => await ToolGetContext(args, ct),
+                "cg_get_hotspots" => await ToolGetHotspots(args, ct),
+                "cg_search_code" => await ToolSearchCode(args, ct),
+                "cg_get_duplicates" => await ToolGetDuplicates(args, ct),
+                "cg_get_callgraph" => await ToolGetCallgraph(args, ct),
+                "cg_get_tree" => await ToolGetTree(args, ct),
+                "cg_get_similar" => await ToolGetSimilar(args, ct),
+                "cg_get_clusters" => await ToolGetClusters(ct),
+                "cg_export_graph" => await ToolExportGraph(args, ct),
+                "cg_get_drift" => await ToolGetDrift(args, ct),
+                "cg_analyze" => await ToolAnalyze(args, ct),
                 _ => $"Unknown tool: {toolName}"
             };
 

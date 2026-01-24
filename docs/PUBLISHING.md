@@ -80,18 +80,18 @@ That's it. Claude Code now has full architectural awareness of your codebase.
 
 | File | Purpose |
 |------|---------|
-| `.claude/commands/analyze.md` | `/analyze` - build code graph |
-| `.claude/commands/context.md` | `/context` - method context before editing |
-| `.claude/commands/hotspots.md` | `/hotspots` - complexity hotspots |
-| `.claude/commands/callgraph.md` | `/callgraph` - call relationships |
-| `.claude/commands/similar.md` | `/similar` - find similar methods |
-| `.claude/commands/search.md` | `/search` - natural language search |
-| `.claude/commands/duplicates.md` | `/duplicates` - code clones |
-| `.claude/commands/clusters.md` | `/clusters` - intent clusters |
-| `.claude/commands/tree.md` | `/tree` - code structure |
-| `.claude/commands/export.md` | `/export` - export graph data |
-| `.claude/commands/drift.md` | `/drift` - architectural drift |
-| `.mcp.json` | MCP server config (11 tools for IDE integration) |
+| `.claude/commands/cg:analyze.md` | `/cg:analyze` - build code graph |
+| `.claude/commands/cg:context.md` | `/cg:context` - method context before editing |
+| `.claude/commands/cg:hotspots.md` | `/cg:hotspots` - complexity hotspots |
+| `.claude/commands/cg:callgraph.md` | `/cg:callgraph` - call relationships |
+| `.claude/commands/cg:similar.md` | `/cg:similar` - find similar methods |
+| `.claude/commands/cg:search.md` | `/cg:search` - natural language search |
+| `.claude/commands/cg:duplicates.md` | `/cg:duplicates` - code clones |
+| `.claude/commands/cg:clusters.md` | `/cg:clusters` - intent clusters |
+| `.claude/commands/cg:tree.md` | `/cg:tree` - code structure |
+| `.claude/commands/cg:export.md` | `/cg:export` - export graph data |
+| `.claude/commands/cg:drift.md` | `/cg:drift` - architectural drift |
+| `.mcp.json` | MCP server config (11 `cg_*` tools for IDE integration) |
 | `CLAUDE.md` (appended) | Auto-context instructions for the agent |
 
 ### Using with Claude Code
@@ -99,17 +99,17 @@ That's it. Claude Code now has full architectural awareness of your codebase.
 After setup, these slash commands are available in Claude Code sessions:
 
 ```
-/analyze MySolution.sln   # Build/rebuild the code graph
-/context ValidateUser     # Complexity, callers, callees, cluster, duplicates
-/hotspots                 # Top methods by cognitive complexity
-/callgraph Login          # Call tree for a method
-/similar CreateUser       # Find semantically similar methods
-/search "validate input"  # Natural language code search
-/duplicates               # Detected code clones
-/clusters                 # Intent clusters
-/tree                     # Code structure tree
-/export                   # Export graph data as JSON
-/drift                    # Changes since baseline
+/cg:analyze MySolution.sln   # Build/rebuild the code graph
+/cg:context ValidateUser     # Complexity, callers, callees, cluster, duplicates
+/cg:hotspots                 # Top methods by cognitive complexity
+/cg:callgraph Login          # Call tree for a method
+/cg:similar CreateUser       # Find semantically similar methods
+/cg:search "validate input"  # Natural language code search
+/cg:duplicates               # Detected code clones
+/cg:clusters                 # Intent clusters
+/cg:tree                     # Code structure tree
+/cg:export                   # Export graph data as JSON
+/cg:drift                    # Changes since baseline
 ```
 
 Claude Code will also automatically query method context before editing (via the CLAUDE.md instructions).
@@ -122,21 +122,21 @@ The `.mcp.json` created by `setup-claude` works with:
 - **Cursor** - auto-detected from `.mcp.json`
 - **Windsurf** - auto-detected from `.mcp.json`
 
-The MCP server exposes 11 tools:
+The MCP server exposes 11 tools (all prefixed with `cg_`):
 
 | Tool | Parameters | Description |
 |------|-----------|-------------|
-| `analyze` | `solution`, `save_baseline` | Build/rebuild the code graph |
-| `get_context` | `method` (required) | Method summary with all relationships |
-| `get_hotspots` | `top`, `threshold` | Complexity hotspots |
-| `get_callgraph` | `method`, `depth`, `direction` | Call graph traversal |
-| `get_similar` | `method`, `top` | Find similar methods |
-| `search_code` | `query`, `top` | Natural language code search |
-| `get_duplicates` | `method`, `top` | Code clone pairs |
-| `get_clusters` | (none) | Intent clusters |
-| `get_tree` | `namespace`, `type` | Code structure |
-| `export_graph` | `concept` | Export graph data as JSON |
-| `get_drift` | `baseline` | Architectural drift detection |
+| `cg_analyze` | `solution`, `save_baseline` | Build/rebuild the code graph |
+| `cg_get_context` | `method` (required) | Method summary with all relationships |
+| `cg_get_hotspots` | `top`, `threshold` | Complexity hotspots |
+| `cg_get_callgraph` | `method`, `depth`, `direction` | Call graph traversal |
+| `cg_get_similar` | `method`, `top` | Find similar methods |
+| `cg_search_code` | `query`, `top` | Natural language code search |
+| `cg_get_duplicates` | `method`, `top` | Code clone pairs |
+| `cg_get_clusters` | (none) | Intent clusters |
+| `cg_get_tree` | `namespace`, `type` | Code structure |
+| `cg_export_graph` | `concept` | Export graph data as JSON |
+| `cg_get_drift` | `baseline` | Architectural drift detection |
 
 ### Using Standalone (CI / Scripts)
 

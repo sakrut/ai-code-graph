@@ -136,17 +136,17 @@ ai-code-graph/
 │   └── CodeModelExtractor.cs  # Syntax/semantic model extraction
 ├── AiCodeGraph.Tests/         # Unit and integration tests
 ├── .claude/commands/           # Claude Code slash commands (11 commands)
-│   ├── analyze.md             # /analyze - build code graph
-│   ├── context.md             # /context - method context
-│   ├── hotspots.md            # /hotspots - complexity hotspots
-│   ├── callgraph.md           # /callgraph - call relationships
-│   ├── similar.md             # /similar - find similar methods
-│   ├── search.md              # /search - natural language search
-│   ├── duplicates.md          # /duplicates - code clones
-│   ├── clusters.md            # /clusters - intent clusters
-│   ├── tree.md                # /tree - code structure
-│   ├── export.md              # /export - export graph data
-│   └── drift.md               # /drift - architectural drift
+│   ├── cg:analyze.md          # /cg:analyze - build code graph
+│   ├── cg:context.md          # /cg:context - method context
+│   ├── cg:hotspots.md         # /cg:hotspots - complexity hotspots
+│   ├── cg:callgraph.md        # /cg:callgraph - call relationships
+│   ├── cg:similar.md          # /cg:similar - find similar methods
+│   ├── cg:search.md           # /cg:search - natural language search
+│   ├── cg:duplicates.md       # /cg:duplicates - code clones
+│   ├── cg:clusters.md         # /cg:clusters - intent clusters
+│   ├── cg:tree.md             # /cg:tree - code structure
+│   ├── cg:export.md           # /cg:export - export graph data
+│   └── cg:drift.md            # /cg:drift - architectural drift
 ├── tests/fixtures/            # Test fixture solutions
 └── .github/workflows/         # CI pipeline
 ```
@@ -214,17 +214,17 @@ This creates:
 
 | Command | Description |
 |---------|-------------|
-| `/analyze [solution]` | Analyze a solution and build the code graph |
-| `/context <method>` | Get full method context (complexity, callers, callees, cluster, duplicates) |
-| `/hotspots` | Show top complexity hotspots as refactoring candidates |
-| `/callgraph <method>` | Explore method call relationships (callers and callees) |
-| `/similar <method>` | Find methods with similar semantic intent |
-| `/search <query>` | Natural language code search via embeddings |
-| `/duplicates` | Show detected code clones grouped by type |
-| `/clusters` | Show intent clusters (groups of related methods) |
-| `/tree` | Display code structure (projects, namespaces, types) |
-| `/export` | Export full code graph data as JSON |
-| `/drift` | Run drift detection against a saved baseline |
+| `/cg:analyze [solution]` | Analyze a solution and build the code graph |
+| `/cg:context <method>` | Get full method context (complexity, callers, callees, cluster, duplicates) |
+| `/cg:hotspots` | Show top complexity hotspots as refactoring candidates |
+| `/cg:callgraph <method>` | Explore method call relationships (callers and callees) |
+| `/cg:similar <method>` | Find methods with similar semantic intent |
+| `/cg:search <query>` | Natural language code search via embeddings |
+| `/cg:duplicates` | Show detected code clones grouped by type |
+| `/cg:clusters` | Show intent clusters (groups of related methods) |
+| `/cg:tree` | Display code structure (projects, namespaces, types) |
+| `/cg:export` | Export full code graph data as JSON |
+| `/cg:drift` | Run drift detection against a saved baseline |
 
 **Auto-context:** The `CLAUDE.md` snippet instructs Claude Code to automatically run `ai-code-graph context` before modifying methods when the graph database exists. This gives the agent architectural awareness without manual intervention.
 
@@ -236,17 +236,17 @@ The `mcp` subcommand runs a JSON-RPC stdio server implementing the [Model Contex
 
 | Tool | Parameters | Description |
 |------|-----------|-------------|
-| `analyze` | `solution`, `save_baseline` (optional) | Analyze a .NET solution and build the code graph |
-| `get_context` | `method` (required) | Compact method summary: complexity, callers, callees, cluster, duplicates |
-| `get_hotspots` | `top`, `threshold` (optional) | Top N methods by cognitive complexity |
-| `get_callgraph` | `method` (required), `depth`, `direction` | Call graph traversal (callers/callees/both) |
-| `get_similar` | `method` (required), `top` | Find methods with similar semantic intent |
-| `search_code` | `query` (required), `top` (optional) | Natural language code search via embeddings |
-| `get_duplicates` | `method`, `top` (optional) | Code clone pairs, optionally filtered to a method |
-| `get_clusters` | (none) | List intent clusters with cohesion and members |
-| `get_tree` | `namespace`, `type` (optional) | Code structure: projects > namespaces > types > methods |
-| `export_graph` | `concept` (optional) | Export full graph data (methods, relationships, metrics) |
-| `get_drift` | `baseline` (optional) | Detect architectural drift from baseline snapshot |
+| `cg_analyze` | `solution`, `save_baseline` (optional) | Analyze a .NET solution and build the code graph |
+| `cg_get_context` | `method` (required) | Compact method summary: complexity, callers, callees, cluster, duplicates |
+| `cg_get_hotspots` | `top`, `threshold` (optional) | Top N methods by cognitive complexity |
+| `cg_get_callgraph` | `method` (required), `depth`, `direction` | Call graph traversal (callers/callees/both) |
+| `cg_get_similar` | `method` (required), `top` | Find methods with similar semantic intent |
+| `cg_search_code` | `query` (required), `top` (optional) | Natural language code search via embeddings |
+| `cg_get_duplicates` | `method`, `top` (optional) | Code clone pairs, optionally filtered to a method |
+| `cg_get_clusters` | (none) | List intent clusters with cohesion and members |
+| `cg_get_tree` | `namespace`, `type` (optional) | Code structure: projects > namespaces > types > methods |
+| `cg_export_graph` | `concept` (optional) | Export full graph data (methods, relationships, metrics) |
+| `cg_get_drift` | `baseline` (optional) | Detect architectural drift from baseline snapshot |
 
 **Configuration for Claude Code / Cursor (.mcp.json):**
 
@@ -279,17 +279,17 @@ The `mcp` subcommand runs a JSON-RPC stdio server implementing the [Model Contex
 
 Once configured, the AI agent can call tools like:
 ```json
-{"tool": "analyze", "arguments": {"solution": "MySolution.sln", "save_baseline": true}}
-{"tool": "get_context", "arguments": {"method": "UserService.CreateUser"}}
-{"tool": "get_hotspots", "arguments": {"top": 10, "threshold": 15}}
-{"tool": "get_callgraph", "arguments": {"method": "Login", "depth": 3, "direction": "both"}}
-{"tool": "get_similar", "arguments": {"method": "ValidateInput", "top": 5}}
-{"tool": "search_code", "arguments": {"query": "validate user input"}}
-{"tool": "get_duplicates", "arguments": {"method": "CheckAuth"}}
-{"tool": "get_clusters", "arguments": {}}
-{"tool": "get_tree", "arguments": {"namespace": "MyApp.Services"}}
-{"tool": "export_graph", "arguments": {"concept": "validation"}}
-{"tool": "get_drift", "arguments": {}}
+{"tool": "cg_analyze", "arguments": {"solution": "MySolution.sln", "save_baseline": true}}
+{"tool": "cg_get_context", "arguments": {"method": "UserService.CreateUser"}}
+{"tool": "cg_get_hotspots", "arguments": {"top": 10, "threshold": 15}}
+{"tool": "cg_get_callgraph", "arguments": {"method": "Login", "depth": 3, "direction": "both"}}
+{"tool": "cg_get_similar", "arguments": {"method": "ValidateInput", "top": 5}}
+{"tool": "cg_search_code", "arguments": {"query": "validate user input"}}
+{"tool": "cg_get_duplicates", "arguments": {"method": "CheckAuth"}}
+{"tool": "cg_get_clusters", "arguments": {}}
+{"tool": "cg_get_tree", "arguments": {"namespace": "MyApp.Services"}}
+{"tool": "cg_export_graph", "arguments": {"concept": "validation"}}
+{"tool": "cg_get_drift", "arguments": {}}
 ```
 
 ### Standalone CLI for Scripting
