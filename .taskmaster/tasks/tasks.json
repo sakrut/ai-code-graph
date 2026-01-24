@@ -1518,7 +1518,7 @@
         "testStrategy": "Write a test that calls the similar command twice with same DB and verifies the second call is faster (or mock VectorIndex to verify BuildIndex not called twice). Verify cache invalidation works after analyze. Verify different DB paths get separate caches.",
         "priority": "medium",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1581,7 +1581,8 @@
         ],
         "complexity": 4,
         "recommendedSubtasks": 3,
-        "expansionPrompt": "Break down into: (1) Add static Dictionary cache and GetOrBuildVectorIndex helper in Program.cs, (2) Update similar command (lines 495-574) and search command (lines 716-808) to use the cache, (3) Add InvalidateVectorCache call after analyze command and write tests verifying cache behavior"
+        "expansionPrompt": "Break down into: (1) Add static Dictionary cache and GetOrBuildVectorIndex helper in Program.cs, (2) Update similar command (lines 495-574) and search command (lines 716-808) to use the cache, (3) Add InvalidateVectorCache call after analyze command and write tests verifying cache behavior",
+        "updatedAt": "2026-01-24T12:22:55.353Z"
       },
       {
         "id": "23",
@@ -3351,9 +3352,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-24T12:20:09.353Z",
+      "lastModified": "2026-01-24T12:22:55.353Z",
       "taskCount": 50,
-      "completedCount": 26,
+      "completedCount": 27,
       "tags": [
         "master"
       ]

@@ -193,6 +193,8 @@ analyzeCommand.SetAction(async (parseResult, cancellationToken) =>
         Console.WriteLine($"  Avg complexity: {avgComplexity:F1}");
         Console.WriteLine($"  Duration:       {totalTimer.Elapsed.TotalSeconds:F1}s");
         Console.WriteLine($"  Output:         {Path.GetFullPath(dbPath)}");
+
+        VectorIndexCache.Invalidate(dbPath);
     }
     catch (FileNotFoundException ex)
     {
@@ -546,9 +548,11 @@ similarCommand.SetAction(async (parseResult, cancellationToken) =>
         return;
     }
 
-    var index = new VectorIndex();
-    index.BuildIndex(allEmbeddings.Where(e => e.MethodId != targetId).ToList());
-    var results = index.Search(targetEmbedding.Vector, top);
+    var index = VectorIndexCache.GetOrBuild(dbPath, allEmbeddings);
+    var results = index.Search(targetEmbedding.Vector, top + 1)
+        .Where(r => r.Id != targetId)
+        .Take(top)
+        .ToList();
 
     if (format == "json")
     {
@@ -756,8 +760,7 @@ searchCommand.SetAction(async (parseResult, cancellationToken) =>
     var queryVector = embeddingEngine.GenerateEmbedding(query);
 
     // Build index and search
-    var index = new VectorIndex();
-    index.BuildIndex(allEmbeddings);
+    var index = VectorIndexCache.GetOrBuild(dbPath, allEmbeddings);
     var searchResults = index.Search(queryVector, top)
         .Where(r => r.Score >= threshold)
         .ToList();
@@ -1699,5 +1702,35 @@ static void PrintCallTree(string nodeId, List<(string From, string To)> edges, L
         Console.WriteLine($"{indent}\u2190 {node.FullName}{marker}");
         if (marker == "")
             PrintCallTree(edge.From, edges, nodes, currentDepth + 1, maxDepth, printed);
+    }
+}
+
+static class VectorIndexCache
+{
+    private static readonly Dictionary<string, VectorIndex> _cache = new();
+    private static readonly object _lock = new();
+
+    public static VectorIndex GetOrBuild(string dbPath, List<(string MethodId, float[] Vector)> embeddings)
+    {
+        var key = Path.GetFullPath(dbPath);
+        lock (_lock)
+        {
+            if (_cache.TryGetValue(key, out var cached))
+                return cached;
+
+            var index = new VectorIndex();
+            index.BuildIndex(embeddings);
+            _cache[key] = index;
+            return index;
+        }
+    }
+
+    public static void Invalidate(string dbPath)
+    {
+        var key = Path.GetFullPath(dbPath);
+        lock (_lock)
+        {
+            _cache.Remove(key);
+        }
     }
 }

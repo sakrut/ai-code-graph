@@ -15,8 +15,7 @@ public class McpServer
 {
     private readonly string _dbPath;
     private StorageService? _storage;
-
-
+    private VectorIndex? _vectorIndex;
 
     public McpServer(string dbPath)
     {
@@ -379,9 +378,12 @@ public class McpServer
 
         using var engine = new HashEmbeddingEngine();
         var queryVector = engine.GenerateEmbedding(query);
-        var index = new VectorIndex();
-        index.BuildIndex(embeddings);
-        var results = index.Search(queryVector, top);
+        if (_vectorIndex == null)
+        {
+            _vectorIndex = new VectorIndex();
+            _vectorIndex.BuildIndex(embeddings);
+        }
+        var results = _vectorIndex.Search(queryVector, top);
 
         if (results.Count == 0) return "No results found.";
 
@@ -541,9 +543,15 @@ public class McpServer
         var targetEmbedding = allEmbeddings.FirstOrDefault(e => e.MethodId == targetId);
         if (targetEmbedding.Vector == null) return $"No embedding found for '{method}'";
 
-        var index = new VectorIndex();
-        index.BuildIndex(allEmbeddings.Where(e => e.MethodId != targetId).ToList());
-        var results = index.Search(targetEmbedding.Vector, top);
+        if (_vectorIndex == null)
+        {
+            _vectorIndex = new VectorIndex();
+            _vectorIndex.BuildIndex(allEmbeddings);
+        }
+        var results = _vectorIndex.Search(targetEmbedding.Vector, top + 1)
+            .Where(r => r.Id != targetId)
+            .Take(top)
+            .ToList();
 
         if (results.Count == 0) return "No similar methods found.";
 
@@ -830,6 +838,8 @@ public class McpServer
             }
 
             var totalMethods = extractionResults.Sum(r => r.Model.Namespaces.Sum(ns => CountMethodsInNamespace(ns)));
+
+            _vectorIndex = null; // invalidate cached index
 
             return string.Join("\n", new[]
             {
