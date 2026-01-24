@@ -1,30 +1,10 @@
 using AiCodeGraph.Core.CallGraph;
-using AiCodeGraph.Core.Models;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 
 namespace AiCodeGraph.Tests;
 
 public class CallGraphBuilderTests
 {
     private readonly CallGraphBuilder _builder = new();
-
-    private static LoadedWorkspace CreateWorkspace(string source)
-    {
-        var tree = CSharpSyntaxTree.ParseText(source);
-        var compilation = CSharpCompilation.Create("TestAssembly",
-            new[] { tree },
-            new[] { MetadataReference.CreateFromFile(typeof(object).Assembly.Location) },
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-
-        var projectId = ProjectId.CreateNewId();
-        var compilations = new Dictionary<ProjectId, Compilation> { { projectId, compilation } };
-
-        return new LoadedWorkspace(
-            null!,
-            compilations,
-            Array.Empty<WorkspaceDiagnosticInfo>());
-    }
 
     [Fact]
     public void DetectsDirectMethodCall()
@@ -38,7 +18,7 @@ namespace MyApp
         private void Helper() { }
     }
 }";
-        var workspace = CreateWorkspace(source);
+        var workspace = TestHelpers.CreateWorkspace(source);
         var edges = _builder.BuildCallGraph(workspace);
 
         Assert.Single(edges);
@@ -60,7 +40,7 @@ namespace MyApp
         private void B() { }
     }
 }";
-        var workspace = CreateWorkspace(source);
+        var workspace = TestHelpers.CreateWorkspace(source);
         var edges = _builder.BuildCallGraph(workspace);
 
         Assert.Equal(2, edges.Count);
@@ -82,7 +62,7 @@ namespace MyApp
         public Widget Create() { return new Widget(1); }
     }
 }";
-        var workspace = CreateWorkspace(source);
+        var workspace = TestHelpers.CreateWorkspace(source);
         var edges = _builder.BuildCallGraph(workspace);
 
         Assert.Single(edges);
@@ -109,7 +89,7 @@ namespace MyApp
         public void Run(Base b) { b.Do(); }
     }
 }";
-        var workspace = CreateWorkspace(source);
+        var workspace = TestHelpers.CreateWorkspace(source);
         var edges = _builder.BuildCallGraph(workspace);
 
         var callEdge = Assert.Single(edges);
@@ -129,7 +109,7 @@ namespace MyApp
         public void Run(IService svc) { svc.Execute(); }
     }
 }";
-        var workspace = CreateWorkspace(source);
+        var workspace = TestHelpers.CreateWorkspace(source);
         var edges = _builder.BuildCallGraph(workspace);
 
         var callEdge = Assert.Single(edges);
@@ -152,7 +132,7 @@ namespace MyApp
         public Derived() : base(42) { }
     }
 }";
-        var workspace = CreateWorkspace(source);
+        var workspace = TestHelpers.CreateWorkspace(source);
         var edges = _builder.BuildCallGraph(workspace);
 
         var callEdge = Assert.Single(edges);
@@ -171,7 +151,7 @@ namespace MyApp
         private void Helper() { }
     }
 }";
-        var workspace = CreateWorkspace(source);
+        var workspace = TestHelpers.CreateWorkspace(source);
         var edges = _builder.BuildCallGraph(workspace);
 
         Assert.Single(edges);
@@ -188,7 +168,7 @@ namespace MyApp
         public void Recursive() { Recursive(); }
     }
 }";
-        var workspace = CreateWorkspace(source);
+        var workspace = TestHelpers.CreateWorkspace(source);
         var edges = _builder.BuildCallGraph(workspace);
 
         Assert.Empty(edges);
@@ -208,7 +188,7 @@ namespace MyApp
         public void Run() { SetA().SetB().Build(); }
     }
 }";
-        var workspace = CreateWorkspace(source);
+        var workspace = TestHelpers.CreateWorkspace(source);
         var edges = _builder.BuildCallGraph(workspace);
 
         Assert.Equal(3, edges.Count);
@@ -227,7 +207,7 @@ namespace MyApp
         private int Compute() { return 42; }
     }
 }";
-        var workspace = CreateWorkspace(source);
+        var workspace = TestHelpers.CreateWorkspace(source);
         var edges = _builder.BuildCallGraph(workspace);
 
         Assert.Single(edges);
@@ -243,7 +223,7 @@ namespace MyApp
 {
     public class Empty { }
 }";
-        var workspace = CreateWorkspace(source);
+        var workspace = TestHelpers.CreateWorkspace(source);
         var edges = _builder.BuildCallGraph(workspace);
 
         Assert.Empty(edges);
@@ -264,7 +244,7 @@ namespace MyApp
         public Widget Create() { Widget w = new(5); return w; }
     }
 }";
-        var workspace = CreateWorkspace(source);
+        var workspace = TestHelpers.CreateWorkspace(source);
         var edges = _builder.BuildCallGraph(workspace);
 
         Assert.Single(edges);
@@ -292,7 +272,7 @@ namespace MyApp
         }
     }
 }";
-        var workspace = CreateWorkspace(source);
+        var workspace = TestHelpers.CreateWorkspace(source);
         var edges = _builder.BuildCallGraph(workspace);
 
         Assert.Equal(2, edges.Count);

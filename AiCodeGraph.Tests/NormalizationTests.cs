@@ -2,7 +2,6 @@ using AiCodeGraph.Core.Models;
 using AiCodeGraph.Core.Normalization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace AiCodeGraph.Tests;
 
@@ -51,18 +50,11 @@ public class StructuralSignatureBuilderTests
 {
     private readonly StructuralSignatureBuilder _builder = new();
 
-    private static SyntaxNode? GetMethodBody(string source)
-    {
-        var tree = CSharpSyntaxTree.ParseText(source);
-        var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().First();
-        return (SyntaxNode?)method.Body ?? method.ExpressionBody;
-    }
-
     [Fact]
     public void SameLogic_DifferentVarNames_SameSignature()
     {
-        var body1 = GetMethodBody(@"class C { void M() { int foo = 1; int bar = foo + 2; } }");
-        var body2 = GetMethodBody(@"class C { void M() { int x = 1; int y = x + 2; } }");
+        var body1 = TestHelpers.GetMethodBody(@"class C { void M() { int foo = 1; int bar = foo + 2; } }");
+        var body2 = TestHelpers.GetMethodBody(@"class C { void M() { int x = 1; int y = x + 2; } }");
 
         var sig1 = _builder.Build(body1);
         var sig2 = _builder.Build(body2);
@@ -73,7 +65,7 @@ public class StructuralSignatureBuilderTests
     [Fact]
     public void ReplacesStringLiterals()
     {
-        var body = GetMethodBody(@"class C { void M() { string s = ""hello""; } }");
+        var body = TestHelpers.GetMethodBody(@"class C { void M() { string s = ""hello""; } }");
         var sig = _builder.Build(body);
 
         Assert.Contains("LIT_STR", sig);
@@ -83,7 +75,7 @@ public class StructuralSignatureBuilderTests
     [Fact]
     public void ReplacesNumericLiterals()
     {
-        var body = GetMethodBody(@"class C { void M() { int x = 42; } }");
+        var body = TestHelpers.GetMethodBody(@"class C { void M() { int x = 42; } }");
         var sig = _builder.Build(body);
 
         Assert.Contains("LIT_NUM", sig);
@@ -93,7 +85,7 @@ public class StructuralSignatureBuilderTests
     [Fact]
     public void PreservesControlFlow()
     {
-        var body = GetMethodBody(@"class C { void M() { if (true) { for (;;) { } } } }");
+        var body = TestHelpers.GetMethodBody(@"class C { void M() { if (true) { for (;;) { } } } }");
         var sig = _builder.Build(body);
 
         Assert.Contains("if", sig);
@@ -109,7 +101,7 @@ public class StructuralSignatureBuilderTests
     [Fact]
     public void IsDeterministic()
     {
-        var body = GetMethodBody(@"class C { void M() { int a = 1; if (a > 0) { a++; } } }");
+        var body = TestHelpers.GetMethodBody(@"class C { void M() { int a = 1; if (a > 0) { a++; } } }");
         var sig1 = _builder.Build(body);
         var sig2 = _builder.Build(body);
         Assert.Equal(sig1, sig2);
@@ -119,13 +111,6 @@ public class StructuralSignatureBuilderTests
 public class SemanticPayloadBuilderTests
 {
     private readonly SemanticPayloadBuilder _builder = new();
-
-    private static SyntaxNode? GetMethodBody(string source)
-    {
-        var tree = CSharpSyntaxTree.ParseText(source);
-        var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().First();
-        return (SyntaxNode?)method.Body ?? method.ExpressionBody;
-    }
 
     [Fact]
     public void IncludesMethodNameTokens()
@@ -163,7 +148,7 @@ public class SemanticPayloadBuilderTests
     [Fact]
     public void IncludesCalledMethodTokens()
     {
-        var body = GetMethodBody(@"class C { void M() { ValidateInput(); SaveToDatabase(); } void ValidateInput() {} void SaveToDatabase() {} }");
+        var body = TestHelpers.GetMethodBody(@"class C { void M() { ValidateInput(); SaveToDatabase(); } void ValidateInput() {} void SaveToDatabase() {} }");
         var payload = _builder.Build("Process", "void", [], body);
         Assert.Contains("validate", payload);
         Assert.Contains("input", payload);
@@ -174,7 +159,7 @@ public class SemanticPayloadBuilderTests
     [Fact]
     public void IncludesStringLiterals()
     {
-        var body = GetMethodBody(@"class C { void M() { string msg = ""customer not found""; } }");
+        var body = TestHelpers.GetMethodBody(@"class C { void M() { string msg = ""customer not found""; } }");
         var payload = _builder.Build("Check", "void", [], body);
         Assert.Contains("customer", payload);
         Assert.Contains("not", payload);

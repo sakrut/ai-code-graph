@@ -7,24 +7,15 @@ using CodeGraphTypeKind = AiCodeGraph.Core.Models.CodeGraph.TypeKind;
 
 namespace AiCodeGraph.Tests;
 
-public class DriftDetectorTests : IDisposable
+public class DriftDetectorTests : TempDirectoryFixture
 {
-    private readonly string _tempDir;
     private readonly string _currentDbPath;
     private readonly string _baselineDbPath;
 
-    public DriftDetectorTests()
+    public DriftDetectorTests() : base("drift-test")
     {
-        _tempDir = Path.Combine(Path.GetTempPath(), $"drift-test-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(_tempDir);
-        _currentDbPath = Path.Combine(_tempDir, "current.db");
-        _baselineDbPath = Path.Combine(_tempDir, "baseline.db");
-    }
-
-    public void Dispose()
-    {
-        if (Directory.Exists(_tempDir))
-            Directory.Delete(_tempDir, recursive: true);
+        _currentDbPath = GetDbPath("current.db");
+        _baselineDbPath = GetDbPath("baseline.db");
     }
 
     private async Task<StorageService> CreateDatabase(string path, List<MethodModel>? methods = null, List<(string, int, int, int)>? metrics = null, List<ClonePair>? clonePairs = null, List<IntentCluster>? clusters = null)

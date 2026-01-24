@@ -4,24 +4,12 @@ using Microsoft.Data.Sqlite;
 
 namespace AiCodeGraph.Tests;
 
-public class CliCommandTests : IDisposable
+public class CliCommandTests : TempDirectoryFixture
 {
     private static readonly string CliDll = Path.GetFullPath(
         Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "AiCodeGraph.Cli", "bin", "Debug", "net8.0", "AiCodeGraph.Cli.dll"));
 
-    private readonly string _tempDir;
-
-    public CliCommandTests()
-    {
-        _tempDir = Path.Combine(Path.GetTempPath(), $"cli-test-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(_tempDir);
-    }
-
-    public void Dispose()
-    {
-        if (Directory.Exists(_tempDir))
-            Directory.Delete(_tempDir, true);
-    }
+    public CliCommandTests() : base("cli-test") { }
 
     private async Task<(int ExitCode, string Output, string Error)> RunCliAsync(string args, int timeoutMs = 10000)
     {
@@ -53,7 +41,7 @@ public class CliCommandTests : IDisposable
 
     private async Task<string> CreateTestDbAsync()
     {
-        var dbPath = Path.Combine(_tempDir, "graph.db");
+        var dbPath = Path.Combine(TempDir, "graph.db");
         await using var storage = new StorageService(dbPath);
         await storage.InitializeAsync();
 
@@ -138,7 +126,7 @@ public class CliCommandTests : IDisposable
     [InlineData("clusters")]
     public async Task Command_MissingDb_WritesErrorToStderr(string commandName)
     {
-        var fakePath = Path.Combine(_tempDir, "nonexistent.db");
+        var fakePath = Path.Combine(TempDir, "nonexistent.db");
         var (_, _, error) = await RunCliAsync($"{commandName} --db {fakePath}");
         Assert.Contains("Error", error, StringComparison.OrdinalIgnoreCase);
     }
@@ -146,7 +134,7 @@ public class CliCommandTests : IDisposable
     [Fact]
     public async Task CallgraphCommand_MissingDb_WritesErrorToStderr()
     {
-        var fakePath = Path.Combine(_tempDir, "nonexistent.db");
+        var fakePath = Path.Combine(TempDir, "nonexistent.db");
         var (_, _, error) = await RunCliAsync($"callgraph TestMethod --db {fakePath}");
         Assert.Contains("Error", error, StringComparison.OrdinalIgnoreCase);
     }
@@ -154,7 +142,7 @@ public class CliCommandTests : IDisposable
     [Fact]
     public async Task ImpactCommand_MissingDb_WritesErrorToStderr()
     {
-        var fakePath = Path.Combine(_tempDir, "nonexistent.db");
+        var fakePath = Path.Combine(TempDir, "nonexistent.db");
         var (_, _, error) = await RunCliAsync($"impact TestMethod --db {fakePath}");
         Assert.Contains("Error", error, StringComparison.OrdinalIgnoreCase);
     }
@@ -163,7 +151,7 @@ public class CliCommandTests : IDisposable
     public async Task DriftCommand_MissingBaseline_WritesErrorToStderr()
     {
         var dbPath = await CreateTestDbAsync();
-        var fakeBaseline = Path.Combine(_tempDir, "baseline.db");
+        var fakeBaseline = Path.Combine(TempDir, "baseline.db");
         var (_, _, error) = await RunCliAsync($"drift --db {dbPath} --vs {fakeBaseline}");
         Assert.Contains("Error", error, StringComparison.OrdinalIgnoreCase);
     }

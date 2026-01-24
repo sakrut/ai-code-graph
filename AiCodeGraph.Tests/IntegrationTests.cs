@@ -10,28 +10,18 @@ using AiCodeGraph.Core.Storage;
 
 namespace AiCodeGraph.Tests;
 
-public class IntegrationTests : IAsyncDisposable
+public class IntegrationTests : TempDirectoryFixture
 {
-    private readonly string _tempDir;
     private readonly string _dbPath;
     private readonly string _fixturePath;
 
-    public IntegrationTests()
+    public IntegrationTests() : base("integration-test")
     {
-        _tempDir = Path.Combine(Path.GetTempPath(), $"integration-test-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(_tempDir);
-        _dbPath = Path.Combine(_tempDir, "graph.db");
+        _dbPath = GetDbPath();
 
         // Find fixture path relative to test assembly location
         var assemblyDir = Path.GetDirectoryName(typeof(IntegrationTests).Assembly.Location)!;
         _fixturePath = Path.GetFullPath(Path.Combine(assemblyDir, "..", "..", "..", "..", "tests", "fixtures", "TestSolution", "TestSolution.sln"));
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (Directory.Exists(_tempDir))
-            Directory.Delete(_tempDir, recursive: true);
-        await Task.CompletedTask;
     }
 
     [Fact]
@@ -133,8 +123,8 @@ public class IntegrationTests : IAsyncDisposable
         if (!File.Exists(_fixturePath))
             return;
 
-        var dbPath1 = Path.Combine(_tempDir, "run1.db");
-        var dbPath2 = Path.Combine(_tempDir, "run2.db");
+        var dbPath1 = Path.Combine(TempDir, "run1.db");
+        var dbPath2 = Path.Combine(TempDir, "run2.db");
 
         await RunAnalysis(dbPath1);
         await RunAnalysis(dbPath2);
@@ -203,12 +193,8 @@ public class IntegrationTests : IAsyncDisposable
 
     private static int CountMethodsInNs(NamespaceModel ns)
     {
-        return ns.Types.Sum(t => t.Methods.Count + t.NestedTypes.Sum(CountMethodsInType))
+        return ns.Types.Sum(t => t.Methods.Count + t.NestedTypes.Sum(TestHelpers.CountMethodsInType))
             + ns.ChildNamespaces.Sum(c => CountMethodsInNs(c));
     }
 
-    private static int CountMethodsInType(TypeModel type)
-    {
-        return type.Methods.Count + type.NestedTypes.Sum(CountMethodsInType);
-    }
 }

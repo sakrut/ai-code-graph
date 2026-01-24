@@ -2,20 +2,14 @@ using AiCodeGraph.Core;
 
 namespace AiCodeGraph.Tests;
 
-public class SolutionDiscoveryTests : IDisposable
+public class SolutionDiscoveryTests : TempDirectoryFixture
 {
-    private readonly string _tempDir;
-
-    public SolutionDiscoveryTests()
-    {
-        _tempDir = Path.Combine(Path.GetTempPath(), $"acg-test-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(_tempDir);
-    }
+    public SolutionDiscoveryTests() : base("acg-test") { }
 
     [Fact]
     public void FindSolutionFile_ExplicitPath_ReturnsFullPath()
     {
-        var slnPath = Path.Combine(_tempDir, "Test.sln");
+        var slnPath = Path.Combine(TempDir, "Test.sln");
         File.WriteAllText(slnPath, "");
 
         var result = SolutionDiscovery.FindSolutionFile(slnPath);
@@ -33,10 +27,10 @@ public class SolutionDiscoveryTests : IDisposable
     [Fact]
     public void FindSolutionFile_AutoDiscovery_FindsInCurrentDir()
     {
-        var slnPath = Path.Combine(_tempDir, "MyApp.sln");
+        var slnPath = Path.Combine(TempDir, "MyApp.sln");
         File.WriteAllText(slnPath, "");
 
-        var result = SolutionDiscovery.FindSolutionFile(null, _tempDir);
+        var result = SolutionDiscovery.FindSolutionFile(null, TempDir);
 
         Assert.Equal(slnPath, result);
     }
@@ -44,9 +38,9 @@ public class SolutionDiscoveryTests : IDisposable
     [Fact]
     public void FindSolutionFile_AutoDiscovery_FindsInParentDir()
     {
-        var childDir = Path.Combine(_tempDir, "src", "project");
+        var childDir = Path.Combine(TempDir, "src", "project");
         Directory.CreateDirectory(childDir);
-        var slnPath = Path.Combine(_tempDir, "MyApp.sln");
+        var slnPath = Path.Combine(TempDir, "MyApp.sln");
         File.WriteAllText(slnPath, "");
 
         var result = SolutionDiscovery.FindSolutionFile(null, childDir);
@@ -57,11 +51,11 @@ public class SolutionDiscoveryTests : IDisposable
     [Fact]
     public void FindSolutionFile_MultipleSolutions_ThrowsInvalidOperation()
     {
-        File.WriteAllText(Path.Combine(_tempDir, "A.sln"), "");
-        File.WriteAllText(Path.Combine(_tempDir, "B.sln"), "");
+        File.WriteAllText(Path.Combine(TempDir, "A.sln"), "");
+        File.WriteAllText(Path.Combine(TempDir, "B.sln"), "");
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            SolutionDiscovery.FindSolutionFile(null, _tempDir));
+            SolutionDiscovery.FindSolutionFile(null, TempDir));
         Assert.Contains("Multiple .sln files", ex.Message);
     }
 
@@ -69,12 +63,6 @@ public class SolutionDiscoveryTests : IDisposable
     public void FindSolutionFile_NoSolution_ThrowsFileNotFound()
     {
         Assert.Throws<FileNotFoundException>(() =>
-            SolutionDiscovery.FindSolutionFile(null, _tempDir));
-    }
-
-    public void Dispose()
-    {
-        if (Directory.Exists(_tempDir))
-            Directory.Delete(_tempDir, true);
+            SolutionDiscovery.FindSolutionFile(null, TempDir));
     }
 }
