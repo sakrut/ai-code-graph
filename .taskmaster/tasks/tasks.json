@@ -1780,7 +1780,7 @@
         "testStrategy": "All existing IntegrationTests must pass unchanged. The analyze command should produce identical output and database content. Run full test suite with `dotnet test` to verify no regressions.",
         "priority": "medium",
         "dependencies": [],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1788,9 +1788,10 @@
             "description": "Define the first two stage method signatures and extract the workspace loading logic (lines 57-80) and code model extraction logic (lines 83-98) into dedicated private static methods in Program.cs.",
             "dependencies": [],
             "details": "Create `private static async Task<(LoadedWorkspace workspace, string resolvedPath)> LoadWorkspaceStage(string? solutionPath, bool verbose, CancellationToken ct)` extracting SolutionDiscovery.FindSolutionFile, WorkspaceLoader instantiation, progress reporting, LoadSolutionAsync call, and diagnostic output. Create `private static List<ExtractionResult> ExtractCodeModelStage(LoadedWorkspace workspace, bool verbose)` extracting the CodeModelExtractor loop over compilations. Both methods should include their own Stopwatch timing and console output. The LoadWorkspaceStage needs to return the resolved path since it's used later for display, and must properly handle the using/dispose pattern for WorkspaceLoader (consider returning it as IDisposable or letting the caller manage disposal).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run `dotnet build` to verify compilation. Run `dotnet test` to confirm all 178 existing tests pass. Manually verify `ai-code-graph analyze` produces identical output and database content as before the refactor.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-24T12:57:09.822Z"
           },
           {
             "id": 2,
@@ -1800,9 +1801,10 @@
               1
             ],
             "details": "Create `private static List<CallEdge> BuildCallGraphStage(LoadedWorkspace workspace, bool verbose)` wrapping CallGraphBuilder instantiation and BuildCallGraph call. Create `private static List<MethodMetrics> ComputeMetricsStage(LoadedWorkspace workspace, bool verbose)` wrapping MetricsEngine instantiation and ComputeMetrics call. Create `private static List<NormalizedMethod> NormalizeMethodsStage(LoadedWorkspace workspace, bool verbose)` wrapping IntentNormalizer instantiation and NormalizeAll call. Each method includes its own timing Stopwatch and console write for the stage progress. Use the actual return types from the Core library (CallEdge, MethodMetrics, NormalizedMethod) rather than tuples where possible to maintain type safety.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run `dotnet build` to verify compilation. Run `dotnet test` to confirm all tests pass. Compare database output from a test analyze run before and after changes to ensure identical results.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-24T12:57:15.472Z"
           },
           {
             "id": 3,
@@ -1813,9 +1815,10 @@
               2
             ],
             "details": "Create `private static List<(string MethodId, float[] Vector, string Model)> GenerateEmbeddingsStage(List<NormalizedMethod> normalized, bool verbose)` wrapping HashEmbeddingEngine usage. Create `private static async Task StoreResultsStage(string output, List<ExtractionResult> extractionResults, List<CallEdge> edges, List<MethodMetrics> metrics, List<NormalizedMethod> normalized, List<(string, float[], string)> embeddings, CancellationToken ct)` that returns the StorageService instance (or dbPath) for subsequent use - handles Directory.CreateDirectory, StorageService init, and all Save* calls. Create `private static async Task<(List<ClonePair> clonePairs, List<MethodCluster> clusters)> DetectDuplicatesStage(StorageService storage, List<NormalizedMethod> normalized, List<(string, float[])> embeddingPairs, bool verbose, CancellationToken ct)` handling structural/semantic clone detection, hybrid scoring, and clustering. Create `private static void SaveBaselineStage(string dbPath, string output, bool saveBaseline)` for the conditional file copy. Consider disposal patterns for StorageService and HashEmbeddingEngine carefully.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run `dotnet build` to verify compilation. Run `dotnet test` to ensure all tests pass. Verify the duplicate detection results and cluster outputs match pre-refactor behavior by running analyze on the test fixture solution.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-24T12:57:21.168Z"
           },
           {
             "id": 4,
@@ -1827,15 +1830,16 @@
               3
             ],
             "details": "Rewrite the analyzeCommand.SetAction lambda (lines 46-220) to: (1) parse options at the top, (2) call each stage method in sequence with appropriate data passing between them, (3) keep the try/catch error handling wrapping all stage calls, (4) keep the summary console output at the end using return values from stages. The lambda should read as a clear pipeline: LoadWorkspace → ExtractCodeModel → BuildCallGraph → ComputeMetrics → NormalizeMethods → GenerateEmbeddings → StoreResults → DetectDuplicates → SaveBaseline → PrintSummary. Ensure the totalTimer Stopwatch remains in the orchestrator. The orchestrator should be roughly 40-50 lines maximum. Verify resource disposal (WorkspaceLoader, StorageService, HashEmbeddingEngine) is handled correctly across the stage boundaries - consider whether using statements need to stay in the orchestrator or move into stages.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run `dotnet test` to verify all 178 tests pass with no regressions. Run `ai-code-graph analyze tests/fixtures/TestSolution/TestSolution.sln --output ./test-output --verbose` and compare output against pre-refactor run. Verify the generated graph.db has identical table contents. Check that --save-baseline flag still works correctly.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-01-24T12:57:26.694Z"
           }
         ],
         "complexity": 5,
         "recommendedSubtasks": 4,
         "expansionPrompt": "Break down into: (1) Define stage method signatures and extract LoadWorkspaceStage and ExtractCodeModelStage, (2) Extract BuildCallGraphStage, ComputeMetricsStage, and NormalizeMethodsStage, (3) Extract GenerateEmbeddingsStage, StoreResultsStage, DetectDuplicatesStage, and SaveBaselineStage, (4) Refactor the analyze command action to orchestrate stages and verify all integration tests pass",
-        "updatedAt": "2026-01-24T12:25:44.966Z"
+        "updatedAt": "2026-01-24T12:57:26.694Z"
       },
       {
         "id": "27",
@@ -3354,9 +3358,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-24T12:25:44.967Z",
+      "lastModified": "2026-01-24T12:57:26.694Z",
       "taskCount": 50,
-      "completedCount": 28,
+      "completedCount": 29,
       "tags": [
         "master"
       ]
