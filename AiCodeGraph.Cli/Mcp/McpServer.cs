@@ -7,6 +7,7 @@ using AiCodeGraph.Core.Duplicates;
 using AiCodeGraph.Core.Embeddings;
 using AiCodeGraph.Core.Metrics;
 using AiCodeGraph.Core.Normalization;
+using AiCodeGraph.Core.Analysis;
 using AiCodeGraph.Core.Storage;
 
 namespace AiCodeGraph.Cli.Mcp;
@@ -233,6 +234,17 @@ public class McpServer
                         ["solution"] = new JsonObject { ["type"] = "string", ["description"] = "Path to .sln file (auto-discovers if omitted)" },
                         ["save_baseline"] = new JsonObject { ["type"] = "boolean", ["description"] = "Save result as baseline for drift detection", ["default"] = false }
                     }
+                }),
+            CreateToolDef("cg_churn",
+                "Show methods with high change-frequency × complexity (churn hotspots)",
+                new JsonObject
+                {
+                    ["type"] = "object",
+                    ["properties"] = new JsonObject
+                    {
+                        ["since"] = new JsonObject { ["type"] = "string", ["description"] = "Git log time range (e.g. '6 months ago')", ["default"] = "6 months ago" },
+                        ["top"] = new JsonObject { ["type"] = "integer", ["description"] = "Number of results", ["default"] = 20 }
+                    }
                 })
         };
 
@@ -270,6 +282,7 @@ public class McpServer
                 "cg_dead_code" => await ToolGetDeadCode(args, ct),
                 "cg_get_impact" => await ToolGetImpact(args, ct),
                 "cg_analyze" => await ToolAnalyze(args, ct),
+                "cg_churn" => await ToolGetChurn(args, ct),
                 _ => $"Unknown tool: {toolName}"
             };
 
@@ -858,6 +871,28 @@ public class McpServer
         {
             return $"Error: {ex.Message}";
         }
+    }
+
+    private async Task<string> ToolGetChurn(JsonNode? args, CancellationToken ct)
+    {
+        var since = args?["since"]?.GetValue<string>() ?? "6 months ago";
+        var top = args?["top"]?.GetValue<int>() ?? 20;
+
+        var analyzer = new ChurnAnalyzer();
+        var results = await analyzer.AnalyzeAsync(_storage!, since, top, ct);
+
+        if (results.Count == 0)
+            return "No churn hotspots found.";
+
+        var lines = new List<string> { $"Churn hotspots (since: {since}):", "" };
+        foreach (var r in results)
+        {
+            lines.Add($"  {r.MethodName}");
+            lines.Add($"    Changes: {r.Changes}, CC: {r.CognitiveComplexity}, Score: {r.ChurnScore:F0}");
+            if (r.FilePath != null) lines.Add($"    File: {r.FilePath}");
+        }
+        lines.Add($"\nTotal: {results.Count} methods");
+        return string.Join("\n", lines);
     }
 
     private static int CountMethodsInNamespace(NamespaceModel ns)

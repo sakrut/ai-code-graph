@@ -1289,6 +1289,76 @@ deadCodeCommand.SetAction(async (parseResult, cancellationToken) =>
     }
 });
 
+// --- churn command ---
+var churnSinceOption = new Option<string>("--since") { Description = "Git log time range (e.g. '6 months ago')", DefaultValueFactory = _ => "6 months ago" };
+var churnFormatOption = new Option<string>("--format", "-f") { Description = "table|json", DefaultValueFactory = _ => "table" };
+var churnTopOption = new Option<int>("--top") { Description = "Number of results to show", DefaultValueFactory = _ => 20 };
+var churnDbOption = new Option<string>("--db") { Description = "Path to graph.db", DefaultValueFactory = _ => "./ai-code-graph/graph.db" };
+
+var churnCommand = new Command("churn", "Show methods with high change-frequency × complexity (churn hotspots)")
+{
+    churnSinceOption, churnFormatOption, churnTopOption, churnDbOption
+};
+
+churnCommand.SetAction(async (parseResult, cancellationToken) =>
+{
+    var since = parseResult.GetValue(churnSinceOption) ?? "6 months ago";
+    var format = parseResult.GetValue(churnFormatOption) ?? "table";
+    var top = parseResult.GetValue(churnTopOption);
+    var dbPath = parseResult.GetValue(churnDbOption) ?? "./ai-code-graph/graph.db";
+
+    if (!File.Exists(dbPath))
+    {
+        Console.Error.WriteLine($"Error: Database not found at {dbPath}. Run 'analyze' first.");
+        Environment.ExitCode = 1;
+        return;
+    }
+
+    await using var storage = new StorageService(dbPath);
+    await storage.OpenAsync(cancellationToken);
+
+    var analyzer = new AiCodeGraph.Core.Analysis.ChurnAnalyzer();
+    var results = await analyzer.AnalyzeAsync(storage, since, top, cancellationToken);
+
+    if (results.Count == 0)
+    {
+        Console.WriteLine("No churn hotspots found.");
+        return;
+    }
+
+    if (format == "json")
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            since,
+            count = results.Count,
+            methods = results.Select(r => new
+            {
+                id = r.MethodId,
+                name = r.MethodName,
+                file = r.FilePath,
+                changes = r.Changes,
+                complexity = r.CognitiveComplexity,
+                churnScore = r.ChurnScore
+            })
+        }, new System.Text.Json.JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
+        Console.WriteLine(json);
+    }
+    else
+    {
+        Console.WriteLine($"Churn hotspots (since: {since}):\n");
+        Console.WriteLine($"{"Method",-50} {"File",-25} {"Chg",4} {"CC",4} {"Score",6}");
+        Console.WriteLine(new string('-', 93));
+        foreach (var r in results)
+        {
+            var file = r.FilePath != null ? Path.GetFileName(r.FilePath) : "";
+            var name = r.MethodName.Length > 48 ? r.MethodName[..45] + "..." : r.MethodName;
+            Console.WriteLine($"{name,-50} {file,-25} {r.Changes,4} {r.CognitiveComplexity,4} {r.ChurnScore,6:F0}");
+        }
+        Console.WriteLine($"\nTotal: {results.Count} methods with churn score > 0");
+    }
+});
+
 rootCommand.Add(analyzeCommand);
 rootCommand.Add(callgraphCommand);
 rootCommand.Add(hotspotsCommand);
@@ -1302,6 +1372,7 @@ rootCommand.Add(driftCommand);
 rootCommand.Add(contextCommand);
 rootCommand.Add(impactCommand);
 rootCommand.Add(deadCodeCommand);
+rootCommand.Add(churnCommand);
 
 // MCP server command
 var mcpDbOption = new Option<string>("--db") { Description = "Path to graph.db", DefaultValueFactory = _ => "./ai-code-graph/graph.db" };
@@ -1497,6 +1568,21 @@ Steps:
         created.Add(analyzeCmd);
     }
 
+    var churnCmd = Path.Combine(commandsDir, "cg:churn.md");
+    if (!File.Exists(churnCmd))
+    {
+        File.WriteAllText(churnCmd, $@"Show methods with high change-frequency x complexity (churn hotspots): $ARGUMENTS
+
+Steps:
+1. Run `ai-code-graph churn --since ""$ARGUMENTS"" --db {dbPath}` (use ""6 months ago"" if no argument provided)
+2. If the database doesn't exist, inform the user to run `ai-code-graph analyze` first
+3. Present the results ranked by churn score (changes x complexity)
+4. For the top results, explain why they are risky: high change frequency combined with high complexity
+5. Suggest which methods would benefit most from refactoring to reduce complexity
+");
+        created.Add(churnCmd);
+    }
+
     // 3. Create .mcp.json for MCP server integration
     var mcpJson = Path.Combine(Directory.GetCurrentDirectory(), ".mcp.json");
     if (!File.Exists(mcpJson))
@@ -1544,6 +1630,7 @@ Available slash commands (all prefixed with `cg:`):
 - `/cg:tree` - Code structure tree
 - `/cg:export` - Export graph data
 - `/cg:drift` - Architectural drift from baseline
+- `/cg:churn` - Change-frequency x complexity hotspots
 
 To rebuild the graph after significant changes: `ai-code-graph analyze YourSolution.sln`
 ";

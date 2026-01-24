@@ -3056,7 +3056,7 @@
         "dependencies": [
           "34"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -3110,7 +3110,8 @@
         ],
         "complexity": 6,
         "recommendedSubtasks": 4,
-        "expansionPrompt": "Break down into: (1) Create ChurnAnalyzer class with file-grouped git log execution, (2) Implement commit counting with --since parameter parsing, (3) Register CLI command combining git frequency with cognitive complexity scores, (4) Add MCP tool, slash command, and tests with git fixture containing timestamped commits"
+        "expansionPrompt": "Break down into: (1) Create ChurnAnalyzer class with file-grouped git log execution, (2) Implement commit counting with --since parameter parsing, (3) Register CLI command combining git frequency with cognitive complexity scores, (4) Add MCP tool, slash command, and tests with git fixture containing timestamped commits",
+        "updatedAt": "2026-01-24T13:23:36.598Z"
       },
       {
         "id": "48",
@@ -3368,9 +3369,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-24T13:18:49.898Z",
+      "lastModified": "2026-01-24T13:23:36.599Z",
       "taskCount": 50,
-      "completedCount": 39,
+      "completedCount": 40,
       "tags": [
         "master"
       ]
