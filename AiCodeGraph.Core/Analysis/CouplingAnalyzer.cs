@@ -69,11 +69,17 @@ public class CouplingAnalyzer
         return metrics.OrderByDescending(m => m.EfferentCoupling).ToList();
     }
 
-    private static string GetGroup(string fullName, string level)
+    internal static string GetGroup(string fullName, string level)
     {
-        // FullName format: Namespace.SubNamespace.Type.Method(params)
+        // FullName format: "ReturnType Namespace.SubNamespace.Type.Method(params)"
         var parenIdx = fullName.IndexOf('(');
         var nameOnly = parenIdx >= 0 ? fullName[..parenIdx] : fullName;
+
+        // Strip return type prefix (everything before the last space)
+        var spaceIdx = nameOnly.LastIndexOf(' ');
+        if (spaceIdx >= 0)
+            nameOnly = nameOnly[(spaceIdx + 1)..];
+
         var parts = nameOnly.Split('.');
 
         if (level == "type")
