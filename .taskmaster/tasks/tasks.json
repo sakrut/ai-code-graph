@@ -2215,7 +2215,7 @@
           "28",
           "29"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -2242,7 +2242,8 @@
         ],
         "complexity": 3,
         "recommendedSubtasks": 2,
-        "expansionPrompt": "Break down into: (1) Add file reading logic after existing context output in the context command (around line 1034-1135 of Program.cs), showing first 20 lines from StartLine, (2) Handle edge cases (file not found, short methods, IOException) and add tests with fixture methods"
+        "expansionPrompt": "Break down into: (1) Add file reading logic after existing context output in the context command (around line 1034-1135 of Program.cs), showing first 20 lines from StartLine, (2) Handle edge cases (file not found, short methods, IOException) and add tests with fixture methods",
+        "updatedAt": "2026-01-24T13:17:46.148Z"
       },
       {
         "id": "34",
@@ -3366,9 +3367,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-24T13:16:49.513Z",
+      "lastModified": "2026-01-24T13:17:46.148Z",
       "taskCount": 50,
-      "completedCount": 37,
+      "completedCount": 38,
       "tags": [
         "master"
       ]

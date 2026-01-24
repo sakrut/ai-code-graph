@@ -1021,6 +1021,26 @@ contextCommand.SetAction(async (parseResult, cancellationToken) =>
         var suffix = dupes.Count > 3 ? $" (+{dupes.Count - 3} more)" : "";
         Console.WriteLine($"Duplicates ({dupes.Count}): {string.Join(", ", dupeStrs)}{suffix}");
     }
+
+    // Source snippet
+    if (info.Value.FilePath != null && info.Value.StartLine > 0 && File.Exists(info.Value.FilePath))
+    {
+        try
+        {
+            var lines = await File.ReadAllLinesAsync(info.Value.FilePath, cancellationToken);
+            var startIdx = info.Value.StartLine - 1;
+            var endIdx = Math.Min(lines.Length, startIdx + 20);
+
+            if (startIdx < lines.Length)
+            {
+                Console.WriteLine();
+                Console.WriteLine("Source (first 20 lines):");
+                for (int i = startIdx; i < endIdx; i++)
+                    Console.WriteLine($"  {lines[i]}");
+            }
+        }
+        catch (IOException) { }
+    }
 });
 
 // --- impact command ---
