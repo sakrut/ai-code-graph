@@ -25,19 +25,29 @@ public class DriftDetector
         if (!File.Exists(baselineDbPath))
             throw new FileNotFoundException("Baseline database not found.", baselineDbPath);
 
-        await using var currentConn = new SqliteConnection($"Data Source={currentDbPath}");
-        await using var baselineConn = new SqliteConnection($"Data Source={baselineDbPath}");
+        SqliteConnection? currentConn = null;
+        SqliteConnection? baselineConn = null;
+        try
+        {
+            currentConn = new SqliteConnection($"Data Source={currentDbPath}");
+            baselineConn = new SqliteConnection($"Data Source={baselineDbPath}");
 
-        await currentConn.OpenAsync(cancellationToken);
-        await baselineConn.OpenAsync(cancellationToken);
+            await currentConn.OpenAsync(cancellationToken).ConfigureAwait(false);
+            await baselineConn.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-        var newMethods = await DetectNewMethods(currentConn, baselineConn, cancellationToken);
-        var removedMethods = await DetectRemovedMethods(currentConn, baselineConn, cancellationToken);
-        var regressions = await DetectComplexityRegressions(currentConn, baselineConn, cancellationToken);
-        var newDuplicates = await DetectNewDuplicates(currentConn, baselineConn, cancellationToken);
-        var scattering = await DetectIntentScattering(currentConn, baselineConn, cancellationToken);
+            var newMethods = await DetectNewMethods(currentConn, baselineConn, cancellationToken).ConfigureAwait(false);
+            var removedMethods = await DetectRemovedMethods(currentConn, baselineConn, cancellationToken).ConfigureAwait(false);
+            var regressions = await DetectComplexityRegressions(currentConn, baselineConn, cancellationToken).ConfigureAwait(false);
+            var newDuplicates = await DetectNewDuplicates(currentConn, baselineConn, cancellationToken).ConfigureAwait(false);
+            var scattering = await DetectIntentScattering(currentConn, baselineConn, cancellationToken).ConfigureAwait(false);
 
-        return new DriftReport(newMethods, removedMethods, regressions, newDuplicates, scattering);
+            return new DriftReport(newMethods, removedMethods, regressions, newDuplicates, scattering);
+        }
+        finally
+        {
+            if (baselineConn != null) await baselineConn.DisposeAsync().ConfigureAwait(false);
+            if (currentConn != null) await currentConn.DisposeAsync().ConfigureAwait(false);
+        }
     }
 
     private static async Task<List<MethodDiff>> DetectNewMethods(SqliteConnection current, SqliteConnection baseline, CancellationToken ct)

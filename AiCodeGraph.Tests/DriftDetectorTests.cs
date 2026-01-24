@@ -257,6 +257,40 @@ public class DriftDetectorTests : IDisposable
     }
 
     [Fact]
+    public async Task Compare_MissingCurrent_Throws()
+    {
+        var methods = new List<MethodModel>
+        {
+            new("m1", "A", "App.Svc.A()", "void", [], null, 1, 5,
+                Accessibility.Public, false, false, false, false, false)
+        };
+        await using (await CreateDatabase(_baselineDbPath, methods)) { }
+
+        var detector = new DriftDetector();
+        await Assert.ThrowsAsync<FileNotFoundException>(() =>
+            detector.CompareAsync("/nonexistent/current.db", _baselineDbPath));
+    }
+
+    [Fact]
+    public async Task Compare_CancellationToken_ThrowsWhenCancelled()
+    {
+        var methods = new List<MethodModel>
+        {
+            new("m1", "A", "App.Svc.A()", "void", [], null, 1, 5,
+                Accessibility.Public, false, false, false, false, false)
+        };
+        await using (await CreateDatabase(_currentDbPath, methods)) { }
+        await using (await CreateDatabase(_baselineDbPath, methods)) { }
+
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var detector = new DriftDetector();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            detector.CompareAsync(_currentDbPath, _baselineDbPath, cts.Token));
+    }
+
+    [Fact]
     public async Task Compare_EmptyDatabases_NoDrift()
     {
         await using (await CreateDatabase(_currentDbPath)) { }

@@ -1590,7 +1590,7 @@
         "testStrategy": "Add tests in DriftDetectorTests.cs: (1) Test with invalid/non-existent baseline path - verify no leaked connections (use a counter or wrapper). (2) Test with invalid current path. (3) Test with both invalid. (4) Test normal operation still works. Verify using process file handle count or connection tracking.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1653,7 +1653,8 @@
         ],
         "complexity": 2,
         "recommendedSubtasks": 0,
-        "expansionPrompt": "Restructure CompareAsync in DriftDetector.cs (278 lines) with explicit try-finally for connection disposal, or verify that existing await-using declarations plus the FileNotFoundException validation at lines 23-26 already prevent the leak. Add tests for invalid path scenarios."
+        "expansionPrompt": "Restructure CompareAsync in DriftDetector.cs (278 lines) with explicit try-finally for connection disposal, or verify that existing await-using declarations plus the FileNotFoundException validation at lines 23-26 already prevent the leak. Add tests for invalid path scenarios.",
+        "updatedAt": "2026-01-24T12:09:51.226Z"
       },
       {
         "id": "24",
@@ -3345,9 +3346,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-24T12:08:05.375Z",
+      "lastModified": "2026-01-24T12:09:51.227Z",
       "taskCount": 50,
-      "completedCount": 20,
+      "completedCount": 21,
       "tags": [
         "master"
       ]
