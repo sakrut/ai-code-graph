@@ -360,6 +360,28 @@ public class McpServer
             lines.Add($"Duplicates ({dupes.Count}): {string.Join(", ", dupeStrs)}");
         }
 
+        var testMatches = await _storage.SearchMethodsAsync($"%{info.Value.Name}%Test%", ct);
+        var testMatches2 = await _storage.SearchMethodsAsync($"%Test%{info.Value.Name}%", ct);
+        var allTests = testMatches.Concat(testMatches2)
+            .DistinctBy(t => t.Id)
+            .Where(t => t.FullName.Contains("Test", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (allTests.Count > 0)
+        {
+            var testNames = allTests.Take(5).Select(t =>
+            {
+                var parenIdx = t.FullName.IndexOf('(');
+                var nameOnly = parenIdx >= 0 ? t.FullName[..parenIdx] : t.FullName;
+                var parts = nameOnly.Split('.');
+                return parts.Length >= 2 ? $"{parts[^2]}.{parts[^1]}" : parts[^1];
+            });
+            lines.Add($"Tests ({allTests.Count}): {string.Join(", ", testNames)}");
+        }
+        else
+        {
+            lines.Add("Tests: none found");
+        }
+
         return string.Join("\n", lines);
     }
 

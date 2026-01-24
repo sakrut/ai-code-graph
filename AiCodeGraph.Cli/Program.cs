@@ -1022,6 +1022,31 @@ contextCommand.SetAction(async (parseResult, cancellationToken) =>
         Console.WriteLine($"Duplicates ({dupes.Count}): {string.Join(", ", dupeStrs)}{suffix}");
     }
 
+    // Test coverage
+    var methodShortName = info.Value.Name;
+    var testMatches = await storage.SearchMethodsAsync($"%{methodShortName}%Test%", cancellationToken);
+    var testMatches2 = await storage.SearchMethodsAsync($"%Test%{methodShortName}%", cancellationToken);
+    var allTests = testMatches.Concat(testMatches2)
+        .DistinctBy(t => t.Id)
+        .Where(t => t.FullName.Contains("Test", StringComparison.OrdinalIgnoreCase))
+        .ToList();
+    if (allTests.Count > 0)
+    {
+        var testNames = allTests.Take(5).Select(t =>
+        {
+            var parenIdx = t.FullName.IndexOf('(');
+            var nameOnly = parenIdx >= 0 ? t.FullName[..parenIdx] : t.FullName;
+            var parts = nameOnly.Split('.');
+            return parts.Length >= 2 ? $"{parts[^2]}.{parts[^1]}" : parts[^1];
+        });
+        var suffix = allTests.Count > 5 ? $" (+{allTests.Count - 5} more)" : "";
+        Console.WriteLine($"Tests ({allTests.Count}): {string.Join(", ", testNames)}{suffix}");
+    }
+    else
+    {
+        Console.WriteLine("Tests: none found");
+    }
+
     // Source snippet
     if (info.Value.FilePath != null && info.Value.StartLine > 0 && File.Exists(info.Value.FilePath))
     {
