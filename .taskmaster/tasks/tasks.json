@@ -1444,7 +1444,7 @@
         "testStrategy": "Existing IntentClusterer tests in DuplicateDetectionTests.cs must pass unchanged. Verify GenerateLabel produces identical output. Optionally add a benchmark test calling ClusterMethods 1000 times to show reduced allocations.",
         "priority": "medium",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1507,7 +1507,8 @@
         ],
         "complexity": 1,
         "recommendedSubtasks": 0,
-        "expansionPrompt": "Single step: Move the HashSet from inside GenerateLabel() (lines 161-166 of the 196-line IntentClusterer.cs) to a private static readonly field with StringComparer.OrdinalIgnoreCase. Verify existing DuplicateDetectionTests pass unchanged."
+        "expansionPrompt": "Single step: Move the HashSet from inside GenerateLabel() (lines 161-166 of the 196-line IntentClusterer.cs) to a private static readonly field with StringComparer.OrdinalIgnoreCase. Verify existing DuplicateDetectionTests pass unchanged.",
+        "updatedAt": "2026-01-24T12:20:09.352Z"
       },
       {
         "id": "22",
@@ -3350,9 +3351,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-24T12:19:06.413Z",
+      "lastModified": "2026-01-24T12:20:09.353Z",
       "taskCount": 50,
-      "completedCount": 25,
+      "completedCount": 26,
       "tags": [
         "master"
       ]

@@ -4,6 +4,13 @@ namespace AiCodeGraph.Core.Duplicates;
 
 public class IntentClusterer
 {
+    private static readonly HashSet<string> Stopwords = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "get", "set", "is", "has", "the", "a", "an", "to", "from", "of", "in",
+        "on", "by", "for", "with", "and", "or", "not", "this", "that", "it",
+        "void", "int", "string", "bool", "var", "new", "return", "null", "async", "await"
+    };
+
     private readonly float _epsilon;
     private readonly int _minPoints;
 
@@ -158,13 +165,6 @@ public class IntentClusterer
 
     private static string GenerateLabel(List<string> memberIds, Dictionary<string, NormalizedMethod> methodMap)
     {
-        var stopWords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            "get", "set", "is", "has", "the", "a", "an", "to", "from", "of", "in",
-            "on", "by", "for", "with", "and", "or", "not", "this", "that", "it",
-            "void", "int", "string", "bool", "var", "new", "return", "null", "async", "await"
-        };
-
         var tokenFrequency = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var id in memberIds)
@@ -173,7 +173,7 @@ public class IntentClusterer
 
             var tokens = method.SemanticPayload
                 .Split(' ', StringSplitOptions.RemoveEmptyEntries)
-                .Where(t => !stopWords.Contains(t) && t.Length > 2);
+                .Where(t => !Stopwords.Contains(t) && t.Length > 2);
 
             foreach (var token in tokens)
             {
