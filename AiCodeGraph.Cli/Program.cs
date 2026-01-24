@@ -79,17 +79,9 @@ analyzeCommand.SetAction(async (parseResult, cancellationToken) =>
 
         VectorIndexCache.Invalidate(dbPath);
     }
-    catch (FileNotFoundException ex)
+    catch (Exception ex) when (ex is FileNotFoundException or InvalidOperationException)
     {
-        Console.Error.WriteLine($"Error: {ex.Message}");
-        if (verbose) Console.Error.WriteLine(ex.StackTrace);
-        Environment.ExitCode = 1;
-    }
-    catch (InvalidOperationException ex)
-    {
-        Console.Error.WriteLine($"Error: {ex.Message}");
-        if (verbose) Console.Error.WriteLine(ex.StackTrace);
-        Environment.ExitCode = 1;
+        HandleCommandError(ex, verbose);
     }
     catch (OperationCanceledException)
     {
@@ -1519,6 +1511,13 @@ rootCommand.Add(setupCommand);
 
 var parseResult = CommandLineParser.Parse(rootCommand, args);
 return await parseResult.InvokeAsync();
+
+static void HandleCommandError(Exception ex, bool verbose = false)
+{
+    Console.Error.WriteLine($"Error: {ex.Message}");
+    if (verbose) Console.Error.WriteLine(ex.StackTrace);
+    Environment.ExitCode = 1;
+}
 
 static int CountTypes(ProjectModel project)
 {

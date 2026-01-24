@@ -1899,7 +1899,7 @@
         "testStrategy": "Verify error output format is unchanged - same color, same message format. Test with missing DB file to trigger FileNotFoundException. Test with invalid solution path to trigger InvalidOperationException. Compare output before and after refactor.",
         "priority": "low",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1965,7 +1965,8 @@
         ],
         "complexity": 2,
         "recommendedSubtasks": 0,
-        "expansionPrompt": "Extract a HandleCommandError helper method in Program.cs and replace identical catch blocks (confirmed at lines 197-219 with FileNotFoundException, InvalidOperationException, OperationCanceledException, and general Exception patterns). Apply to all commands with identical patterns."
+        "expansionPrompt": "Extract a HandleCommandError helper method in Program.cs and replace identical catch blocks (confirmed at lines 197-219 with FileNotFoundException, InvalidOperationException, OperationCanceledException, and general Exception patterns). Apply to all commands with identical patterns.",
+        "updatedAt": "2026-01-24T13:09:51.044Z"
       },
       {
         "id": "29",
@@ -3362,9 +3363,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-24T13:08:29.512Z",
+      "lastModified": "2026-01-24T13:09:51.045Z",
       "taskCount": 50,
-      "completedCount": 33,
+      "completedCount": 34,
       "tags": [
         "master"
       ]
