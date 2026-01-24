@@ -497,33 +497,44 @@ duplicatesCommand.SetAction(async (parseResult, cancellationToken) =>
 
     if (format == "json")
     {
-        var json = System.Text.Json.JsonSerializer.Serialize(new
+        var cloneList = new List<object>();
+        foreach (var p in pairs)
         {
-            clones = pairs.Select(p => new
+            var infoA = await storage.GetMethodInfoAsync(p.MethodIdA, cancellationToken);
+            var infoB = await storage.GetMethodInfoAsync(p.MethodIdB, cancellationToken);
+            cloneList.Add(new
             {
-                methodA = p.MethodIdA,
-                methodB = p.MethodIdB,
+                methodA = infoA?.FullName ?? p.MethodIdA,
+                methodB = infoB?.FullName ?? p.MethodIdB,
+                locationA = infoA?.FilePath != null ? $"{infoA.Value.FilePath}:{infoA.Value.StartLine}" : (string?)null,
+                locationB = infoB?.FilePath != null ? $"{infoB.Value.FilePath}:{infoB.Value.StartLine}" : (string?)null,
                 structural = Math.Round(p.StructuralSimilarity, 4),
                 semantic = Math.Round(p.SemanticSimilarity, 4),
                 hybrid = Math.Round(p.HybridScore, 4),
                 type = p.Type.ToString()
-            }),
+            });
+        }
+        var json = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            clones = cloneList,
             metadata = new { total = pairs.Count, threshold, typeFilter = typeStr }
         }, new System.Text.Json.JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
         Console.WriteLine(json);
     }
     else
     {
-        Console.WriteLine($"{"Type",-10} {"Hybrid",6} {"Struct",6} {"Seman",6}  Method A / Method B");
-        Console.WriteLine(new string('-', 80));
+        Console.WriteLine($"{"Type",-10} {"Hybrid",6} {"Struct",6} {"Seman",6}  Method / Location");
+        Console.WriteLine(new string('-', 90));
         foreach (var p in pairs)
         {
             var infoA = await storage.GetMethodInfoAsync(p.MethodIdA, cancellationToken);
             var infoB = await storage.GetMethodInfoAsync(p.MethodIdB, cancellationToken);
-            var nameA = infoA?.FullName ?? p.MethodIdA;
-            var nameB = infoB?.FullName ?? p.MethodIdB;
-            Console.WriteLine($"{p.Type,-10} {p.HybridScore,6:F3} {p.StructuralSimilarity,6:F3} {p.SemanticSimilarity,6:F3}  {nameA}");
-            Console.WriteLine($"{"",10} {"",6} {"",6} {"",6}  {nameB}");
+            var nameA = infoA?.Name ?? p.MethodIdA;
+            var locA = infoA?.FilePath != null ? $"{infoA.Value.FilePath}:{infoA.Value.StartLine}" : "";
+            var nameB = infoB?.Name ?? p.MethodIdB;
+            var locB = infoB?.FilePath != null ? $"{infoB.Value.FilePath}:{infoB.Value.StartLine}" : "";
+            Console.WriteLine($"{p.Type,-10} {p.HybridScore,6:F3} {p.StructuralSimilarity,6:F3} {p.SemanticSimilarity,6:F3}  {nameA}  {locA}");
+            Console.WriteLine($"{"",10} {"",6} {"",6} {"",6}  {nameB}  {locB}");
         }
     }
 });
