@@ -196,5 +196,68 @@ public class VectorIndexTests
         Assert.True(results[0].Score > results[2].Score); // similar > dissimilar
     }
 
+    [Fact]
+    public void AddItem_NullVector_ThrowsArgumentNull()
+    {
+        var index = new VectorIndex();
+        Assert.Throws<ArgumentNullException>(() => index.AddItem("id", null!));
+    }
+
+    [Fact]
+    public void AddItem_NaNVector_ThrowsArgument()
+    {
+        var index = new VectorIndex();
+        var ex = Assert.Throws<ArgumentException>(() => index.AddItem("id", new float[] { 1.0f, float.NaN, 0.5f }));
+        Assert.Contains("NaN", ex.Message);
+        Assert.Contains("index 1", ex.Message);
+    }
+
+    [Fact]
+    public void AddItem_InfinityVector_ThrowsArgument()
+    {
+        var index = new VectorIndex();
+        var ex = Assert.Throws<ArgumentException>(() => index.AddItem("id", new float[] { float.PositiveInfinity, 0.5f }));
+        Assert.Contains("Infinity", ex.Message);
+    }
+
+    [Fact]
+    public void AddItem_NegativeInfinityVector_ThrowsArgument()
+    {
+        var index = new VectorIndex();
+        Assert.Throws<ArgumentException>(() => index.AddItem("id", new float[] { 0.5f, float.NegativeInfinity }));
+    }
+
+    [Fact]
+    public void BuildIndex_NullVector_ThrowsArgumentNull()
+    {
+        var index = new VectorIndex();
+        var items = new List<(string, float[])> { ("id", null!) };
+        Assert.Throws<ArgumentNullException>(() => index.BuildIndex(items));
+    }
+
+    [Fact]
+    public void BuildIndex_NaNVector_ThrowsArgument()
+    {
+        var index = new VectorIndex();
+        var items = new List<(string, float[])> { ("id", new float[] { 1.0f, float.NaN }) };
+        Assert.Throws<ArgumentException>(() => index.BuildIndex(items));
+    }
+
+    [Fact]
+    public void Search_NullQuery_ThrowsArgumentNull()
+    {
+        var index = new VectorIndex();
+        index.AddItem("id", new float[] { 1.0f, 0.5f, 0.3f });
+        Assert.Throws<ArgumentNullException>(() => index.Search(null!));
+    }
+
+    [Fact]
+    public void Search_NaNQuery_ThrowsArgument()
+    {
+        var index = new VectorIndex();
+        index.AddItem("id", new float[] { 1.0f, 0.5f, 0.3f });
+        Assert.Throws<ArgumentException>(() => index.Search(new float[] { float.NaN, 0.5f, 0.3f }));
+    }
+
     private static float[] CreateVector(params float[] values) => values;
 }

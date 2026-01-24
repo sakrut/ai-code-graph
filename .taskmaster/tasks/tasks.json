@@ -1664,7 +1664,7 @@
         "testStrategy": "Add tests in EmbeddingsTests.cs: (1) AddItem with null vector throws ArgumentNullException. (2) AddItem with NaN value throws ArgumentException. (3) AddItem with Infinity throws ArgumentException. (4) AddItem with -Infinity throws. (5) BuildIndex with list containing null vector throws. (6) Search with null query throws. (7) Search with NaN query throws. (8) Valid vectors still work correctly.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1729,7 +1729,8 @@
         ],
         "complexity": 3,
         "recommendedSubtasks": 2,
-        "expansionPrompt": "Break down into: (1) Add ValidateVector helper and integrate into AddItem, BuildIndex, and Search methods in VectorIndex.cs (141 lines), (2) Write comprehensive tests in EmbeddingsTests.cs covering null, NaN, Infinity, -Infinity, and valid vector cases"
+        "expansionPrompt": "Break down into: (1) Add ValidateVector helper and integrate into AddItem, BuildIndex, and Search methods in VectorIndex.cs (141 lines), (2) Write comprehensive tests in EmbeddingsTests.cs covering null, NaN, Infinity, -Infinity, and valid vector cases",
+        "updatedAt": "2026-01-24T12:11:55.273Z"
       },
       {
         "id": "25",
@@ -3346,9 +3347,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-24T12:09:51.227Z",
+      "lastModified": "2026-01-24T12:11:55.273Z",
       "taskCount": 50,
-      "completedCount": 21,
+      "completedCount": 22,
       "tags": [
         "master"
       ]

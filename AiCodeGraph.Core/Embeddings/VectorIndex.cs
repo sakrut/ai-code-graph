@@ -14,6 +14,12 @@ public class VectorIndex
         _items.Clear();
         if (items.Count == 0) return;
 
+        foreach (var item in items)
+        {
+            ArgumentNullException.ThrowIfNull(item.Vector, nameof(item.Vector));
+            ValidateVector(item.Vector);
+        }
+
         _dimensions = items[0].Vector.Length;
         foreach (var item in items)
         {
@@ -25,6 +31,9 @@ public class VectorIndex
 
     public void AddItem(string id, float[] vector)
     {
+        ArgumentNullException.ThrowIfNull(vector, nameof(vector));
+        ValidateVector(vector);
+
         if (_items.Count > 0 && vector.Length != _dimensions)
             throw new ArgumentException($"Vector dimension mismatch: expected {_dimensions}, got {vector.Length}");
 
@@ -36,6 +45,9 @@ public class VectorIndex
 
     public List<(string Id, float Score)> Search(float[] query, int topK = 10)
     {
+        ArgumentNullException.ThrowIfNull(query, nameof(query));
+        ValidateVector(query);
+
         if (_items.Count == 0)
             return new List<(string, float)>();
 
@@ -121,6 +133,17 @@ public class VectorIndex
             sum += a[i] * b[i];
 
         return sum;
+    }
+
+    private static void ValidateVector(float[] vector)
+    {
+        for (int i = 0; i < vector.Length; i++)
+        {
+            if (float.IsNaN(vector[i]))
+                throw new ArgumentException($"Vector contains NaN at index {i}");
+            if (float.IsInfinity(vector[i]))
+                throw new ArgumentException($"Vector contains Infinity at index {i}");
+        }
     }
 
     private static float[] Normalize(float[] vector)
