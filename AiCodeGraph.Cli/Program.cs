@@ -1041,6 +1041,50 @@ contextCommand.SetAction(async (parseResult, cancellationToken) =>
         }
         catch (IOException) { }
     }
+
+    // Git blame
+    if (info.Value.FilePath != null && info.Value.StartLine > 0)
+    {
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "git",
+                Arguments = $"blame -L {info.Value.StartLine},+1 --porcelain \"{info.Value.FilePath}\"",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var proc = Process.Start(psi);
+            if (proc != null)
+            {
+                var output = await proc.StandardOutput.ReadToEndAsync(cancellationToken);
+                await proc.WaitForExitAsync(cancellationToken);
+
+                if (proc.ExitCode == 0 && !string.IsNullOrEmpty(output))
+                {
+                    string? author = null;
+                    long? timestamp = null;
+                    foreach (var line in output.Split('\n'))
+                    {
+                        if (line.StartsWith("author "))
+                            author = line["author ".Length..];
+                        else if (line.StartsWith("author-time "))
+                            if (long.TryParse(line["author-time ".Length..], out var ts))
+                                timestamp = ts;
+                    }
+                    if (author != null && timestamp != null)
+                    {
+                        var date = DateTimeOffset.FromUnixTimeSeconds(timestamp.Value).LocalDateTime;
+                        Console.WriteLine($"Last modified: {author} on {date:yyyy-MM-dd}");
+                    }
+                }
+            }
+        }
+        catch (Exception) { }
+    }
 });
 
 // --- impact command ---

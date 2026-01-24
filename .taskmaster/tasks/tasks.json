@@ -2255,7 +2255,7 @@
         "dependencies": [
           "33"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -2295,7 +2295,8 @@
         ],
         "complexity": 5,
         "recommendedSubtasks": 3,
-        "expansionPrompt": "Break down into: (1) Add Process.Start git blame execution with porcelain parsing after the source snippet section, (2) Parse author and author-time from porcelain output using regex, (3) Handle edge cases (git not installed, not a repo, file not tracked) and add integration tests with git fixture"
+        "expansionPrompt": "Break down into: (1) Add Process.Start git blame execution with porcelain parsing after the source snippet section, (2) Parse author and author-time from porcelain output using regex, (3) Handle edge cases (git not installed, not a repo, file not tracked) and add integration tests with git fixture",
+        "updatedAt": "2026-01-24T13:18:49.898Z"
       },
       {
         "id": "35",
@@ -3367,9 +3368,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-24T13:17:46.148Z",
+      "lastModified": "2026-01-24T13:18:49.898Z",
       "taskCount": 50,
-      "completedCount": 38,
+      "completedCount": 39,
       "tags": [
         "master"
       ]
