@@ -58,17 +58,17 @@ This returns complexity, callers, callees, cluster membership, and duplicates in
 - Understand which intent cluster a method belongs to before refactoring
 
 Available slash commands:
-- `/cg:analyze [solution]` - Analyze solution and build the graph
-- `/cg:context <method>` - Full method context before editing
-- `/cg:hotspots` - Top complexity hotspots
-- `/cg:callgraph <method>` - Explore call relationships
-- `/cg:similar <method>` - Find methods with similar intent
-- `/cg:token-search <query>` - Token-based code search
-- `/cg:duplicates` - Detected code clones
-- `/cg:clusters` - Intent clusters
-- `/cg:tree` - Code structure tree
-- `/cg:export` - Export graph data
-- `/cg:drift` - Architectural drift from baseline
+- `/cg/analyze [solution]` - Analyze solution and build the graph
+- `/cg/context <method>` - Full method context before editing
+- `/cg/hotspots` - Top complexity hotspots
+- `/cg/callgraph <method>` - Explore call relationships
+- `/cg/similar <method>` - Find methods with similar intent
+- `/cg/token-search <query>` - Token-based code search
+- `/cg/duplicates` - Detected code clones
+- `/cg/clusters` - Intent clusters
+- `/cg/tree` - Code structure tree
+- `/cg/export` - Export graph data
+- `/cg/drift` - Architectural drift from baseline
 
 To rebuild the graph after significant changes: `ai-code-graph analyze AiCodeGraph.sln`
 
