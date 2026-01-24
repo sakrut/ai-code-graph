@@ -202,6 +202,18 @@ public class McpServer
                         ["baseline"] = new JsonObject { ["type"] = "string", ["description"] = "Path to baseline.db (default: auto-detect next to graph.db)" }
                     }
                 }),
+            CreateToolDef("cg_get_impact",
+                "Show transitive impact of changing a method (all callers up the call chain)",
+                new JsonObject
+                {
+                    ["type"] = "object",
+                    ["properties"] = new JsonObject
+                    {
+                        ["method"] = new JsonObject { ["type"] = "string", ["description"] = "Method name or pattern" },
+                        ["depth"] = new JsonObject { ["type"] = "integer", ["description"] = "Max traversal depth (unlimited if omitted)" }
+                    },
+                    ["required"] = new JsonArray { "method" }
+                }),
             CreateToolDef("cg_analyze",
                 "Analyze a .NET solution and build/rebuild the code graph database",
                 new JsonObject
@@ -246,6 +258,7 @@ public class McpServer
                 "cg_get_clusters" => await ToolGetClusters(ct),
                 "cg_export_graph" => await ToolExportGraph(args, ct),
                 "cg_get_drift" => await ToolGetDrift(args, ct),
+                "cg_get_impact" => await ToolGetImpact(args, ct),
                 "cg_analyze" => await ToolAnalyze(args, ct),
                 _ => $"Unknown tool: {toolName}"
             };
@@ -645,6 +658,71 @@ public class McpServer
             lines.Add($"Intent Scattering ({report.IntentScattering.Count}):");
             foreach (var s in report.IntentScattering.Take(5))
                 lines.Add($"  '{s.ClusterLabel}' spread to: {string.Join(", ", s.NewNamespaces)}");
+        }
+
+        return string.Join("\n", lines);
+    }
+
+    private async Task<string> ToolGetImpact(JsonNode? args, CancellationToken ct)
+    {
+        var method = args?["method"]?.GetValue<string>();
+        if (string.IsNullOrEmpty(method)) return "Error: 'method' parameter required";
+        var maxDepth = args?["depth"]?.GetValue<int>();
+
+        var matches = await _storage!.SearchMethodsAsync(method, ct);
+        if (matches.Count == 0) return $"Method not found: '{method}'";
+
+        var targetId = matches[0].Id;
+        var targetInfo = await _storage.GetMethodInfoAsync(targetId, ct);
+
+        var visited = new HashSet<string> { targetId };
+        var queue = new Queue<(string Id, int Depth)>();
+        var depthMap = new Dictionary<string, int> { [targetId] = 0 };
+        var entryPoints = new List<string>();
+
+        queue.Enqueue((targetId, 0));
+
+        while (queue.Count > 0)
+        {
+            var (currentId, currentDepth) = queue.Dequeue();
+            if (maxDepth.HasValue && currentDepth >= maxDepth.Value) continue;
+
+            var callers = await _storage.GetCallersAsync(currentId, ct);
+            if (callers.Count == 0 && currentId != targetId)
+                entryPoints.Add(currentId);
+
+            foreach (var callerId in callers)
+            {
+                if (visited.Add(callerId))
+                {
+                    depthMap[callerId] = currentDepth + 1;
+                    queue.Enqueue((callerId, currentDepth + 1));
+                }
+            }
+        }
+
+        var lines = new List<string>
+        {
+            $"Impact: {targetInfo?.FullName ?? targetId}",
+            $"Affected: {visited.Count} methods, {entryPoints.Count} entry points",
+            ""
+        };
+
+        var byDepth = visited.Where(id => id != targetId)
+            .GroupBy(id => depthMap.GetValueOrDefault(id))
+            .OrderBy(g => g.Key);
+
+        foreach (var group in byDepth)
+        {
+            lines.Add($"Depth {group.Key}:");
+            foreach (var id in group.Take(20))
+            {
+                var info = await _storage.GetMethodInfoAsync(id, ct);
+                var ep = entryPoints.Contains(id) ? " [entry]" : "";
+                lines.Add($"  {info?.FullName ?? id}{ep}");
+            }
+            if (group.Count() > 20)
+                lines.Add($"  ... +{group.Count() - 20} more");
         }
 
         return string.Join("\n", lines);

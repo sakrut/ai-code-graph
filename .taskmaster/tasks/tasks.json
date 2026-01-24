@@ -2406,7 +2406,7 @@
         "dependencies": [
           "20"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -2459,7 +2459,8 @@
         ],
         "complexity": 6,
         "recommendedSubtasks": 4,
-        "expansionPrompt": "Break down into: (1) Register the impact command with options in Program.cs and implement method resolution via SearchMethodsAsync, (2) Implement BFS traversal using GetCallersAsync with depth limiting and visited set, (3) Implement tree and JSON output formatters with entry point identification, (4) Add MCP tool cg_impact in McpServer.cs, slash command, and write tests with fixture's known caller chains"
+        "expansionPrompt": "Break down into: (1) Register the impact command with options in Program.cs and implement method resolution via SearchMethodsAsync, (2) Implement BFS traversal using GetCallersAsync with depth limiting and visited set, (3) Implement tree and JSON output formatters with entry point identification, (4) Add MCP tool cg_impact in McpServer.cs, slash command, and write tests with fixture's known caller chains",
+        "updatedAt": "2026-01-24T12:16:15.539Z"
       },
       {
         "id": "38",
@@ -3348,9 +3349,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-24T12:13:13.685Z",
+      "lastModified": "2026-01-24T12:16:15.539Z",
       "taskCount": 50,
-      "completedCount": 23,
+      "completedCount": 24,
       "tags": [
         "master"
       ]
