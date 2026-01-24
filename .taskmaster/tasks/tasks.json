@@ -2805,7 +2805,7 @@
           "40",
           "41"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -2858,7 +2858,8 @@
         ],
         "complexity": 7,
         "recommendedSubtasks": 4,
-        "expansionPrompt": "Break down into: (1) Add Microsoft.ML.OnnxRuntime NuGet reference and create OnnxEmbeddingEngine class with InferenceSession management, (2) Implement tokenization (basic whitespace with hash-to-vocab mapping) and tensor construction for BERT-like inputs, (3) Implement mean pooling over token dimension from model output, (4) Write tests covering file-not-found, dispose, and optional integration test with real model"
+        "expansionPrompt": "Break down into: (1) Add Microsoft.ML.OnnxRuntime NuGet reference and create OnnxEmbeddingEngine class with InferenceSession management, (2) Implement tokenization (basic whitespace with hash-to-vocab mapping) and tensor construction for BERT-like inputs, (3) Implement mean pooling over token dimension from model output, (4) Write tests covering file-not-found, dispose, and optional integration test with real model",
+        "updatedAt": "2026-01-24T13:28:41.315Z"
       },
       {
         "id": "44",
@@ -3371,9 +3372,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-24T13:26:59.569Z",
+      "lastModified": "2026-01-24T13:28:41.316Z",
       "taskCount": 50,
-      "completedCount": 42,
+      "completedCount": 43,
       "tags": [
         "master"
       ]
