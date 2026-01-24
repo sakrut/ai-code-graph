@@ -24,31 +24,31 @@ public class StorageService : IStorageService
         }
 
         _connection = new SqliteConnection($"Data Source={_dbPath};Foreign Keys=False");
-        await _connection.OpenAsync(cancellationToken);
+        await _connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
         using var pragmaCmd = _connection.CreateCommand();
         pragmaCmd.CommandText = "PRAGMA journal_mode=WAL; PRAGMA foreign_keys=OFF;";
-        await pragmaCmd.ExecuteNonQueryAsync(cancellationToken);
+        await pragmaCmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
 
         foreach (var drop in SchemaDefinition.DropTables)
         {
             using var cmd = _connection.CreateCommand();
             cmd.CommandText = drop;
-            await cmd.ExecuteNonQueryAsync(cancellationToken);
+            await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
 
         foreach (var create in SchemaDefinition.CreateTables)
         {
             using var cmd = _connection.CreateCommand();
             cmd.CommandText = create;
-            await cmd.ExecuteNonQueryAsync(cancellationToken);
+            await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
 
         foreach (var index in SchemaDefinition.CreateIndexes)
         {
             using var cmd = _connection.CreateCommand();
             cmd.CommandText = index;
-            await cmd.ExecuteNonQueryAsync(cancellationToken);
+            await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -61,7 +61,7 @@ public class StorageService : IStorageService
         {
             foreach (var result in results)
             {
-                await InsertProject(result.Model, transaction, cancellationToken);
+                await InsertProject(result.Model, transaction, cancellationToken).ConfigureAwait(false);
             }
             transaction.Commit();
         }
@@ -80,10 +80,10 @@ public class StorageService : IStorageService
         cmd.Parameters.AddWithValue("@id", project.Id);
         cmd.Parameters.AddWithValue("@name", project.Name);
         cmd.Parameters.AddWithValue("@path", project.FilePath);
-        await cmd.ExecuteNonQueryAsync(ct);
+        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
 
         foreach (var ns in project.Namespaces)
-            await InsertNamespace(ns, project.Id, transaction, ct);
+            await InsertNamespace(ns, project.Id, transaction, ct).ConfigureAwait(false);
     }
 
     private async Task InsertNamespace(NamespaceModel ns, string projectId, SqliteTransaction transaction, CancellationToken ct)
@@ -94,13 +94,13 @@ public class StorageService : IStorageService
         cmd.Parameters.AddWithValue("@id", ns.Id);
         cmd.Parameters.AddWithValue("@name", ns.FullName);
         cmd.Parameters.AddWithValue("@pid", projectId);
-        await cmd.ExecuteNonQueryAsync(ct);
+        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
 
         foreach (var type in ns.Types)
-            await InsertType(type, ns.Id, transaction, ct);
+            await InsertType(type, ns.Id, transaction, ct).ConfigureAwait(false);
 
         foreach (var child in ns.ChildNamespaces)
-            await InsertNamespace(child, projectId, transaction, ct);
+            await InsertNamespace(child, projectId, transaction, ct).ConfigureAwait(false);
     }
 
     private async Task InsertType(TypeModel type, string namespaceId, SqliteTransaction transaction, CancellationToken ct)
@@ -119,7 +119,7 @@ public class StorageService : IStorageService
         cmd.Parameters.AddWithValue("@isStatic", type.IsStatic ? 1 : 0);
         cmd.Parameters.AddWithValue("@isAbstract", type.IsAbstract ? 1 : 0);
         cmd.Parameters.AddWithValue("@isSealed", type.IsSealed ? 1 : 0);
-        await cmd.ExecuteNonQueryAsync(ct);
+        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
 
         foreach (var iface in type.ImplementedInterfaces)
         {
@@ -128,14 +128,14 @@ public class StorageService : IStorageService
             implCmd.CommandText = "INSERT OR IGNORE INTO TypeImplements (TypeId, InterfaceId) VALUES (@tid, @iid)";
             implCmd.Parameters.AddWithValue("@tid", type.Id);
             implCmd.Parameters.AddWithValue("@iid", iface);
-            await implCmd.ExecuteNonQueryAsync(ct);
+            await implCmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
         }
 
         foreach (var method in type.Methods)
-            await InsertMethod(method, type.Id, transaction, ct);
+            await InsertMethod(method, type.Id, transaction, ct).ConfigureAwait(false);
 
         foreach (var nested in type.NestedTypes)
-            await InsertType(nested, namespaceId, transaction, ct);
+            await InsertType(nested, namespaceId, transaction, ct).ConfigureAwait(false);
     }
 
     private async Task InsertMethod(MethodModel method, string typeId, SqliteTransaction transaction, CancellationToken ct)
@@ -159,7 +159,7 @@ public class StorageService : IStorageService
         cmd.Parameters.AddWithValue("@isVirtual", method.IsVirtual ? 1 : 0);
         cmd.Parameters.AddWithValue("@isOverride", method.IsOverride ? 1 : 0);
         cmd.Parameters.AddWithValue("@isAbstract", method.IsAbstract ? 1 : 0);
-        await cmd.ExecuteNonQueryAsync(ct);
+        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
     public async Task SaveCallGraphAsync(List<(string CallerId, string CalleeId)> calls, CancellationToken cancellationToken = default)
@@ -179,7 +179,7 @@ public class StorageService : IStorageService
             {
                 callerParam.Value = callerId;
                 calleeParam.Value = calleeId;
-                await cmd.ExecuteNonQueryAsync(cancellationToken);
+                await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }
 
             transaction.Commit();
@@ -212,7 +212,7 @@ public class StorageService : IStorageService
                 ccParam.Value = cc;
                 locParam.Value = loc;
                 ndParam.Value = nd;
-                await cmd.ExecuteNonQueryAsync(cancellationToken);
+                await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }
 
             transaction.Commit();
@@ -237,8 +237,8 @@ public class StorageService : IStorageService
         cmd.Parameters.AddWithValue("@top", top);
 
         var results = new List<(string, string, string, string, string?, int)>();
-        using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-        while (await reader.ReadAsync(cancellationToken))
+        using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
             results.Add((
                 reader.GetString(0),
@@ -260,8 +260,8 @@ public class StorageService : IStorageService
         cmd.Parameters.AddWithValue("@id", methodId);
 
         var results = new List<string>();
-        using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-        while (await reader.ReadAsync(cancellationToken))
+        using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
             results.Add(reader.GetString(0));
         return results;
     }
@@ -274,8 +274,8 @@ public class StorageService : IStorageService
         cmd.Parameters.AddWithValue("@id", methodId);
 
         var results = new List<string>();
-        using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-        while (await reader.ReadAsync(cancellationToken))
+        using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
             results.Add(reader.GetString(0));
         return results;
     }
@@ -288,8 +288,8 @@ public class StorageService : IStorageService
         cmd.Parameters.AddWithValue("@pattern", $"%{pattern}%");
 
         var results = new List<(string, string)>();
-        using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-        while (await reader.ReadAsync(cancellationToken))
+        using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
             results.Add((reader.GetString(0), reader.GetString(1)));
         return results;
     }
@@ -313,7 +313,7 @@ public class StorageService : IStorageService
                 idParam.Value = methodId;
                 vecParam.Value = VectorToBytes(vector);
                 modelParam.Value = modelVersion;
-                await cmd.ExecuteNonQueryAsync(cancellationToken);
+                await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }
 
             transaction.Commit();
@@ -332,8 +332,8 @@ public class StorageService : IStorageService
         cmd.CommandText = "SELECT MethodId, Vector FROM Embeddings";
 
         var results = new List<(string, float[])>();
-        using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-        while (await reader.ReadAsync(cancellationToken))
+        using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
             var id = reader.GetString(0);
             var bytes = (byte[])reader[1];
@@ -375,7 +375,7 @@ public class StorageService : IStorageService
                 idParam.Value = methodId;
                 sigParam.Value = sig;
                 payloadParam.Value = payload;
-                await cmd.ExecuteNonQueryAsync(cancellationToken);
+                await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }
 
             transaction.Commit();
@@ -390,7 +390,7 @@ public class StorageService : IStorageService
     public async Task OpenAsync(CancellationToken cancellationToken = default)
     {
         _connection = new SqliteConnection($"Data Source={_dbPath};Foreign Keys=False");
-        await _connection.OpenAsync(cancellationToken);
+        await _connection.OpenAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<(string Id, string Name, string FullName, string? FilePath, int StartLine)?> GetMethodInfoAsync(string methodId, CancellationToken cancellationToken = default)
@@ -400,8 +400,8 @@ public class StorageService : IStorageService
         cmd.CommandText = "SELECT Id, Name, FullName, FilePath, StartLine FROM Methods WHERE Id = @id";
         cmd.Parameters.AddWithValue("@id", methodId);
 
-        using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-        if (await reader.ReadAsync(cancellationToken))
+        using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        if (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
             return (
                 reader.GetString(0),
@@ -431,8 +431,8 @@ public class StorageService : IStorageService
             cmd.Parameters.AddWithValue("@threshold", threshold.Value);
 
         var results = new List<(string, string, string, int, int, int, string?, int)>();
-        using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-        while (await reader.ReadAsync(cancellationToken))
+        using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
             results.Add((
                 reader.GetString(0),
@@ -474,8 +474,8 @@ public class StorageService : IStorageService
             cmd.Parameters.AddWithValue("@type", $"%{typeFilter}%");
 
         var results = new List<(string, string, string, string, string, string)>();
-        using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-        while (await reader.ReadAsync(cancellationToken))
+        using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
             results.Add((
                 reader.GetString(0),
@@ -501,7 +501,7 @@ public class StorageService : IStorageService
             {
                 delCmd.Transaction = transaction;
                 delCmd.CommandText = "DELETE FROM ClonePairs";
-                await delCmd.ExecuteNonQueryAsync(cancellationToken);
+                await delCmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }
 
             using var cmd = _connection!.CreateCommand();
@@ -525,7 +525,7 @@ public class StorageService : IStorageService
                 semParam.Value = pair.SemanticSimilarity;
                 hsParam.Value = pair.HybridScore;
                 typeParam.Value = pair.Type.ToString();
-                await cmd.ExecuteNonQueryAsync(cancellationToken);
+                await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }
 
             transaction.Commit();
@@ -575,8 +575,8 @@ public class StorageService : IStorageService
             cmd.Parameters.AddWithValue("@type", typeFilter.Value.ToString());
 
         var results = new List<ClonePair>();
-        using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-        while (await reader.ReadAsync(cancellationToken))
+        using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
             results.Add(new ClonePair(
                 reader.GetString(0),
@@ -601,7 +601,7 @@ public class StorageService : IStorageService
             {
                 delCmd.Transaction = transaction;
                 delCmd.CommandText = "DELETE FROM MethodClusterMap; DELETE FROM IntentClusters;";
-                await delCmd.ExecuteNonQueryAsync(cancellationToken);
+                await delCmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }
 
             using var clusterCmd = _connection!.CreateCommand();
@@ -629,13 +629,13 @@ public class StorageService : IStorageService
                 descParam.Value = (object?)cluster.Description ?? DBNull.Value;
                 cohesionParam.Value = cluster.Cohesion;
                 countParam.Value = cluster.MethodIds.Count;
-                await clusterCmd.ExecuteNonQueryAsync(cancellationToken);
+                await clusterCmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
 
                 cidParam.Value = cluster.Id;
                 foreach (var methodId in cluster.MethodIds)
                 {
                     midParam.Value = methodId;
-                    await mapCmd.ExecuteNonQueryAsync(cancellationToken);
+                    await mapCmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
                 }
             }
 
@@ -657,8 +657,8 @@ public class StorageService : IStorageService
         using (var cmd = _connection!.CreateCommand())
         {
             cmd.CommandText = "SELECT Id, Label, Description, Cohesion, MemberCount FROM IntentClusters ORDER BY MemberCount DESC";
-            using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-            while (await reader.ReadAsync(cancellationToken))
+            using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
             {
                 clusters[reader.GetString(0)] = (
                     reader.GetString(1),
@@ -673,8 +673,8 @@ public class StorageService : IStorageService
         using (var cmd = _connection!.CreateCommand())
         {
             cmd.CommandText = "SELECT ClusterId, MethodId FROM MethodClusterMap";
-            using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-            while (await reader.ReadAsync(cancellationToken))
+            using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
             {
                 var cid = reader.GetString(0);
                 if (!members.ContainsKey(cid))
@@ -727,8 +727,8 @@ public class StorageService : IStorageService
         }
 
         var results = new List<(string, string, string, string, string?, int, int, int, int, string?)>();
-        using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-        while (await reader.ReadAsync(cancellationToken))
+        using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
             results.Add((
                 reader.GetString(0),
@@ -772,8 +772,8 @@ public class StorageService : IStorageService
                 cmd.Parameters.AddWithValue($"@e{j}", chunk[j]);
             }
 
-            using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-            while (await reader.ReadAsync(cancellationToken))
+            using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
             {
                 var pair = (reader.GetString(0), reader.GetString(1));
                 if (seen.Add(pair))
@@ -790,8 +790,8 @@ public class StorageService : IStorageService
         using var cmd = _connection!.CreateCommand();
         cmd.CommandText = "SELECT CognitiveComplexity, LinesOfCode, NestingDepth FROM Metrics WHERE MethodId = @id";
         cmd.Parameters.AddWithValue("@id", methodId);
-        using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-        if (await reader.ReadAsync(cancellationToken))
+        using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        if (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
             return (reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2));
         return null;
     }
@@ -806,8 +806,8 @@ public class StorageService : IStorageService
             WHERE mcm.MethodId = @id
             """;
         cmd.Parameters.AddWithValue("@id", methodId);
-        using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-        if (await reader.ReadAsync(cancellationToken))
+        using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        if (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
             return (reader.GetString(0), reader.GetInt32(1), reader.GetFloat(2));
         return null;
     }
@@ -826,8 +826,8 @@ public class StorageService : IStorageService
             """;
         cmd.Parameters.AddWithValue("@id", methodId);
         var results = new List<(string, string, float, CloneType)>();
-        using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-        while (await reader.ReadAsync(cancellationToken))
+        using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
             var idA = reader.GetString(0);
             var idB = reader.GetString(1);
@@ -869,8 +869,8 @@ public class StorageService : IStorageService
         cmd.CommandText += "\n  ORDER BY COALESCE(met.CognitiveComplexity, 0) DESC";
 
         var results = new List<(string, string, string?, int, int)>();
-        using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-        while (await reader.ReadAsync(cancellationToken))
+        using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
             results.Add((
                 reader.GetString(0),
@@ -898,7 +898,7 @@ public class StorageService : IStorageService
     {
         if (_connection != null)
         {
-            await _connection.DisposeAsync();
+            await _connection.DisposeAsync().ConfigureAwait(false);
             _connection = null;
         }
     }

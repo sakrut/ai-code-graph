@@ -44,7 +44,7 @@ public class WorkspaceLoader : IWorkspaceLoader
         });
 
         progress?.Report(new WorkspaceLoadProgress("Loading", null, 0, 0));
-        var solution = await _workspace.OpenSolutionAsync(solutionPath, cancellationToken: cancellationToken);
+        var solution = await _workspace.OpenSolutionAsync(solutionPath, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         var projects = solution.Projects.ToList();
         var totalProjects = projects.Count;
@@ -59,7 +59,7 @@ public class WorkspaceLoader : IWorkspaceLoader
 
             try
             {
-                var compilation = await project.GetCompilationAsync(cancellationToken);
+                var compilation = await project.GetCompilationAsync(cancellationToken).ConfigureAwait(false);
                 if (compilation != null)
                     compilations[project.Id] = compilation;
             }

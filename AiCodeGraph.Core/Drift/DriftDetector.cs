@@ -52,8 +52,8 @@ public class DriftDetector
 
     private static async Task<List<MethodDiff>> DetectNewMethods(SqliteConnection current, SqliteConnection baseline, CancellationToken ct)
     {
-        var baselineIds = await GetMethodIds(baseline, ct);
-        var currentMethods = await GetMethodDetails(current, ct);
+        var baselineIds = await GetMethodIds(baseline, ct).ConfigureAwait(false);
+        var currentMethods = await GetMethodDetails(current, ct).ConfigureAwait(false);
 
         return currentMethods
             .Where(m => !baselineIds.Contains(m.MethodId))
@@ -63,8 +63,8 @@ public class DriftDetector
 
     private static async Task<List<MethodDiff>> DetectRemovedMethods(SqliteConnection current, SqliteConnection baseline, CancellationToken ct)
     {
-        var currentIds = await GetMethodIds(current, ct);
-        var baselineMethods = await GetMethodDetails(baseline, ct);
+        var currentIds = await GetMethodIds(current, ct).ConfigureAwait(false);
+        var baselineMethods = await GetMethodDetails(baseline, ct).ConfigureAwait(false);
 
         return baselineMethods
             .Where(m => !currentIds.Contains(m.MethodId))
@@ -74,8 +74,8 @@ public class DriftDetector
 
     private async Task<List<ComplexityRegression>> DetectComplexityRegressions(SqliteConnection current, SqliteConnection baseline, CancellationToken ct)
     {
-        var currentMetrics = await GetMetrics(current, ct);
-        var baselineMetrics = await GetMetrics(baseline, ct);
+        var currentMetrics = await GetMetrics(current, ct).ConfigureAwait(false);
+        var baselineMetrics = await GetMetrics(baseline, ct).ConfigureAwait(false);
 
         var regressions = new List<ComplexityRegression>();
 
@@ -96,7 +96,7 @@ public class DriftDetector
 
             if (percentIncrease >= _options.ComplexityPercentageThreshold || crossedThreshold)
             {
-                var fullName = await GetMethodFullName(current, methodId, ct);
+                var fullName = await GetMethodFullName(current, methodId, ct).ConfigureAwait(false);
                 regressions.Add(new ComplexityRegression(
                     methodId,
                     fullName ?? methodId,
@@ -112,8 +112,8 @@ public class DriftDetector
 
     private static async Task<List<ClonePair>> DetectNewDuplicates(SqliteConnection current, SqliteConnection baseline, CancellationToken ct)
     {
-        var baselinePairs = await GetClonePairKeys(baseline, ct);
-        var currentPairs = await GetClonePairs(current, ct);
+        var baselinePairs = await GetClonePairKeys(baseline, ct).ConfigureAwait(false);
+        var currentPairs = await GetClonePairs(current, ct).ConfigureAwait(false);
 
         return currentPairs
             .Where(p => !baselinePairs.Contains((p.MethodIdA, p.MethodIdB)))
@@ -123,8 +123,8 @@ public class DriftDetector
 
     private async Task<List<ScatteringAlert>> DetectIntentScattering(SqliteConnection current, SqliteConnection baseline, CancellationToken ct)
     {
-        var baselineClusters = await GetClusterNamespaces(baseline, ct);
-        var currentClusters = await GetClusterNamespaces(current, ct);
+        var baselineClusters = await GetClusterNamespaces(baseline, ct).ConfigureAwait(false);
+        var currentClusters = await GetClusterNamespaces(current, ct).ConfigureAwait(false);
 
         var alerts = new List<ScatteringAlert>();
 
@@ -153,12 +153,12 @@ public class DriftDetector
     private static async Task<HashSet<string>> GetMethodIds(SqliteConnection conn, CancellationToken ct)
     {
         var ids = new HashSet<string>();
-        if (!await TableExists(conn, "Methods", ct)) return ids;
+        if (!await TableExists(conn, "Methods", ct).ConfigureAwait(false)) return ids;
 
         using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT Id FROM Methods";
-        using var reader = await cmd.ExecuteReaderAsync(ct);
-        while (await reader.ReadAsync(ct))
+        using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
             ids.Add(reader.GetString(0));
         return ids;
     }
@@ -166,7 +166,7 @@ public class DriftDetector
     private static async Task<List<MethodDiff>> GetMethodDetails(SqliteConnection conn, CancellationToken ct)
     {
         var methods = new List<MethodDiff>();
-        if (!await TableExists(conn, "Methods", ct)) return methods;
+        if (!await TableExists(conn, "Methods", ct).ConfigureAwait(false)) return methods;
 
         using var cmd = conn.CreateCommand();
         cmd.CommandText = """
@@ -175,8 +175,8 @@ public class DriftDetector
             JOIN Types t ON t.Id = m.TypeId
             JOIN Namespaces n ON n.Id = t.NamespaceId
             """;
-        using var reader = await cmd.ExecuteReaderAsync(ct);
-        while (await reader.ReadAsync(ct))
+        using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
         {
             methods.Add(new MethodDiff(
                 reader.GetString(0),
@@ -190,12 +190,12 @@ public class DriftDetector
     private static async Task<Dictionary<string, int>> GetMetrics(SqliteConnection conn, CancellationToken ct)
     {
         var metrics = new Dictionary<string, int>();
-        if (!await TableExists(conn, "Metrics", ct)) return metrics;
+        if (!await TableExists(conn, "Metrics", ct).ConfigureAwait(false)) return metrics;
 
         using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT MethodId, CognitiveComplexity FROM Metrics";
-        using var reader = await cmd.ExecuteReaderAsync(ct);
-        while (await reader.ReadAsync(ct))
+        using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
             metrics[reader.GetString(0)] = reader.GetInt32(1);
         return metrics;
     }
@@ -205,19 +205,19 @@ public class DriftDetector
         using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT FullName FROM Methods WHERE Id = @id";
         cmd.Parameters.AddWithValue("@id", methodId);
-        var result = await cmd.ExecuteScalarAsync(ct);
+        var result = await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false);
         return result as string;
     }
 
     private static async Task<HashSet<(string, string)>> GetClonePairKeys(SqliteConnection conn, CancellationToken ct)
     {
         var keys = new HashSet<(string, string)>();
-        if (!await TableExists(conn, "ClonePairs", ct)) return keys;
+        if (!await TableExists(conn, "ClonePairs", ct).ConfigureAwait(false)) return keys;
 
         using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT MethodIdA, MethodIdB FROM ClonePairs";
-        using var reader = await cmd.ExecuteReaderAsync(ct);
-        while (await reader.ReadAsync(ct))
+        using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
             keys.Add((reader.GetString(0), reader.GetString(1)));
         return keys;
     }
@@ -225,12 +225,12 @@ public class DriftDetector
     private static async Task<List<ClonePair>> GetClonePairs(SqliteConnection conn, CancellationToken ct)
     {
         var pairs = new List<ClonePair>();
-        if (!await TableExists(conn, "ClonePairs", ct)) return pairs;
+        if (!await TableExists(conn, "ClonePairs", ct).ConfigureAwait(false)) return pairs;
 
         using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT MethodIdA, MethodIdB, StructuralSimilarity, SemanticSimilarity, HybridScore, CloneType FROM ClonePairs";
-        using var reader = await cmd.ExecuteReaderAsync(ct);
-        while (await reader.ReadAsync(ct))
+        using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
         {
             pairs.Add(new ClonePair(
                 reader.GetString(0),
@@ -246,8 +246,8 @@ public class DriftDetector
     private static async Task<Dictionary<string, (List<string> Namespaces, List<string> Methods)>> GetClusterNamespaces(SqliteConnection conn, CancellationToken ct)
     {
         var result = new Dictionary<string, (List<string> Namespaces, List<string> Methods)>();
-        if (!await TableExists(conn, "IntentClusters", ct)) return result;
-        if (!await TableExists(conn, "MethodClusterMap", ct)) return result;
+        if (!await TableExists(conn, "IntentClusters", ct).ConfigureAwait(false)) return result;
+        if (!await TableExists(conn, "MethodClusterMap", ct).ConfigureAwait(false)) return result;
 
         using var cmd = conn.CreateCommand();
         cmd.CommandText = """
@@ -258,8 +258,8 @@ public class DriftDetector
             JOIN Types t ON t.Id = m.TypeId
             JOIN Namespaces n ON n.Id = t.NamespaceId
             """;
-        using var reader = await cmd.ExecuteReaderAsync(ct);
-        while (await reader.ReadAsync(ct))
+        using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
         {
             var label = reader.GetString(0);
             var ns = reader.GetString(1);
@@ -281,7 +281,7 @@ public class DriftDetector
         using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=@name";
         cmd.Parameters.AddWithValue("@name", tableName);
-        var result = await cmd.ExecuteScalarAsync(ct);
+        var result = await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false);
         return Convert.ToInt64(result) > 0;
     }
 }
