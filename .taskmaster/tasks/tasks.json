@@ -2923,7 +2923,7 @@
         "dependencies": [
           "44"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -2963,7 +2963,8 @@
         ],
         "complexity": 5,
         "recommendedSubtasks": 3,
-        "expansionPrompt": "Break down into: (1) Create semantic-search command with options and metadata-based engine detection, (2) Implement engine recreation from metadata (matching the engine used during analysis) and query embedding generation, (3) Add MCP tool, slash command, warning logic for hash-based DBs, and tests"
+        "expansionPrompt": "Break down into: (1) Create semantic-search command with options and metadata-based engine detection, (2) Implement engine recreation from metadata (matching the engine used during analysis) and query embedding generation, (3) Add MCP tool, slash command, warning logic for hash-based DBs, and tests",
+        "updatedAt": "2026-01-24T13:33:34.038Z"
       },
       {
         "id": "46",
@@ -3373,9 +3374,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-24T13:31:02.380Z",
+      "lastModified": "2026-01-24T13:33:34.038Z",
       "taskCount": 50,
-      "completedCount": 44,
+      "completedCount": 45,
       "tags": [
         "master"
       ]

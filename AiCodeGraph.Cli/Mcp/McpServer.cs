@@ -245,6 +245,18 @@ public class McpServer
                         ["since"] = new JsonObject { ["type"] = "string", ["description"] = "Git log time range (e.g. '6 months ago')", ["default"] = "6 months ago" },
                         ["top"] = new JsonObject { ["type"] = "integer", ["description"] = "Number of results", ["default"] = 20 }
                     }
+                }),
+            CreateToolDef("cg_semantic_search",
+                "Search code by semantic meaning using LLM embeddings",
+                new JsonObject
+                {
+                    ["type"] = "object",
+                    ["properties"] = new JsonObject
+                    {
+                        ["query"] = new JsonObject { ["type"] = "string", ["description"] = "Natural language search query" },
+                        ["top"] = new JsonObject { ["type"] = "integer", ["description"] = "Number of results", ["default"] = 10 }
+                    },
+                    ["required"] = new JsonArray { "query" }
                 })
         };
 
@@ -283,6 +295,7 @@ public class McpServer
                 "cg_get_impact" => await ToolGetImpact(args, ct),
                 "cg_analyze" => await ToolAnalyze(args, ct),
                 "cg_churn" => await ToolGetChurn(args, ct),
+                "cg_semantic_search" => await ToolSemanticSearch(args, ct),
                 _ => $"Unknown tool: {toolName}"
             };
 
@@ -915,6 +928,71 @@ public class McpServer
         }
         lines.Add($"\nTotal: {results.Count} methods");
         return string.Join("\n", lines);
+    }
+
+    private async Task<string> ToolSemanticSearch(JsonNode? args, CancellationToken ct)
+    {
+        var query = args?["query"]?.GetValue<string>();
+        if (string.IsNullOrEmpty(query)) return "Error: 'query' parameter required";
+        var top = args?["top"]?.GetValue<int>() ?? 10;
+
+        var allEmbeddings = await _storage!.GetEmbeddingsAsync(ct);
+        if (allEmbeddings.Count == 0)
+            return "No embeddings found. Run 'analyze' first.";
+
+        var engineType = await _storage.GetMetadataAsync("embedding_engine", ct) ?? "hash";
+        var modelName = await _storage.GetMetadataAsync("embedding_model", ct);
+        var dimStr = await _storage.GetMetadataAsync("embedding_dimensions", ct);
+        var dimensions = int.TryParse(dimStr, out var d) ? d : 384;
+
+        IEmbeddingEngine engine = engineType switch
+        {
+            "openai" => CreateOpenAiEngineFromMetadata(modelName, dimensions),
+            "onnx" => CreateOnnxEngineFromMetadata(modelName, dimensions),
+            _ => new HashEmbeddingEngine()
+        };
+
+        using (engine)
+        {
+            var queryVector = engine.GenerateEmbedding(query);
+            if (_vectorIndex == null)
+            {
+                _vectorIndex = new VectorIndex();
+                _vectorIndex.BuildIndex(allEmbeddings);
+            }
+
+            var searchResults = _vectorIndex.Search(queryVector, top);
+
+            var lines = new List<string>();
+            if (engineType == "hash")
+                lines.Add("Note: Using hash-based embeddings (token overlap). Re-analyze with --embedding-engine openai for semantic search.");
+            lines.Add($"Results for: \"{query}\" (engine: {engineType})");
+            lines.Add("");
+
+            foreach (var (id, score) in searchResults)
+            {
+                var info = await _storage.GetMethodInfoAsync(id, ct);
+                lines.Add($"  [{score:F4}] {info?.FullName ?? id}");
+                if (info?.FilePath != null) lines.Add($"         {info.Value.FilePath}:{info.Value.StartLine}");
+            }
+            return string.Join("\n", lines);
+        }
+    }
+
+    private static IEmbeddingEngine CreateOpenAiEngineFromMetadata(string? model, int dimensions)
+    {
+        var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+        if (string.IsNullOrEmpty(apiKey))
+            return new HashEmbeddingEngine();
+        return new OpenAiEmbeddingEngine(apiKey, model ?? "text-embedding-3-small", dimensions);
+    }
+
+    private static IEmbeddingEngine CreateOnnxEngineFromMetadata(string? modelPath, int dimensions)
+    {
+        var path = modelPath ?? "./models/all-MiniLM-L6-v2.onnx";
+        if (!File.Exists(path))
+            return new HashEmbeddingEngine();
+        return new OnnxEmbeddingEngine(path, dimensions);
     }
 
     private static int CountMethodsInNamespace(NamespaceModel ns)
