@@ -268,6 +268,18 @@ public class McpServer
                         ["level"] = new JsonObject { ["type"] = "string", ["description"] = "namespace|type", ["default"] = "namespace" },
                         ["top"] = new JsonObject { ["type"] = "integer", ["description"] = "Number of results", ["default"] = 20 }
                     }
+                }),
+            CreateToolDef("cg_diff",
+                "Compare code between git refs, showing affected methods and complexity",
+                new JsonObject
+                {
+                    ["type"] = "object",
+                    ["properties"] = new JsonObject
+                    {
+                        ["from"] = new JsonObject { ["type"] = "string", ["description"] = "Base git ref", ["default"] = "HEAD~1" },
+                        ["to"] = new JsonObject { ["type"] = "string", ["description"] = "Target git ref", ["default"] = "HEAD" },
+                        ["format"] = new JsonObject { ["type"] = "string", ["description"] = "summary|detail|json", ["default"] = "summary" }
+                    }
                 })
         };
 
@@ -308,6 +320,7 @@ public class McpServer
                 "cg_churn" => await ToolGetChurn(args, ct),
                 "cg_semantic_search" => await ToolSemanticSearch(args, ct),
                 "cg_coupling" => await ToolGetCoupling(args, ct),
+                "cg_diff" => await ToolGetDiff(args, ct),
                 _ => $"Unknown tool: {toolName}"
             };
 
@@ -1012,6 +1025,99 @@ public class McpServer
             lines.Add($"{name,-40} {r.AfferentCoupling,4} {r.EfferentCoupling,4} {r.Instability,5:F2} {r.Abstractness,5:F2} {r.DistanceFromMain,5:F2}");
         }
         return string.Join("\n", lines);
+    }
+
+    private async Task<string> ToolGetDiff(JsonNode? args, CancellationToken ct)
+    {
+        var fromRef = args?["from"]?.GetValue<string>() ?? "HEAD~1";
+        var toRef = args?["to"]?.GetValue<string>() ?? "HEAD";
+        var format = args?["format"]?.GetValue<string>() ?? "summary";
+
+        var changedFiles = await GetChangedCsFilesAsync(fromRef, toRef, ct);
+        if (changedFiles.Count == 0)
+            return $"No C# files changed between {fromRef}..{toRef}.";
+
+        var allMethods = await _storage!.GetMethodsForExportAsync(null, ct);
+        var changedFileNames = changedFiles.Select(Path.GetFileName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var affectedMethods = allMethods
+            .Where(m => m.FilePath != null && changedFileNames.Contains(Path.GetFileName(m.FilePath)))
+            .ToList();
+
+        if (format == "json")
+        {
+            var json = JsonSerializer.Serialize(new
+            {
+                from = fromRef,
+                to = toRef,
+                filesChanged = changedFiles.Count,
+                methodsAffected = affectedMethods.Count,
+                files = changedFiles,
+                methods = affectedMethods.Select(m => new
+                {
+                    id = m.Id,
+                    name = m.FullName,
+                    file = m.FilePath,
+                    complexity = m.Complexity
+                })
+            }, new JsonSerializerOptions { WriteIndented = true });
+            return json;
+        }
+
+        var lines = new List<string>
+        {
+            $"Changes between {fromRef}..{toRef}:",
+            $"Files changed: {changedFiles.Count}",
+            $"Methods affected: {affectedMethods.Count}",
+            ""
+        };
+
+        if (format == "detail" && affectedMethods.Count > 0)
+        {
+            lines.Add($"{"Method",-50} {"File",-25} {"CC",4}");
+            lines.Add(new string('-', 83));
+            foreach (var m in affectedMethods.OrderByDescending(m => m.Complexity))
+            {
+                var name = m.FullName.Length > 48 ? m.FullName[..45] + "..." : m.FullName;
+                var file = m.FilePath != null ? Path.GetFileName(m.FilePath) : "";
+                lines.Add($"{name,-50} {file,-25} {m.Complexity,4}");
+            }
+        }
+        else if (affectedMethods.Count > 0)
+        {
+            var highComplexity = affectedMethods.Where(m => m.Complexity > 10).ToList();
+            if (highComplexity.Count > 0)
+            {
+                lines.Add($"High-complexity methods in changed files ({highComplexity.Count}):");
+                foreach (var m in highComplexity.OrderByDescending(m => m.Complexity).Take(10))
+                    lines.Add($"  {m.FullName} (CC={m.Complexity})");
+            }
+        }
+
+        return string.Join("\n", lines);
+    }
+
+    private static async Task<List<string>> GetChangedCsFilesAsync(string fromRef, string toRef, CancellationToken ct)
+    {
+        var psi = new System.Diagnostics.ProcessStartInfo("git", $"diff --name-only {fromRef} {toRef} -- \"*.cs\"")
+        {
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        using var process = System.Diagnostics.Process.Start(psi);
+        if (process == null) return new List<string>();
+
+        var output = await process.StandardOutput.ReadToEndAsync(ct);
+        await process.WaitForExitAsync(ct);
+
+        if (process.ExitCode != 0) return new List<string>();
+
+        return output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(f => f.EndsWith(".cs", StringComparison.OrdinalIgnoreCase))
+            .ToList();
     }
 
     private static IEmbeddingEngine CreateOpenAiEngineFromMetadata(string? model, int dimensions)

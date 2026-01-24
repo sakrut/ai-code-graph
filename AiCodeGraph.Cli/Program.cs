@@ -1567,6 +1567,108 @@ couplingCommand.SetAction(async (parseResult, cancellationToken) =>
     }
 });
 
+// --- diff command ---
+var diffFromOption = new Option<string>("--from") { Description = "Base git ref", DefaultValueFactory = _ => "HEAD~1" };
+var diffToOption = new Option<string>("--to") { Description = "Target git ref", DefaultValueFactory = _ => "HEAD" };
+var diffFormatOption = new Option<string>("--format", "-f") { Description = "summary|detail|json", DefaultValueFactory = _ => "summary" };
+var diffDbOption = new Option<string>("--db") { Description = "Path to graph.db", DefaultValueFactory = _ => "./ai-code-graph/graph.db" };
+
+var diffCommand = new Command("diff", "Compare code graphs between git refs")
+{
+    diffFromOption, diffToOption, diffFormatOption, diffDbOption
+};
+
+diffCommand.SetAction(async (parseResult, cancellationToken) =>
+{
+    var fromRef = parseResult.GetValue(diffFromOption) ?? "HEAD~1";
+    var toRef = parseResult.GetValue(diffToOption) ?? "HEAD";
+    var format = parseResult.GetValue(diffFormatOption) ?? "summary";
+    var dbPath = parseResult.GetValue(diffDbOption) ?? "./ai-code-graph/graph.db";
+
+    if (!File.Exists(dbPath))
+    {
+        Console.Error.WriteLine($"Error: Database not found at {dbPath}. Run 'analyze' first.");
+        Environment.ExitCode = 1;
+        return;
+    }
+
+    // Get changed .cs files between refs
+    var changedFiles = await GetChangedCsFiles(fromRef, toRef, cancellationToken);
+    if (changedFiles.Count == 0)
+    {
+        Console.WriteLine($"No C# files changed between {fromRef}..{toRef}.");
+        return;
+    }
+
+    await using var storage = new StorageService(dbPath);
+    await storage.OpenAsync(cancellationToken);
+
+    var allMethods = await storage.GetMethodsForExportAsync(null, cancellationToken);
+    var changedFileSet = changedFiles.Select(f => Path.GetFullPath(f)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+    var affectedMethods = allMethods
+        .Where(m => m.FilePath != null && changedFileSet.Contains(Path.GetFullPath(m.FilePath)))
+        .ToList();
+
+    // Also try matching by filename only (for cases where paths differ)
+    if (affectedMethods.Count == 0)
+    {
+        var changedFileNames = changedFiles.Select(Path.GetFileName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        affectedMethods = allMethods
+            .Where(m => m.FilePath != null && changedFileNames.Contains(Path.GetFileName(m.FilePath)))
+            .ToList();
+    }
+
+    if (format == "json")
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            from = fromRef,
+            to = toRef,
+            filesChanged = changedFiles.Count,
+            methodsAffected = affectedMethods.Count,
+            files = changedFiles,
+            methods = affectedMethods.Select(m => new
+            {
+                id = m.Id,
+                name = m.FullName,
+                file = m.FilePath,
+                line = m.StartLine,
+                complexity = m.Complexity
+            })
+        }, new System.Text.Json.JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
+        Console.WriteLine(json);
+    }
+    else
+    {
+        Console.WriteLine($"Changes between {fromRef}..{toRef}:\n");
+        Console.WriteLine($"Files changed: {changedFiles.Count}");
+        Console.WriteLine($"Methods affected: {affectedMethods.Count}");
+
+        if (format == "detail" && affectedMethods.Count > 0)
+        {
+            Console.WriteLine($"\n{"Method",-50} {"File",-25} {"CC",4}");
+            Console.WriteLine(new string('-', 83));
+            foreach (var m in affectedMethods.OrderByDescending(m => m.Complexity))
+            {
+                var name = m.FullName.Length > 48 ? m.FullName[..45] + "..." : m.FullName;
+                var file = m.FilePath != null ? Path.GetFileName(m.FilePath) : "";
+                Console.WriteLine($"{name,-50} {file,-25} {m.Complexity,4}");
+            }
+        }
+        else if (affectedMethods.Count > 0)
+        {
+            var highComplexity = affectedMethods.Where(m => m.Complexity > 10).ToList();
+            if (highComplexity.Count > 0)
+            {
+                Console.WriteLine($"\nHigh-complexity methods in changed files ({highComplexity.Count}):");
+                foreach (var m in highComplexity.OrderByDescending(m => m.Complexity).Take(10))
+                    Console.WriteLine($"  {m.FullName} (CC={m.Complexity})");
+            }
+        }
+    }
+});
+
 rootCommand.Add(analyzeCommand);
 rootCommand.Add(callgraphCommand);
 rootCommand.Add(hotspotsCommand);
@@ -1583,6 +1685,7 @@ rootCommand.Add(deadCodeCommand);
 rootCommand.Add(churnCommand);
 rootCommand.Add(semanticSearchCommand);
 rootCommand.Add(couplingCommand);
+rootCommand.Add(diffCommand);
 
 // MCP server command
 var mcpDbOption = new Option<string>("--db") { Description = "Path to graph.db", DefaultValueFactory = _ => "./ai-code-graph/graph.db" };
@@ -2156,6 +2259,29 @@ static void PrintAnalysisSummary(
     Console.WriteLine($"  Avg complexity: {avgComplexity:F1}");
     Console.WriteLine($"  Duration:       {totalTimer.Elapsed.TotalSeconds:F1}s");
     Console.WriteLine($"  Output:         {Path.GetFullPath(dbPath)}");
+}
+
+static async Task<List<string>> GetChangedCsFiles(string fromRef, string toRef, CancellationToken ct)
+{
+    var psi = new System.Diagnostics.ProcessStartInfo("git", $"diff --name-only {fromRef} {toRef} -- \"*.cs\"")
+    {
+        RedirectStandardOutput = true,
+        RedirectStandardError = true,
+        UseShellExecute = false,
+        CreateNoWindow = true
+    };
+
+    using var process = System.Diagnostics.Process.Start(psi);
+    if (process == null) return new List<string>();
+
+    var output = await process.StandardOutput.ReadToEndAsync(ct);
+    await process.WaitForExitAsync(ct);
+
+    if (process.ExitCode != 0) return new List<string>();
+
+    return output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Where(f => f.EndsWith(".cs", StringComparison.OrdinalIgnoreCase))
+        .ToList();
 }
 
 static class VectorIndexCache

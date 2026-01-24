@@ -3139,7 +3139,7 @@
           "40",
           "41"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -3205,7 +3205,8 @@
         ],
         "complexity": 7,
         "recommendedSubtasks": 5,
-        "expansionPrompt": "Break down into: (1) Implement git diff --name-only execution between refs with .cs filtering, (2) Create method-to-file mapping query from StorageService, (3) Register diff command with from/to/format options, (4) Implement summary vs detail output modes showing affected methods with metrics, (5) Add MCP tool, slash command, and integration tests with branch fixtures"
+        "expansionPrompt": "Break down into: (1) Implement git diff --name-only execution between refs with .cs filtering, (2) Create method-to-file mapping query from StorageService, (3) Register diff command with from/to/format options, (4) Implement summary vs detail output modes showing affected methods with metrics, (5) Add MCP tool, slash command, and integration tests with branch fixtures",
+        "updatedAt": "2026-01-24T13:44:27.408Z"
       },
       {
         "id": "49",
@@ -3377,9 +3378,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-24T13:40:09.017Z",
+      "lastModified": "2026-01-24T13:44:27.408Z",
       "taskCount": 50,
-      "completedCount": 48,
+      "completedCount": 49,
       "tags": [
         "master"
       ]
