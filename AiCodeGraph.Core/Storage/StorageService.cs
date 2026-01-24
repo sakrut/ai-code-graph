@@ -4,7 +4,7 @@ using Microsoft.Data.Sqlite;
 
 namespace AiCodeGraph.Core.Storage;
 
-public class StorageService : IAsyncDisposable, IDisposable
+public class StorageService : IStorageService
 {
     private readonly string _dbPath;
     private SqliteConnection? _connection;

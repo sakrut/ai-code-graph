@@ -20,6 +20,13 @@ public class StorageServiceTests : IAsyncDisposable
     }
 
     [Fact]
+    public void StorageService_ImplementsIStorageService()
+    {
+        IStorageService svc = _storage;
+        Assert.NotNull(svc);
+    }
+
+    [Fact]
     public async Task InitializeAsync_CreatesAllTables()
     {
         await _storage.InitializeAsync();
