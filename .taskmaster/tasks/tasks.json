@@ -2649,7 +2649,7 @@
         "dependencies": [
           "27"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -2700,7 +2700,8 @@
         ],
         "complexity": 6,
         "recommendedSubtasks": 4,
-        "expansionPrompt": "Break down into: (1) Set up test infrastructure for invoking commands programmatically with System.CommandLine 2.0.2 (SetAction pattern), (2) Write tests for command help text and option parsing for all 11+ commands, (3) Write tests for commands with valid temp databases (hotspots, tree, context), (4) Write tests for error cases (missing DB, invalid args) verifying exit codes and error output"
+        "expansionPrompt": "Break down into: (1) Set up test infrastructure for invoking commands programmatically with System.CommandLine 2.0.2 (SetAction pattern), (2) Write tests for command help text and option parsing for all 11+ commands, (3) Write tests for commands with valid temp databases (hotspots, tree, context), (4) Write tests for error cases (missing DB, invalid args) verifying exit codes and error output",
+        "updatedAt": "2026-01-24T13:08:29.512Z"
       },
       {
         "id": "42",
@@ -3361,9 +3362,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-24T13:03:11.705Z",
+      "lastModified": "2026-01-24T13:08:29.512Z",
       "taskCount": 50,
-      "completedCount": 32,
+      "completedCount": 33,
       "tags": [
         "master"
       ]
