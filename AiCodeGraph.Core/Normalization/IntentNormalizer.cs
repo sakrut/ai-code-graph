@@ -1,4 +1,5 @@
 using AiCodeGraph.Core.Models;
+using AiCodeGraph.Core.Shared;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -26,7 +27,7 @@ public class IntentNormalizer
                     if (symbol == null) continue;
 
                     var methodId = SymbolIdGenerator.GenerateId(symbol);
-                    var body = GetMethodBody(methodDecl);
+                    var body = MethodBodyHelper.GetMethodBody(methodDecl);
 
                     var methodName = symbol.Name;
                     var returnType = symbol.ReturnType.ToDisplayString();
@@ -45,16 +46,4 @@ public class IntentNormalizer
         return results;
     }
 
-    private static SyntaxNode? GetMethodBody(BaseMethodDeclarationSyntax methodDecl)
-    {
-        return methodDecl switch
-        {
-            MethodDeclarationSyntax m => (SyntaxNode?)m.Body ?? m.ExpressionBody,
-            ConstructorDeclarationSyntax c => (SyntaxNode?)c.Body ?? c.ExpressionBody,
-            DestructorDeclarationSyntax d => (SyntaxNode?)d.Body ?? d.ExpressionBody,
-            OperatorDeclarationSyntax o => (SyntaxNode?)o.Body ?? o.ExpressionBody,
-            ConversionOperatorDeclarationSyntax co => (SyntaxNode?)co.Body ?? co.ExpressionBody,
-            _ => null
-        };
-    }
 }

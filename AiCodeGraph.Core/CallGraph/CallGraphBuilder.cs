@@ -1,4 +1,5 @@
 using AiCodeGraph.Core.Models;
+using AiCodeGraph.Core.Shared;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -73,15 +74,7 @@ public class CallGraphBuilder
             if (callerId == null) continue;
 
             // Walk the body (block or expression body)
-            SyntaxNode? body = methodDecl switch
-            {
-                MethodDeclarationSyntax m => (SyntaxNode?)m.Body ?? m.ExpressionBody,
-                ConstructorDeclarationSyntax c => (SyntaxNode?)c.Body ?? c.ExpressionBody,
-                DestructorDeclarationSyntax d => (SyntaxNode?)d.Body ?? d.ExpressionBody,
-                OperatorDeclarationSyntax o => (SyntaxNode?)o.Body ?? o.ExpressionBody,
-                ConversionOperatorDeclarationSyntax co => (SyntaxNode?)co.Body ?? co.ExpressionBody,
-                _ => null
-            };
+            var body = MethodBodyHelper.GetMethodBody(methodDecl);
 
             if (body == null) continue;
 

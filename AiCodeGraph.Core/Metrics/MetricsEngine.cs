@@ -1,4 +1,5 @@
 using AiCodeGraph.Core.Models;
+using AiCodeGraph.Core.Shared;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -25,7 +26,7 @@ public class MetricsEngine
                     if (symbol == null) continue;
 
                     var methodId = SymbolIdGenerator.GenerateId(symbol);
-                    var body = GetMethodBody(methodDecl);
+                    var body = MethodBodyHelper.GetMethodBody(methodDecl);
                     if (body == null) continue;
 
                     var complexity = complexityCalc.Calculate(body);
@@ -56,16 +57,4 @@ public class MetricsEngine
         return results;
     }
 
-    private static SyntaxNode? GetMethodBody(BaseMethodDeclarationSyntax methodDecl)
-    {
-        return methodDecl switch
-        {
-            MethodDeclarationSyntax m => (SyntaxNode?)m.Body ?? m.ExpressionBody,
-            ConstructorDeclarationSyntax c => (SyntaxNode?)c.Body ?? c.ExpressionBody,
-            DestructorDeclarationSyntax d => (SyntaxNode?)d.Body ?? d.ExpressionBody,
-            OperatorDeclarationSyntax o => (SyntaxNode?)o.Body ?? o.ExpressionBody,
-            ConversionOperatorDeclarationSyntax co => (SyntaxNode?)co.Body ?? co.ExpressionBody,
-            _ => null
-        };
-    }
 }

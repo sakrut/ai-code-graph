@@ -1742,7 +1742,7 @@
         "testStrategy": "Create AiCodeGraph.Tests/MethodBodyHelperTests.cs with tests: (1) Method with block body returns BlockSyntax. (2) Method with expression body returns ArrowExpressionClauseSyntax. (3) Abstract method (no body) returns null. (4) Constructor with body works. (5) All existing MetricsEngine, CallGraph, and Normalization tests pass unchanged.",
         "priority": "medium",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1769,7 +1769,8 @@
         ],
         "complexity": 3,
         "recommendedSubtasks": 2,
-        "expansionPrompt": "Break down into: (1) Create AiCodeGraph.Core/Shared/MethodBodyHelper.cs with the unified switch expression (already identical across 3 files including constructor/destructor/operator patterns), (2) Update MetricsEngine.cs, CallGraphBuilder.cs, and IntentNormalizer.cs to use MethodBodyHelper, and add unit tests"
+        "expansionPrompt": "Break down into: (1) Create AiCodeGraph.Core/Shared/MethodBodyHelper.cs with the unified switch expression (already identical across 3 files including constructor/destructor/operator patterns), (2) Update MetricsEngine.cs, CallGraphBuilder.cs, and IntentNormalizer.cs to use MethodBodyHelper, and add unit tests",
+        "updatedAt": "2026-01-24T12:25:21.556Z"
       },
       {
         "id": "26",
@@ -3352,9 +3353,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-24T12:22:55.353Z",
+      "lastModified": "2026-01-24T12:25:21.556Z",
       "taskCount": 50,
-      "completedCount": 27,
+      "completedCount": 28,
       "tags": [
         "master"
       ]
