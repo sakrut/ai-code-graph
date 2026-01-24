@@ -2597,7 +2597,7 @@
         "dependencies": [
           "24"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -2636,7 +2636,8 @@
         ],
         "complexity": 4,
         "recommendedSubtasks": 3,
-        "expansionPrompt": "Break down into: (1) Write StorageService error path tests (null path, invalid path, open before init), (2) Write VectorIndex error path tests (empty index search, mismatched dimensions - depends on task 24 for null/NaN tests), (3) Write DriftDetector and IntentClusterer error path tests (missing files, empty inputs)"
+        "expansionPrompt": "Break down into: (1) Write StorageService error path tests (null path, invalid path, open before init), (2) Write VectorIndex error path tests (empty index search, mismatched dimensions - depends on task 24 for null/NaN tests), (3) Write DriftDetector and IntentClusterer error path tests (missing files, empty inputs)",
+        "updatedAt": "2026-01-24T13:03:11.705Z"
       },
       {
         "id": "41",
@@ -3360,9 +3361,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-24T13:01:09.364Z",
+      "lastModified": "2026-01-24T13:03:11.705Z",
       "taskCount": 50,
-      "completedCount": 31,
+      "completedCount": 32,
       "tags": [
         "master"
       ]
