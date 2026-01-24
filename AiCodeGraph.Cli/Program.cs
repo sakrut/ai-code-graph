@@ -1242,6 +1242,104 @@ Steps:
         created.Add(driftCmd);
     }
 
+    var callgraphCmd = Path.Combine(commandsDir, "callgraph.md");
+    if (!File.Exists(callgraphCmd))
+    {
+        File.WriteAllText(callgraphCmd, $@"Explore method call graph: $ARGUMENTS
+
+Steps:
+1. Run `ai-code-graph callgraph --method ""$ARGUMENTS"" --depth 2 --direction both --db {dbPath}`
+2. If the database doesn't exist, inform the user to run `ai-code-graph analyze` first
+3. Present the call tree showing callers and callees
+4. Highlight any deep call chains or circular dependencies
+5. If modifying this method, note which callers might be affected
+");
+        created.Add(callgraphCmd);
+    }
+
+    var treeCmd = Path.Combine(commandsDir, "tree.md");
+    if (!File.Exists(treeCmd))
+    {
+        File.WriteAllText(treeCmd, $@"Display code structure tree.
+
+Steps:
+1. Run `ai-code-graph tree --db {dbPath}`
+2. If the database doesn't exist, inform the user to run `ai-code-graph analyze` first
+3. Present the hierarchical structure: Projects > Namespaces > Types > Methods
+4. Use the structure to understand codebase organization
+");
+        created.Add(treeCmd);
+    }
+
+    var similarCmd = Path.Combine(commandsDir, "similar.md");
+    if (!File.Exists(similarCmd))
+    {
+        File.WriteAllText(similarCmd, $@"Find methods similar to: $ARGUMENTS
+
+Steps:
+1. Run `ai-code-graph similar ""$ARGUMENTS"" --top 10 --db {dbPath}`
+2. If the database doesn't exist, inform the user to run `ai-code-graph analyze` first
+3. Present ranked list of similar methods with similarity scores
+4. For high-similarity matches (>0.8), suggest consolidation
+");
+        created.Add(similarCmd);
+    }
+
+    var clustersCmd = Path.Combine(commandsDir, "clusters.md");
+    if (!File.Exists(clustersCmd))
+    {
+        File.WriteAllText(clustersCmd, $@"Show intent clusters in the codebase.
+
+Steps:
+1. Run `ai-code-graph clusters --db {dbPath}`
+2. If the database doesn't exist, inform the user to run `ai-code-graph analyze` first
+3. Present each cluster with its label, cohesion score, and member methods
+4. Highlight clusters with low cohesion (<0.5) as refactoring candidates
+");
+        created.Add(clustersCmd);
+    }
+
+    var searchCmd = Path.Combine(commandsDir, "search.md");
+    if (!File.Exists(searchCmd))
+    {
+        File.WriteAllText(searchCmd, $@"Search code by intent: $ARGUMENTS
+
+Steps:
+1. Run `ai-code-graph search ""$ARGUMENTS"" --top 10 --db {dbPath}`
+2. If the database doesn't exist, inform the user to run `ai-code-graph analyze` first
+3. Present results ranked by similarity score
+4. Suggest which methods are most relevant to the query
+");
+        created.Add(searchCmd);
+    }
+
+    var exportCmd = Path.Combine(commandsDir, "export.md");
+    if (!File.Exists(exportCmd))
+    {
+        File.WriteAllText(exportCmd, $@"Export code graph data.
+
+Steps:
+1. Run `ai-code-graph export --format json --db {dbPath}`
+2. If the database doesn't exist, inform the user to run `ai-code-graph analyze` first
+3. Present a summary of the exported data
+");
+        created.Add(exportCmd);
+    }
+
+    var analyzeCmd = Path.Combine(commandsDir, "analyze.md");
+    if (!File.Exists(analyzeCmd))
+    {
+        File.WriteAllText(analyzeCmd, @"Analyze solution and build code graph.
+
+Steps:
+1. Look for a .sln file in the current directory or use the path: $ARGUMENTS
+2. Run `ai-code-graph analyze ""$ARGUMENTS"" --save-baseline`
+3. Report the summary stats after analysis completes
+4. Inform the user that all slash commands are now available
+");
+        created.Add(analyzeCmd);
+    }
+
     // 3. Create .mcp.json for MCP server integration
     var mcpJson = Path.Combine(Directory.GetCurrentDirectory(), ".mcp.json");
     if (!File.Exists(mcpJson))
@@ -1278,12 +1376,19 @@ This returns complexity, callers, callees, cluster membership, and duplicates in
 - Understand which intent cluster a method belongs to before refactoring
 
 Available slash commands:
+- `/analyze [solution]` - Analyze solution and build the graph
 - `/context <method>` - Full method context before editing
 - `/hotspots` - Top complexity hotspots
 - `/duplicates` - Detected code clones
 - `/drift` - Architectural drift from baseline
+- `/callgraph <method>` - Explore method call relationships
+- `/tree` - Display code structure
+- `/similar <method>` - Find methods with similar intent
+- `/clusters` - Show intent clusters
+- `/search <query>` - Natural language code search
+- `/export` - Export code graph data
 
-To rebuild the graph after significant changes: `ai-code-graph analyze -s YourSolution.sln`
+To rebuild the graph after significant changes: `ai-code-graph analyze YourSolution.sln`
 ";
 
     if (File.Exists(claudeMd))

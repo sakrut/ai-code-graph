@@ -1,6 +1,12 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using AiCodeGraph.Core;
+using AiCodeGraph.Core.CallGraph;
+using AiCodeGraph.Core.Models.CodeGraph;
+using AiCodeGraph.Core.Duplicates;
 using AiCodeGraph.Core.Embeddings;
+using AiCodeGraph.Core.Metrics;
+using AiCodeGraph.Core.Normalization;
 using AiCodeGraph.Core.Storage;
 
 namespace AiCodeGraph.Cli.Mcp;
@@ -132,6 +138,80 @@ public class McpServer
                         ["method"] = new JsonObject { ["type"] = "string", ["description"] = "Optional: method name to find duplicates for" },
                         ["top"] = new JsonObject { ["type"] = "integer", ["description"] = "Number of results", ["default"] = 10 }
                     }
+                }),
+            CreateToolDef("get_callgraph",
+                "Explore method call graph: callers, callees, or both directions",
+                new JsonObject
+                {
+                    ["type"] = "object",
+                    ["properties"] = new JsonObject
+                    {
+                        ["method"] = new JsonObject { ["type"] = "string", ["description"] = "Method name or pattern" },
+                        ["depth"] = new JsonObject { ["type"] = "integer", ["description"] = "Traversal depth", ["default"] = 2 },
+                        ["direction"] = new JsonObject { ["type"] = "string", ["description"] = "callers|callees|both", ["default"] = "both" }
+                    },
+                    ["required"] = new JsonArray { "method" }
+                }),
+            CreateToolDef("get_tree",
+                "Display code structure: projects, namespaces, types, and methods",
+                new JsonObject
+                {
+                    ["type"] = "object",
+                    ["properties"] = new JsonObject
+                    {
+                        ["namespace"] = new JsonObject { ["type"] = "string", ["description"] = "Optional: filter by namespace prefix" },
+                        ["type"] = new JsonObject { ["type"] = "string", ["description"] = "Optional: filter by type name" }
+                    }
+                }),
+            CreateToolDef("get_similar",
+                "Find methods with similar semantic intent",
+                new JsonObject
+                {
+                    ["type"] = "object",
+                    ["properties"] = new JsonObject
+                    {
+                        ["method"] = new JsonObject { ["type"] = "string", ["description"] = "Method name or pattern" },
+                        ["top"] = new JsonObject { ["type"] = "integer", ["description"] = "Number of results", ["default"] = 10 }
+                    },
+                    ["required"] = new JsonArray { "method" }
+                }),
+            CreateToolDef("get_clusters",
+                "List intent clusters: groups of methods with similar purpose",
+                new JsonObject
+                {
+                    ["type"] = "object",
+                    ["properties"] = new JsonObject()
+                }),
+            CreateToolDef("export_graph",
+                "Export code graph data (methods, relationships, metrics) as JSON",
+                new JsonObject
+                {
+                    ["type"] = "object",
+                    ["properties"] = new JsonObject
+                    {
+                        ["concept"] = new JsonObject { ["type"] = "string", ["description"] = "Optional: filter by cluster label/concept" }
+                    }
+                }),
+            CreateToolDef("get_drift",
+                "Detect architectural drift from a baseline snapshot",
+                new JsonObject
+                {
+                    ["type"] = "object",
+                    ["properties"] = new JsonObject
+                    {
+                        ["baseline"] = new JsonObject { ["type"] = "string", ["description"] = "Path to baseline.db (default: auto-detect next to graph.db)" }
+                    }
+                }),
+            CreateToolDef("analyze",
+                "Analyze a .NET solution and build/rebuild the code graph database",
+                new JsonObject
+                {
+                    ["type"] = "object",
+                    ["properties"] = new JsonObject
+                    {
+                        ["solution"] = new JsonObject { ["type"] = "string", ["description"] = "Path to .sln file (auto-discovers if omitted)" },
+                        ["save_baseline"] = new JsonObject { ["type"] = "boolean", ["description"] = "Save result as baseline for drift detection", ["default"] = false }
+                    }
                 })
         };
 
@@ -143,10 +223,10 @@ public class McpServer
         var toolName = message["params"]?["name"]?.GetValue<string>();
         var args = message["params"]?["arguments"];
 
-        if (!File.Exists(_dbPath))
+        if (toolName != "analyze" && !File.Exists(_dbPath))
             return CreateToolResult(id, $"Error: Database not found at {_dbPath}. Run 'ai-code-graph analyze' first.", true);
 
-        if (_storage == null)
+        if (toolName != "analyze" && _storage == null)
         {
             _storage = new StorageService(_dbPath);
             await _storage.OpenAsync(ct);
@@ -160,6 +240,13 @@ public class McpServer
                 "get_hotspots" => await ToolGetHotspots(args, ct),
                 "search_code" => await ToolSearchCode(args, ct),
                 "get_duplicates" => await ToolGetDuplicates(args, ct),
+                "get_callgraph" => await ToolGetCallgraph(args, ct),
+                "get_tree" => await ToolGetTree(args, ct),
+                "get_similar" => await ToolGetSimilar(args, ct),
+                "get_clusters" => await ToolGetClusters(ct),
+                "export_graph" => await ToolExportGraph(args, ct),
+                "get_drift" => await ToolGetDrift(args, ct),
+                "analyze" => await ToolAnalyze(args, ct),
                 _ => $"Unknown tool: {toolName}"
             };
 
@@ -313,6 +400,357 @@ public class McpServer
                 lines.Add($"{c.Type,-8} {c.HybridScore:F2}  {c.MethodIdA} <-> {c.MethodIdB}");
             return string.Join("\n", lines);
         }
+    }
+
+    private async Task<string> ToolGetCallgraph(JsonNode? args, CancellationToken ct)
+    {
+        var method = args?["method"]?.GetValue<string>();
+        if (string.IsNullOrEmpty(method)) return "Error: 'method' parameter required";
+        var depth = args?["depth"]?.GetValue<int>() ?? 2;
+        var direction = args?["direction"]?.GetValue<string>() ?? "both";
+
+        var matches = await _storage!.SearchMethodsAsync(method, ct);
+        if (matches.Count == 0) return $"Method not found: '{method}'";
+
+        var rootId = matches[0].Id;
+        var rootInfo = await _storage.GetMethodInfoAsync(rootId, ct);
+
+        var visited = new HashSet<string> { rootId };
+        var queue = new Queue<(string Id, int Depth)>();
+        queue.Enqueue((rootId, 0));
+
+        var lines = new List<string> { $"{rootInfo?.FullName ?? rootId}" };
+
+        while (queue.Count > 0)
+        {
+            var (currentId, currentDepth) = queue.Dequeue();
+            if (currentDepth >= depth) continue;
+            var indent = new string(' ', (currentDepth + 1) * 2);
+
+            if (direction is "callees" or "both")
+            {
+                foreach (var calleeId in await _storage.GetCalleesAsync(currentId, ct))
+                {
+                    var info = await _storage.GetMethodInfoAsync(calleeId, ct);
+                    var marker = visited.Add(calleeId) ? "" : " (*)";
+                    lines.Add($"{indent}-> {info?.FullName ?? calleeId}{marker}");
+                    if (marker == "") queue.Enqueue((calleeId, currentDepth + 1));
+                }
+            }
+
+            if (direction is "callers" or "both")
+            {
+                foreach (var callerId in await _storage.GetCallersAsync(currentId, ct))
+                {
+                    var info = await _storage.GetMethodInfoAsync(callerId, ct);
+                    var marker = visited.Add(callerId) ? "" : " (*)";
+                    lines.Add($"{indent}<- {info?.FullName ?? callerId}{marker}");
+                    if (marker == "") queue.Enqueue((callerId, currentDepth + 1));
+                }
+            }
+        }
+
+        return string.Join("\n", lines);
+    }
+
+    private async Task<string> ToolGetTree(JsonNode? args, CancellationToken ct)
+    {
+        var nsFilter = args?["namespace"]?.GetValue<string>();
+        var typeFilter = args?["type"]?.GetValue<string>();
+
+        var rows = await _storage!.GetTreeAsync(nsFilter, typeFilter, ct);
+        if (rows.Count == 0) return "No results found.";
+
+        var lines = new List<string>();
+        var lastProject = "";
+        var lastNs = "";
+        var lastType = "";
+
+        foreach (var row in rows)
+        {
+            if (row.ProjectName != lastProject)
+            {
+                lines.Add(row.ProjectName);
+                lastProject = row.ProjectName;
+                lastNs = "";
+                lastType = "";
+            }
+            if (row.NamespaceName != lastNs)
+            {
+                lines.Add($"  {row.NamespaceName}");
+                lastNs = row.NamespaceName;
+                lastType = "";
+            }
+            if (row.TypeName != lastType)
+            {
+                var kindTag = row.TypeKind switch
+                {
+                    "Class" => "[C]",
+                    "Interface" => "[I]",
+                    "Record" => "[R]",
+                    "Struct" => "[S]",
+                    "Enum" => "[E]",
+                    _ => "[?]"
+                };
+                lines.Add($"    {kindTag} {row.TypeName}");
+                lastType = row.TypeName;
+            }
+            lines.Add($"        {row.ReturnType} {row.MethodName}()");
+        }
+
+        return string.Join("\n", lines);
+    }
+
+    private async Task<string> ToolGetSimilar(JsonNode? args, CancellationToken ct)
+    {
+        var method = args?["method"]?.GetValue<string>();
+        if (string.IsNullOrEmpty(method)) return "Error: 'method' parameter required";
+        var top = args?["top"]?.GetValue<int>() ?? 10;
+
+        var matches = await _storage!.SearchMethodsAsync(method, ct);
+        if (matches.Count == 0) return $"Method not found: '{method}'";
+
+        var targetId = matches[0].Id;
+        var allEmbeddings = await _storage.GetEmbeddingsAsync(ct);
+        if (allEmbeddings.Count == 0) return "No embeddings in database.";
+
+        var targetEmbedding = allEmbeddings.FirstOrDefault(e => e.MethodId == targetId);
+        if (targetEmbedding.Vector == null) return $"No embedding found for '{method}'";
+
+        var index = new VectorIndex();
+        index.BuildIndex(allEmbeddings.Where(e => e.MethodId != targetId).ToList());
+        var results = index.Search(targetEmbedding.Vector, top);
+
+        if (results.Count == 0) return "No similar methods found.";
+
+        var lines = new List<string> { $"Similar to: {matches[0].FullName}", "" };
+        foreach (var (id, score) in results)
+        {
+            var info = await _storage.GetMethodInfoAsync(id, ct);
+            lines.Add($"  {score:F3}  {info?.FullName ?? id}");
+        }
+        return string.Join("\n", lines);
+    }
+
+    private async Task<string> ToolGetClusters(CancellationToken ct)
+    {
+        var clusters = await _storage!.GetClustersAsync(ct);
+        if (clusters.Count == 0) return "No clusters found.";
+
+        var lines = new List<string>();
+        foreach (var cluster in clusters)
+        {
+            lines.Add($"[{cluster.Id}] {cluster.Label} (cohesion: {cluster.Cohesion:F2}, members: {cluster.MethodIds.Count})");
+            foreach (var methodId in cluster.MethodIds.Take(3))
+            {
+                var info = await _storage.GetMethodInfoAsync(methodId, ct);
+                lines.Add($"    {info?.FullName ?? methodId}");
+            }
+            if (cluster.MethodIds.Count > 3)
+                lines.Add($"    ... and {cluster.MethodIds.Count - 3} more");
+            lines.Add("");
+        }
+        return string.Join("\n", lines);
+    }
+
+    private async Task<string> ToolExportGraph(JsonNode? args, CancellationToken ct)
+    {
+        var concept = args?["concept"]?.GetValue<string>();
+
+        var methods = await _storage!.GetMethodsForExportAsync(concept, ct);
+        if (methods.Count == 0) return "No methods found.";
+
+        var methodIds = methods.Select(m => m.Id).ToHashSet();
+        var relationships = await _storage.GetCallGraphForMethodsAsync(methodIds, ct);
+
+        var result = JsonSerializer.Serialize(new
+        {
+            methods = methods.Select(m => new
+            {
+                id = m.Id,
+                fullName = m.FullName,
+                returnType = m.ReturnType,
+                filePath = m.FilePath,
+                line = m.StartLine,
+                complexity = m.Complexity,
+                loc = m.Loc,
+                nesting = m.Nesting,
+                cluster = m.ClusterLabel
+            }),
+            relationships = relationships.Select(r => new { caller = r.CallerId, callee = r.CalleeId }),
+            metadata = new { methodCount = methods.Count, relationshipCount = relationships.Count, conceptFilter = concept }
+        }, new JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+
+        return result;
+    }
+
+    private async Task<string> ToolGetDrift(JsonNode? args, CancellationToken ct)
+    {
+        var baselinePath = args?["baseline"]?.GetValue<string>();
+        if (string.IsNullOrEmpty(baselinePath))
+            baselinePath = Path.Combine(Path.GetDirectoryName(_dbPath) ?? ".", "baseline.db");
+
+        if (!File.Exists(baselinePath))
+            return $"Baseline not found at {baselinePath}. Run 'ai-code-graph analyze --save-baseline' first.";
+
+        var detector = new AiCodeGraph.Core.Drift.DriftDetector();
+        var report = await detector.CompareAsync(_dbPath, baselinePath, ct);
+
+        var hasDrift = report.NewMethods.Count > 0 || report.RemovedMethods.Count > 0
+            || report.Regressions.Count > 0 || report.NewDuplicates.Count > 0
+            || report.IntentScattering.Count > 0;
+
+        if (!hasDrift) return "No drift detected.";
+
+        var lines = new List<string>();
+
+        if (report.NewMethods.Count > 0)
+        {
+            lines.Add($"New Methods ({report.NewMethods.Count}):");
+            foreach (var m in report.NewMethods.Take(10))
+                lines.Add($"  + {m.FullName}");
+            if (report.NewMethods.Count > 10)
+                lines.Add($"  ... and {report.NewMethods.Count - 10} more");
+            lines.Add("");
+        }
+
+        if (report.RemovedMethods.Count > 0)
+        {
+            lines.Add($"Removed Methods ({report.RemovedMethods.Count}):");
+            foreach (var m in report.RemovedMethods.Take(10))
+                lines.Add($"  - {m.FullName}");
+            if (report.RemovedMethods.Count > 10)
+                lines.Add($"  ... and {report.RemovedMethods.Count - 10} more");
+            lines.Add("");
+        }
+
+        if (report.Regressions.Count > 0)
+        {
+            lines.Add($"Complexity Regressions ({report.Regressions.Count}):");
+            foreach (var r in report.Regressions.Take(10))
+                lines.Add($"  {r.FullName}: {r.BaselineComplexity} -> {r.CurrentComplexity} (+{(r.PercentageIncrease * 100):F0}%)");
+            lines.Add("");
+        }
+
+        if (report.NewDuplicates.Count > 0)
+        {
+            lines.Add($"New Duplicates ({report.NewDuplicates.Count}):");
+            foreach (var d in report.NewDuplicates.Take(10))
+                lines.Add($"  {d.MethodIdA} <-> {d.MethodIdB} ({d.HybridScore:F2})");
+            lines.Add("");
+        }
+
+        if (report.IntentScattering.Count > 0)
+        {
+            lines.Add($"Intent Scattering ({report.IntentScattering.Count}):");
+            foreach (var s in report.IntentScattering.Take(5))
+                lines.Add($"  '{s.ClusterLabel}' spread to: {string.Join(", ", s.NewNamespaces)}");
+        }
+
+        return string.Join("\n", lines);
+    }
+
+    private async Task<string> ToolAnalyze(JsonNode? args, CancellationToken ct)
+    {
+        var solutionPath = args?["solution"]?.GetValue<string>();
+        var saveBaseline = args?["save_baseline"]?.GetValue<bool>() ?? false;
+
+        try
+        {
+            var resolvedPath = SolutionDiscovery.FindSolutionFile(solutionPath);
+            using var loader = new WorkspaceLoader();
+            var workspace = await loader.LoadSolutionAsync(resolvedPath, null, ct);
+
+            var extractor = new CodeModelExtractor();
+            var extractionResults = new List<ExtractionResult>();
+            foreach (var (projectId, compilation) in workspace.Compilations)
+            {
+                var project = workspace.Solution.GetProject(projectId);
+                var result = extractor.ExtractProject(compilation, project?.Name ?? "", project?.FilePath ?? "");
+                extractionResults.Add(result);
+            }
+
+            var callGraphBuilder = new CallGraphBuilder();
+            var edges = callGraphBuilder.BuildCallGraph(workspace);
+
+            var metricsEngine = new MetricsEngine();
+            var metrics = metricsEngine.ComputeMetrics(workspace);
+
+            var normalizer = new IntentNormalizer();
+            var normalized = normalizer.NormalizeAll(workspace);
+
+            using var embeddingEngine = new HashEmbeddingEngine();
+            var embeddingResults = normalized
+                .Select(n => (n.MethodId, Vector: embeddingEngine.GenerateEmbedding(n.SemanticPayload), Model: "hash-v1"))
+                .ToList();
+
+            var output = Path.GetDirectoryName(_dbPath) ?? "./ai-code-graph";
+            Directory.CreateDirectory(output);
+
+            // Close existing storage if open
+            if (_storage != null)
+            {
+                await _storage.DisposeAsync();
+                _storage = null;
+            }
+
+            await using var storage = new StorageService(_dbPath);
+            await storage.InitializeAsync(ct);
+            await storage.SaveCodeModelAsync(extractionResults, ct);
+            await storage.SaveCallGraphAsync(edges.Select(e => (e.CallerId, e.CalleeId)).ToList(), ct);
+            await storage.SaveMetricsAsync(metrics.Select(m => (m.MethodId, m.CognitiveComplexity, m.LinesOfCode, m.MaxNestingDepth)).ToList(), ct);
+            await storage.SaveNormalizedMethodsAsync(normalized.Select(n => (n.MethodId, n.StructuralSignature, n.SemanticPayload)).ToList(), ct);
+            await storage.SaveEmbeddingsAsync(embeddingResults, ct);
+
+            var structuralDetector = new StructuralCloneDetector();
+            var semanticDetector = new SemanticCloneDetector();
+            var hybridScorer = new HybridScorer();
+            var structuralClones = structuralDetector.DetectClones(normalized);
+            var embeddingPairs = embeddingResults.Select(e => (e.MethodId, e.Vector)).ToList();
+            var semanticClones = semanticDetector.DetectClones(embeddingPairs);
+            var clonePairs = hybridScorer.Merge(structuralClones, semanticClones);
+            await storage.SaveClonePairsAsync(clonePairs, ct);
+
+            var clusterer = new IntentClusterer();
+            var clusters = clusterer.ClusterMethods(normalized, embeddingPairs);
+            await storage.SaveClustersAsync(clusters, ct);
+
+            if (saveBaseline)
+            {
+                var baselinePath = Path.Combine(output, "baseline.db");
+                File.Copy(_dbPath, baselinePath, overwrite: true);
+            }
+
+            var totalMethods = extractionResults.Sum(r => r.Model.Namespaces.Sum(ns => CountMethodsInNamespace(ns)));
+
+            return string.Join("\n", new[]
+            {
+                "Analysis complete:",
+                $"  Solution: {resolvedPath}",
+                $"  Projects: {extractionResults.Count}",
+                $"  Methods: {totalMethods}",
+                $"  Call edges: {edges.Count}",
+                $"  Clone pairs: {clonePairs.Count}",
+                $"  Clusters: {clusters.Count}",
+                $"  Output: {Path.GetFullPath(_dbPath)}",
+                saveBaseline ? $"  Baseline saved: {Path.GetFullPath(Path.Combine(output, "baseline.db"))}" : ""
+            }.Where(l => l.Length > 0));
+        }
+        catch (FileNotFoundException ex)
+        {
+            return $"Error: {ex.Message}";
+        }
+    }
+
+    private static int CountMethodsInNamespace(NamespaceModel ns)
+    {
+        return ns.Types.Sum(t => t.Methods.Count + t.NestedTypes.Sum(CountMethodsInType))
+            + ns.ChildNamespaces.Sum(CountMethodsInNamespace);
+    }
+
+    private static int CountMethodsInType(TypeModel type)
+    {
+        return type.Methods.Count + type.NestedTypes.Sum(CountMethodsInType);
     }
 
     private static JsonObject CreateToolDef(string name, string description, JsonObject inputSchema)
