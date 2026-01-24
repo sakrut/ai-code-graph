@@ -2149,7 +2149,7 @@
         "dependencies": [
           "21"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -2189,7 +2189,8 @@
         ],
         "complexity": 5,
         "recommendedSubtasks": 3,
-        "expansionPrompt": "Break down into: (1) Implement SplitPascalCase and ExtractShortName helper methods in IntentClusterer.cs, (2) Rewrite GenerateLabel to use verb/noun counting from PascalCase-split method names with the static Stopwords field (from task 21), (3) Update DuplicateDetectionTests to verify new label format with various method name patterns"
+        "expansionPrompt": "Break down into: (1) Implement SplitPascalCase and ExtractShortName helper methods in IntentClusterer.cs, (2) Rewrite GenerateLabel to use verb/noun counting from PascalCase-split method names with the static Stopwords field (from task 21), (3) Update DuplicateDetectionTests to verify new label format with various method name patterns",
+        "updatedAt": "2026-01-24T13:01:09.363Z"
       },
       {
         "id": "33",
@@ -2544,7 +2545,7 @@
         "testStrategy": "Each test creates a minimal C# compilation with the relevant method pattern, obtains the IMethodSymbol via semantic model, and calls GetMethodId(). Assert the returned string matches expected format. Cover edge cases: nullable parameters, ref/out parameters, params arrays, default values.",
         "priority": "medium",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -2583,7 +2584,8 @@
         ],
         "complexity": 4,
         "recommendedSubtasks": 3,
-        "expansionPrompt": "Break down into: (1) Set up test infrastructure with helper method to create Roslyn compilations and extract IMethodSymbol, (2) Write tests for basic cases (simple method, generic, overloaded, constructor), (3) Write tests for advanced cases (nested types, extension methods, operators, ref/out params, nullable)"
+        "expansionPrompt": "Break down into: (1) Set up test infrastructure with helper method to create Roslyn compilations and extract IMethodSymbol, (2) Write tests for basic cases (simple method, generic, overloaded, constructor), (3) Write tests for advanced cases (nested types, extension methods, operators, ref/out params, nullable)",
+        "updatedAt": "2026-01-24T12:59:01.105Z"
       },
       {
         "id": "40",
@@ -3358,9 +3360,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-24T12:57:26.694Z",
+      "lastModified": "2026-01-24T13:01:09.364Z",
       "taskCount": 50,
-      "completedCount": 29,
+      "completedCount": 31,
       "tags": [
         "master"
       ]

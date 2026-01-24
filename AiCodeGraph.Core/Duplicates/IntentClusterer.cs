@@ -165,31 +165,74 @@ public class IntentClusterer
 
     private static string GenerateLabel(List<string> memberIds, Dictionary<string, NormalizedMethod> methodMap)
     {
-        var tokenFrequency = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var verbCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var nounCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var id in memberIds)
         {
-            if (!methodMap.TryGetValue(id, out var method)) continue;
+            if (!methodMap.TryGetValue(id, out _)) continue;
 
-            var tokens = method.SemanticPayload
-                .Split(' ', StringSplitOptions.RemoveEmptyEntries)
-                .Where(t => !Stopwords.Contains(t) && t.Length > 2);
+            var shortName = ExtractShortName(id);
+            var segments = SplitPascalCase(shortName);
+            if (segments.Count == 0) continue;
 
-            foreach (var token in tokens)
+            var verb = segments[0];
+            if (!Stopwords.Contains(verb) && verb.Length > 1)
             {
-                tokenFrequency.TryGetValue(token, out var count);
-                tokenFrequency[token] = count + 1;
+                verbCounts.TryGetValue(verb, out var vc);
+                verbCounts[verb] = vc + 1;
+            }
+
+            for (int i = 1; i < segments.Count; i++)
+            {
+                var noun = segments[i];
+                if (!Stopwords.Contains(noun) && noun.Length > 2)
+                {
+                    nounCounts.TryGetValue(noun, out var nc);
+                    nounCounts[noun] = nc + 1;
+                }
             }
         }
 
-        var topTokens = tokenFrequency
-            .OrderByDescending(kv => kv.Value)
-            .Take(3)
-            .Select(kv => kv.Key.ToLowerInvariant())
-            .ToList();
+        var topVerb = verbCounts.OrderByDescending(kv => kv.Value).FirstOrDefault().Key;
+        var topNoun = nounCounts.OrderByDescending(kv => kv.Value).FirstOrDefault().Key;
 
-        return topTokens.Count > 0
-            ? string.Join(" ", topTokens)
-            : $"miscellaneous";
+        if (topVerb != null && topNoun != null)
+            return $"{topVerb.ToLowerInvariant()}/{topNoun.ToLowerInvariant()} operations";
+        if (topVerb != null)
+            return $"{topVerb.ToLowerInvariant()} operations";
+        if (topNoun != null)
+            return $"{topNoun.ToLowerInvariant()} handlers";
+
+        return "miscellaneous";
+    }
+
+    private static List<string> SplitPascalCase(string name)
+    {
+        var segments = new List<string>();
+        var current = new System.Text.StringBuilder();
+
+        foreach (var ch in name)
+        {
+            if (char.IsUpper(ch) && current.Length > 0)
+            {
+                segments.Add(current.ToString());
+                current.Clear();
+            }
+            current.Append(ch);
+        }
+
+        if (current.Length > 0)
+            segments.Add(current.ToString());
+
+        return segments;
+    }
+
+    private static string ExtractShortName(string methodId)
+    {
+        var parenIdx = methodId.IndexOf('(');
+        var nameOnly = parenIdx >= 0 ? methodId[..parenIdx] : methodId;
+        var lastDot = nameOnly.LastIndexOf('.');
+        return lastDot >= 0 ? nameOnly[(lastDot + 1)..] : nameOnly;
     }
 }
