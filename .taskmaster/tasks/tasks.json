@@ -3304,7 +3304,7 @@
           "43",
           "44"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -3369,14 +3369,15 @@
         ],
         "complexity": 7,
         "recommendedSubtasks": 5,
-        "expansionPrompt": "Break down into: (1) Create ServiceRegistration.cs with AddAiCodeGraph extension method and AiCodeGraphOptions class, (2) Register StorageService as scoped, embedding engines as singleton with factory, analysis services as transient, (3) Modify Program.cs to build ServiceProvider and create scopes in command actions, (4) Verify all commands work through DI resolution, (5) Write ServiceRegistrationTests verifying resolution of all services"
+        "expansionPrompt": "Break down into: (1) Create ServiceRegistration.cs with AddAiCodeGraph extension method and AiCodeGraphOptions class, (2) Register StorageService as scoped, embedding engines as singleton with factory, analysis services as transient, (3) Modify Program.cs to build ServiceProvider and create scopes in command actions, (4) Verify all commands work through DI resolution, (5) Write ServiceRegistrationTests verifying resolution of all services",
+        "updatedAt": "2026-01-24T13:35:09.610Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-24T13:33:34.038Z",
+      "lastModified": "2026-01-24T13:35:09.611Z",
       "taskCount": 50,
-      "completedCount": 45,
+      "completedCount": 46,
       "tags": [
         "master"
       ]
