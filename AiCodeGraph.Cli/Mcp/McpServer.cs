@@ -202,6 +202,16 @@ public class McpServer
                         ["baseline"] = new JsonObject { ["type"] = "string", ["description"] = "Path to baseline.db (default: auto-detect next to graph.db)" }
                     }
                 }),
+            CreateToolDef("cg_dead_code",
+                "Find methods with no callers (potential dead code)",
+                new JsonObject
+                {
+                    ["type"] = "object",
+                    ["properties"] = new JsonObject
+                    {
+                        ["include_overrides"] = new JsonObject { ["type"] = "boolean", ["description"] = "Include override/abstract methods", ["default"] = false }
+                    }
+                }),
             CreateToolDef("cg_get_impact",
                 "Show transitive impact of changing a method (all callers up the call chain)",
                 new JsonObject
@@ -258,6 +268,7 @@ public class McpServer
                 "cg_get_clusters" => await ToolGetClusters(ct),
                 "cg_export_graph" => await ToolExportGraph(args, ct),
                 "cg_get_drift" => await ToolGetDrift(args, ct),
+                "cg_dead_code" => await ToolGetDeadCode(args, ct),
                 "cg_get_impact" => await ToolGetImpact(args, ct),
                 "cg_analyze" => await ToolAnalyze(args, ct),
                 _ => $"Unknown tool: {toolName}"
@@ -659,6 +670,25 @@ public class McpServer
             foreach (var s in report.IntentScattering.Take(5))
                 lines.Add($"  '{s.ClusterLabel}' spread to: {string.Join(", ", s.NewNamespaces)}");
         }
+
+        return string.Join("\n", lines);
+    }
+
+    private async Task<string> ToolGetDeadCode(JsonNode? args, CancellationToken ct)
+    {
+        var includeOverrides = args?["include_overrides"]?.GetValue<bool>() ?? false;
+
+        var deadCode = await _storage!.GetDeadCodeAsync(includeOverrides, ct);
+        if (deadCode.Count == 0) return "No dead code detected.";
+
+        var lines = new List<string> { $"Found {deadCode.Count} potentially unreachable methods:", "" };
+        foreach (var m in deadCode.Take(30))
+        {
+            var file = m.FilePath != null ? $" ({Path.GetFileName(m.FilePath)}:{m.StartLine})" : "";
+            lines.Add($"  CC={m.Complexity,2} {m.FullName}{file}");
+        }
+        if (deadCode.Count > 30)
+            lines.Add($"\n  ... +{deadCode.Count - 30} more");
 
         return string.Join("\n", lines);
     }

@@ -33,4 +33,5 @@ public interface IStorageService : IAsyncDisposable, IDisposable
     Task<(int CognitiveComplexity, int LinesOfCode, int NestingDepth)?> GetMethodMetricsAsync(string methodId, CancellationToken cancellationToken = default);
     Task<(string Label, int MemberCount, float Cohesion)?> GetMethodClusterAsync(string methodId, CancellationToken cancellationToken = default);
     Task<List<(string OtherMethodId, string OtherFullName, float HybridScore, CloneType Type)>> GetMethodDuplicatesAsync(string methodId, CancellationToken cancellationToken = default);
+    Task<List<(string Id, string FullName, string? FilePath, int StartLine, int Complexity)>> GetDeadCodeAsync(bool includeOverrides = false, CancellationToken cancellationToken = default);
 }

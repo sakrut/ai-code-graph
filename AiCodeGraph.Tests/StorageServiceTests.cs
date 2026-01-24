@@ -234,6 +234,41 @@ public class StorageServiceTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task GetDeadCodeAsync_FindsUncalledMethods()
+    {
+        await _storage.InitializeAsync();
+        await SaveTestModel();
+
+        var calls = new List<(string, string)>
+        {
+            ("method:CreateUser", "method:ValidateUser")
+        };
+        await _storage.SaveCallGraphAsync(calls);
+
+        var deadCode = await _storage.GetDeadCodeAsync();
+
+        // CreateUser and UpdateUser have no callers
+        // ValidateUser is called so it's not dead code
+        // But CreateUser and UpdateUser are not excluded by name patterns
+        Assert.Equal(2, deadCode.Count);
+        Assert.Contains(deadCode, d => d.FullName.Contains("CreateUser"));
+        Assert.Contains(deadCode, d => d.FullName.Contains("UpdateUser"));
+        Assert.DoesNotContain(deadCode, d => d.FullName.Contains("ValidateUser"));
+    }
+
+    [Fact]
+    public async Task GetDeadCodeAsync_EmptyCallGraph_ReturnsAllMethods()
+    {
+        await _storage.InitializeAsync();
+        await SaveTestModel();
+
+        var deadCode = await _storage.GetDeadCodeAsync();
+
+        // All 3 methods have no callers
+        Assert.Equal(3, deadCode.Count);
+    }
+
+    [Fact]
     public async Task GetCallGraphForMethodsAsync_ManyIds_ChunksCorrectly()
     {
         await _storage.InitializeAsync();

@@ -2472,7 +2472,7 @@
         "dependencies": [
           "20"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -2525,7 +2525,8 @@
         ],
         "complexity": 6,
         "recommendedSubtasks": 4,
-        "expansionPrompt": "Break down into: (1) Add GetDeadCodeAsync method to StorageService with LEFT JOIN SQL query excluding test/constructor/Main methods, (2) Register dead-code command in Program.cs with options for format and include-public filter, (3) Implement filtering logic for interface implementations and public methods, (4) Add MCP tool cg_dead_code, slash command, and tests with fixture containing known dead-code methods"
+        "expansionPrompt": "Break down into: (1) Add GetDeadCodeAsync method to StorageService with LEFT JOIN SQL query excluding test/constructor/Main methods, (2) Register dead-code command in Program.cs with options for format and include-public filter, (3) Implement filtering logic for interface implementations and public methods, (4) Add MCP tool cg_dead_code, slash command, and tests with fixture containing known dead-code methods",
+        "updatedAt": "2026-01-24T12:19:06.413Z"
       },
       {
         "id": "39",
@@ -3349,9 +3350,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-24T12:16:15.539Z",
+      "lastModified": "2026-01-24T12:19:06.413Z",
       "taskCount": 50,
-      "completedCount": 24,
+      "completedCount": 25,
       "tags": [
         "master"
       ]

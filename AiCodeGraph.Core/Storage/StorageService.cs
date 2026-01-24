@@ -842,6 +842,46 @@ public class StorageService : IStorageService
         return results;
     }
 
+    public async Task<List<(string Id, string FullName, string? FilePath, int StartLine, int Complexity)>> GetDeadCodeAsync(bool includeOverrides = false, CancellationToken cancellationToken = default)
+    {
+        EnsureConnection();
+        using var cmd = _connection!.CreateCommand();
+
+        cmd.CommandText = """
+            SELECT m.Id, m.FullName, m.FilePath, m.StartLine, COALESCE(met.CognitiveComplexity, 0)
+            FROM Methods m
+            LEFT JOIN MethodCalls mc ON m.Id = mc.CalleeId
+            LEFT JOIN Metrics met ON met.MethodId = m.Id
+            JOIN Types t ON t.Id = m.TypeId
+            JOIN Namespaces n ON n.Id = t.NamespaceId
+            WHERE mc.CallerId IS NULL
+              AND m.Name NOT IN ('.ctor', '.cctor', 'Main', 'Dispose', 'DisposeAsync')
+              AND m.Name NOT LIKE '%Test%'
+              AND m.Name NOT LIKE '%_Test'
+              AND t.Name NOT LIKE '%Tests'
+              AND t.Name NOT LIKE '%Test'
+              AND n.FullName NOT LIKE '%Tests%'
+            """;
+
+        if (!includeOverrides)
+            cmd.CommandText += "\n  AND m.IsOverride = 0 AND m.IsAbstract = 0";
+
+        cmd.CommandText += "\n  ORDER BY COALESCE(met.CognitiveComplexity, 0) DESC";
+
+        var results = new List<(string, string, string?, int, int)>();
+        using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            results.Add((
+                reader.GetString(0),
+                reader.GetString(1),
+                reader.IsDBNull(2) ? null : reader.GetString(2),
+                reader.GetInt32(3),
+                reader.GetInt32(4)));
+        }
+        return results;
+    }
+
     private void EnsureConnection()
     {
         if (_connection == null)

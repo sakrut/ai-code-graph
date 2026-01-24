@@ -1272,6 +1272,70 @@ impactCommand.SetAction(async (parseResult, cancellationToken) =>
     }
 });
 
+// --- dead-code command ---
+var dcFormatOption = new Option<string>("--format", "-f") { Description = "table|json", DefaultValueFactory = _ => "table" };
+var dcDbOption = new Option<string>("--db") { Description = "Path to graph.db", DefaultValueFactory = _ => "./ai-code-graph/graph.db" };
+var dcIncludeOverridesOption = new Option<bool>("--include-overrides") { Description = "Include override/abstract methods" };
+
+var deadCodeCommand = new Command("dead-code", "Find methods with no callers (potential dead code)")
+{
+    dcFormatOption, dcDbOption, dcIncludeOverridesOption
+};
+
+deadCodeCommand.SetAction(async (parseResult, cancellationToken) =>
+{
+    var format = parseResult.GetValue(dcFormatOption) ?? "table";
+    var dbPath = parseResult.GetValue(dcDbOption) ?? "./ai-code-graph/graph.db";
+    var includeOverrides = parseResult.GetValue(dcIncludeOverridesOption);
+
+    if (!File.Exists(dbPath))
+    {
+        Console.Error.WriteLine($"Error: Database not found at {dbPath}. Run 'analyze' first.");
+        Environment.ExitCode = 1;
+        return;
+    }
+
+    await using var storage = new StorageService(dbPath);
+    await storage.OpenAsync(cancellationToken);
+
+    var deadCode = await storage.GetDeadCodeAsync(includeOverrides, cancellationToken);
+
+    if (deadCode.Count == 0)
+    {
+        Console.WriteLine("No dead code detected.");
+        return;
+    }
+
+    if (format == "json")
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            count = deadCode.Count,
+            methods = deadCode.Select(m => new
+            {
+                id = m.Id,
+                name = m.FullName,
+                file = m.FilePath,
+                line = m.StartLine,
+                complexity = m.Complexity
+            })
+        }, new System.Text.Json.JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
+        Console.WriteLine(json);
+    }
+    else
+    {
+        Console.WriteLine($"{"Method",-60} {"File",-30} {"CC",4}");
+        Console.WriteLine(new string('-', 96));
+        foreach (var m in deadCode)
+        {
+            var file = m.FilePath != null ? $"{Path.GetFileName(m.FilePath)}:{m.StartLine}" : "";
+            var name = m.FullName.Length > 58 ? m.FullName[..55] + "..." : m.FullName;
+            Console.WriteLine($"{name,-60} {file,-30} {m.Complexity,4}");
+        }
+        Console.WriteLine($"\nTotal: {deadCode.Count} potentially unreachable methods");
+    }
+});
+
 rootCommand.Add(analyzeCommand);
 rootCommand.Add(callgraphCommand);
 rootCommand.Add(hotspotsCommand);
@@ -1284,6 +1348,7 @@ rootCommand.Add(exportCommand);
 rootCommand.Add(driftCommand);
 rootCommand.Add(contextCommand);
 rootCommand.Add(impactCommand);
+rootCommand.Add(deadCodeCommand);
 
 // MCP server command
 var mcpDbOption = new Option<string>("--db") { Description = "Path to graph.db", DefaultValueFactory = _ => "./ai-code-graph/graph.db" };
