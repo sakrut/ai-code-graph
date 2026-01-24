@@ -1,3 +1,4 @@
+using AiCodeGraph.Core.Embeddings;
 using AiCodeGraph.Core.Normalization;
 
 namespace AiCodeGraph.Core.Duplicates;
@@ -73,13 +74,19 @@ public class IntentClusterer
         var labels = new int[n];
         Array.Fill(labels, -1); // -1 = unvisited/noise
 
+        // Build LSH index for fast neighbor queries
+        var dimensions = vectorMap.Values.First().Length;
+        var lsh = new LshSpatialIndex(dimensions, numHashFunctions: 32, numBands: 8, seed: 42);
+        var vectors = methodIds.Select(id => vectorMap[id]).ToList();
+        lsh.BuildIndex(vectors);
+
         int currentCluster = 0;
 
         for (int i = 0; i < n; i++)
         {
             if (labels[i] != -1) continue;
 
-            var neighbors = GetNeighbors(i, methodIds, vectorMap);
+            var neighbors = GetNeighbors(i, methodIds, vectorMap, lsh);
             if (neighbors.Count < _minPoints)
                 continue; // noise point
 
@@ -93,7 +100,7 @@ public class IntentClusterer
                     continue; // already in another cluster
 
                 labels[idx] = currentCluster;
-                var innerNeighbors = GetNeighbors(idx, methodIds, vectorMap);
+                var innerNeighbors = GetNeighbors(idx, methodIds, vectorMap, lsh);
                 if (innerNeighbors.Count >= _minPoints)
                 {
                     foreach (var n2 in innerNeighbors)
@@ -110,12 +117,13 @@ public class IntentClusterer
         return labels;
     }
 
-    private List<int> GetNeighbors(int pointIdx, List<string> methodIds, Dictionary<string, float[]> vectorMap)
+    private List<int> GetNeighbors(int pointIdx, List<string> methodIds, Dictionary<string, float[]> vectorMap, LshSpatialIndex lsh)
     {
         var neighbors = new List<int>();
         var vector = vectorMap[methodIds[pointIdx]];
+        var candidates = lsh.GetCandidateNeighbors(pointIdx);
 
-        for (int i = 0; i < methodIds.Count; i++)
+        foreach (var i in candidates)
         {
             if (i == pointIdx) continue;
             var other = vectorMap[methodIds[i]];
