@@ -155,6 +155,99 @@ public class StorageServiceTests : IAsyncDisposable
         Assert.Empty(results);
     }
 
+    [Fact]
+    public async Task GetCallGraphForMethodsAsync_EmptyIds_ReturnsEmpty()
+    {
+        await _storage.InitializeAsync();
+        await SaveTestModel();
+
+        var result = await _storage.GetCallGraphForMethodsAsync(new HashSet<string>());
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetCallGraphForMethodsAsync_SmallDataset_ReturnsCorrectEdges()
+    {
+        await _storage.InitializeAsync();
+        await SaveTestModel();
+
+        var calls = new List<(string, string)>
+        {
+            ("method:CreateUser", "method:ValidateUser"),
+            ("method:UpdateUser", "method:ValidateUser"),
+            ("method:CreateUser", "method:UpdateUser")
+        };
+        await _storage.SaveCallGraphAsync(calls);
+
+        var methodIds = new HashSet<string> { "method:CreateUser" };
+        var result = await _storage.GetCallGraphForMethodsAsync(methodIds);
+
+        // Should find edges where CreateUser is caller or callee (2 of 3)
+        Assert.Equal(2, result.Count);
+    }
+
+    [Fact]
+    public async Task GetCallGraphForMethodsAsync_MultipleIds_ReturnsUnion()
+    {
+        await _storage.InitializeAsync();
+        await SaveTestModel();
+
+        var calls = new List<(string, string)>
+        {
+            ("method:CreateUser", "method:ValidateUser"),
+            ("method:UpdateUser", "method:ValidateUser")
+        };
+        await _storage.SaveCallGraphAsync(calls);
+
+        var methodIds = new HashSet<string> { "method:CreateUser", "method:UpdateUser" };
+        var result = await _storage.GetCallGraphForMethodsAsync(methodIds);
+
+        Assert.Equal(2, result.Count);
+    }
+
+    [Fact]
+    public async Task GetCallGraphForMethodsAsync_DeduplicatesAcrossChunks()
+    {
+        await _storage.InitializeAsync();
+        await SaveTestModel();
+
+        var calls = new List<(string, string)>
+        {
+            ("method:CreateUser", "method:ValidateUser")
+        };
+        await _storage.SaveCallGraphAsync(calls);
+
+        // Both IDs match the same edge - should only appear once
+        var methodIds = new HashSet<string> { "method:CreateUser", "method:ValidateUser" };
+        var result = await _storage.GetCallGraphForMethodsAsync(methodIds);
+
+        Assert.Single(result);
+        Assert.Equal("method:CreateUser", result[0].CallerId);
+        Assert.Equal("method:ValidateUser", result[0].CalleeId);
+    }
+
+    [Fact]
+    public async Task GetCallGraphForMethodsAsync_ManyIds_ChunksCorrectly()
+    {
+        await _storage.InitializeAsync();
+        await SaveTestModel();
+
+        // Create enough method calls to test chunking
+        var calls = new List<(string, string)>();
+        for (int i = 0; i < 500; i++)
+            calls.Add(($"method:Caller{i}", $"method:Callee{i}"));
+        await _storage.SaveCallGraphAsync(calls);
+
+        // Query with 500 IDs (exceeds chunk size of 450)
+        var methodIds = new HashSet<string>();
+        for (int i = 0; i < 500; i++)
+            methodIds.Add($"method:Caller{i}");
+
+        var result = await _storage.GetCallGraphForMethodsAsync(methodIds);
+
+        Assert.Equal(500, result.Count);
+    }
+
     private async Task SaveTestModel()
     {
         var methods = new List<MethodModel>

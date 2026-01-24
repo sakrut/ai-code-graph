@@ -748,18 +748,39 @@ public class StorageService : IAsyncDisposable, IDisposable
     public async Task<List<(string CallerId, string CalleeId)>> GetCallGraphForMethodsAsync(HashSet<string> methodIds, CancellationToken cancellationToken = default)
     {
         EnsureConnection();
-        using var cmd = _connection!.CreateCommand();
-        cmd.CommandText = "SELECT CallerId, CalleeId FROM MethodCalls";
 
+        if (methodIds.Count == 0)
+            return new List<(string, string)>();
+
+        var seen = new HashSet<(string, string)>();
         var results = new List<(string, string)>();
-        using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-        while (await reader.ReadAsync(cancellationToken))
+        var idList = methodIds.ToList();
+        const int chunkSize = 450; // 450 * 2 = 900 params (under SQLite's 999 limit)
+
+        for (int i = 0; i < idList.Count; i += chunkSize)
         {
-            var caller = reader.GetString(0);
-            var callee = reader.GetString(1);
-            if (methodIds.Contains(caller) || methodIds.Contains(callee))
-                results.Add((caller, callee));
+            var chunk = idList.GetRange(i, Math.Min(chunkSize, idList.Count - i));
+            using var cmd = _connection!.CreateCommand();
+
+            var callerParams = string.Join(",", chunk.Select((_, idx) => $"@c{idx}"));
+            var calleeParams = string.Join(",", chunk.Select((_, idx) => $"@e{idx}"));
+            cmd.CommandText = $"SELECT CallerId, CalleeId FROM MethodCalls WHERE CallerId IN ({callerParams}) OR CalleeId IN ({calleeParams})";
+
+            for (int j = 0; j < chunk.Count; j++)
+            {
+                cmd.Parameters.AddWithValue($"@c{j}", chunk[j]);
+                cmd.Parameters.AddWithValue($"@e{j}", chunk[j]);
+            }
+
+            using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                var pair = (reader.GetString(0), reader.GetString(1));
+                if (seen.Add(pair))
+                    results.Add(pair);
+            }
         }
+
         return results;
     }
 

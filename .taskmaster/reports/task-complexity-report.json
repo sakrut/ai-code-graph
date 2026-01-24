@@ -1,133 +1,261 @@
 {
 	"meta": {
-		"generatedAt": "2026-01-23T20:09:02.839Z",
-		"tasksAnalyzed": 15,
-		"totalTasks": 15,
-		"analysisCount": 15,
+		"generatedAt": "2026-01-24T10:59:04.866Z",
+		"tasksAnalyzed": 31,
+		"totalTasks": 50,
+		"analysisCount": 31,
 		"thresholdScore": 5,
 		"projectName": "Task Master",
 		"usedResearch": true
 	},
 	"complexityAnalysis": [
 		{
-			"taskId": 1,
-			"taskTitle": "Initialize .NET Solution and Project Structure",
+			"taskId": 20,
+			"taskTitle": "SQL WHERE Clause Optimization in GetCallGraphForMethodsAsync",
+			"complexityScore": 4,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down into: (1) Implement the parameterized chunked SQL query replacing the full table scan, (2) Add deduplication logic across chunks, (3) Write StorageServiceTests covering boundary conditions (900 IDs, 1000+ IDs, empty set)",
+			"reasoning": "The current implementation is clearly identified at lines 748-764 of StorageService.cs (845 lines total). It's a straightforward replacement of a SELECT-all-then-filter pattern with parameterized IN clauses. The chunking logic (450 per batch for 900 params under SQLite's 999 limit) is well-defined. The file already uses parameterized queries elsewhere, so the pattern is established. Testing is the bulk of the work - verifying identical results and boundary conditions."
+		},
+		{
+			"taskId": 21,
+			"taskTitle": "Static Readonly Stopwords in IntentClusterer",
+			"complexityScore": 1,
+			"recommendedSubtasks": 0,
+			"expansionPrompt": "Single step: Move the HashSet from inside GenerateLabel() (lines 161-166 of the 196-line IntentClusterer.cs) to a private static readonly field with StringComparer.OrdinalIgnoreCase. Verify existing DuplicateDetectionTests pass unchanged.",
+			"reasoning": "This is a trivial refactor - moving a local variable to a class-level static field. The file is only 196 lines and the change is purely mechanical. The stopwords are already defined inline; moving them up is a copy-paste with a field declaration. No logic changes, no new tests required beyond confirming existing tests pass."
+		},
+		{
+			"taskId": 22,
+			"taskTitle": "VectorIndex Caching in Similar/Search Commands",
+			"complexityScore": 4,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down into: (1) Add static Dictionary cache and GetOrBuildVectorIndex helper in Program.cs, (2) Update similar command (lines 495-574) and search command (lines 716-808) to use the cache, (3) Add InvalidateVectorCache call after analyze command and write tests verifying cache behavior",
+			"reasoning": "Program.cs is 1500 lines. The similar and search commands each construct VectorIndex inline. Adding a static cache with path-based keys and thread-safe access is straightforward. The main complexity is identifying all usage points (2 commands confirmed) and adding invalidation in the analyze command. Testing cache behavior (second call faster / BuildIndex not called twice) requires some mocking strategy."
+		},
+		{
+			"taskId": 23,
+			"taskTitle": "DriftDetector Connection Leak Fix",
+			"complexityScore": 2,
+			"recommendedSubtasks": 0,
+			"expansionPrompt": "Restructure CompareAsync in DriftDetector.cs (278 lines) with explicit try-finally for connection disposal, or verify that existing await-using declarations plus the FileNotFoundException validation at lines 23-26 already prevent the leak. Add tests for invalid path scenarios.",
+			"reasoning": "The DriftDetector already validates file existence before opening connections (lines 23-26 throw FileNotFoundException). The `await using` declarations in C# provide deterministic disposal even on exceptions. The actual 'fix' is minimal - either confirming the existing code is safe or adding try-finally for extra safety. The file is small (278 lines) and the change is localized to one method. Tests for error paths are the main addition."
+		},
+		{
+			"taskId": 24,
+			"taskTitle": "VectorIndex Null/NaN Validation",
 			"complexityScore": 3,
-			"recommendedSubtasks": 5,
-			"expansionPrompt": "Break down the .NET solution initialization into subtasks covering: 1) Solution and project creation (sln, console, classlib, xunit), 2) Global tool configuration in CLI csproj, 3) NuGet package references for Core project (Roslyn, SQLite, System.CommandLine, MSBuild.Locator), 4) Dependency injection setup and project references, 5) .gitignore updates and output directory conventions. Note: the existing .gitignore excludes *.sln which needs to be fixed.",
-			"reasoning": "This is a straightforward scaffolding task using standard dotnet CLI commands. The complexity is low because it involves well-documented template commands and NuGet package additions. However, there's a notable issue: the existing .gitignore file excludes *.sln files, which will need to be corrected. The task involves no novel logic, just following established .NET project structure conventions. The slight complexity comes from configuring the global tool packaging and ensuring all NuGet packages resolve correctly together (Roslyn workspace packages have specific version compatibility requirements)."
+			"recommendedSubtasks": 2,
+			"expansionPrompt": "Break down into: (1) Add ValidateVector helper and integrate into AddItem, BuildIndex, and Search methods in VectorIndex.cs (141 lines), (2) Write comprehensive tests in EmbeddingsTests.cs covering null, NaN, Infinity, -Infinity, and valid vector cases",
+			"reasoning": "VectorIndex.cs is only 141 lines. Adding a validation helper and calling it in 3 methods (AddItem, BuildIndex, Search) is straightforward. The existing file already does dimension validation, so the pattern is established. The bulk is writing 7-8 focused unit tests. No architectural changes needed."
 		},
 		{
-			"taskId": 2,
-			"taskTitle": "Implement Roslyn Workspace Loader",
-			"complexityScore": 6,
-			"recommendedSubtasks": 5,
-			"expansionPrompt": "Break down the Roslyn Workspace Loader implementation into subtasks: 1) Create LoadedWorkspace model and WorkspaceLoader class skeleton with MSBuildLocator registration, 2) Implement solution loading with MSBuildWorkspace.OpenSolutionAsync and compilation of all projects, 3) Implement diagnostics handling and graceful error recovery for failed project loads, 4) Implement solution file auto-discovery (search current and parent directories for .sln files), 5) Add progress reporting and cancellation token support. Consider that MSBuildLocator.RegisterDefaults() must be called before any Roslyn types are loaded, which affects assembly loading order.",
-			"reasoning": "MSBuildWorkspace is notoriously tricky to work with correctly. Key challenges include: MSBuildLocator must be called before any MSBuild types are referenced (assembly load order issue), workspace diagnostics are common and must be handled gracefully, compilation can fail for various reasons (missing SDK, package restore needed), and the solution discovery logic needs careful path traversal. This is a foundational component where errors propagate to all downstream tasks, increasing the importance of robust error handling."
+			"taskId": 25,
+			"taskTitle": "Extract Shared GetMethodBody Utility",
+			"complexityScore": 3,
+			"recommendedSubtasks": 2,
+			"expansionPrompt": "Break down into: (1) Create AiCodeGraph.Core/Shared/MethodBodyHelper.cs with the unified switch expression (already identical across 3 files including constructor/destructor/operator patterns), (2) Update MetricsEngine.cs, CallGraphBuilder.cs, and IntentNormalizer.cs to use MethodBodyHelper, and add unit tests",
+			"reasoning": "The duplicate pattern is confirmed in 3 files - all use identical switch expressions on BaseMethodDeclarationSyntax. The extraction is mechanical: create a Shared directory, add a static class, replace 3 usages. MetricsEngine also has a LocalFunctionStatementSyntax variant that won't be covered. The helper handles 5 syntax types. Testing with Roslyn's CSharpSyntaxTree.ParseText is well-established in this project."
 		},
 		{
-			"taskId": 3,
-			"taskTitle": "Implement Code Model Extractor",
-			"complexityScore": 7,
-			"recommendedSubtasks": 6,
-			"expansionPrompt": "Break down the Code Model Extractor into subtasks: 1) Define model records (ProjectModel, NamespaceModel, TypeModel, MethodModel, ParameterModel) with stable ID generation using symbol display strings, 2) Implement recursive namespace walking from Compilation.GlobalNamespace, 3) Implement type extraction (class, interface, record, struct, enum) with accessibility and modifier tracking, 4) Implement method extraction with signatures, parameters, return types, and source locations, 5) Handle edge cases: partial classes (merge members), nested types, compiler-generated members (IsImplicitlyDeclared), generics, 6) Extract relationship data: Contains hierarchy and Implements relationships (type→interface). Consider that Roslyn's symbol API has many subtleties around generic types, explicit interface implementations, and source-generated code.",
-			"reasoning": "This task requires deep knowledge of Roslyn's symbol API. The complexity arises from: handling the many type kinds in C# (classes, interfaces, records, structs, enums, delegates), dealing with partial classes that span multiple files, nested types requiring recursive processing, generic type handling (open vs closed generics, type constraints), compiler-generated members that should be filtered, and producing stable IDs across runs. The symbol display format needs careful configuration to produce consistent, unique identifiers. Interface implementation tracking adds another layer with explicit vs implicit implementations."
-		},
-		{
-			"taskId": 4,
-			"taskTitle": "Implement SQLite Storage Layer",
+			"taskId": 26,
+			"taskTitle": "Extract Analyze Command into Stage Methods",
 			"complexityScore": 5,
-			"recommendedSubtasks": 5,
-			"expansionPrompt": "Break down the SQLite Storage Layer into subtasks: 1) Create database schema with all tables (Projects, Namespaces, Types, Methods, MethodCalls, TypeImplements, Metrics, IntentClusters, MethodClusterMap) and indexes, 2) Implement StorageService class with InitializeAsync (create/recreate tables), 3) Implement bulk insert methods with transactions (SaveCodeModelAsync, SaveCallGraphAsync, SaveMetricsAsync), 4) Implement query methods for CLI consumption (GetMethodById, GetCallees, GetCallers, GetHotspots, pattern matching), 5) Add NormalizedMethods table and vector storage schema for later phases. Use Microsoft.Data.Sqlite with parameterized queries throughout.",
-			"reasoning": "SQLite schema design and data access are well-understood patterns. The complexity is moderate because: the schema has 9 tables with foreign key relationships, bulk inserts need transaction batching for performance (5000+ methods target), the drop-and-recreate strategy needs careful ordering due to foreign keys, and query methods need to support pattern matching and sorting. However, Microsoft.Data.Sqlite is straightforward to use, there's no ORM complexity, and the schema is clearly defined in the task description. The main challenge is performance optimization for bulk operations."
-		},
-		{
-			"taskId": 5,
-			"taskTitle": "Implement Call Graph Builder",
-			"complexityScore": 8,
-			"recommendedSubtasks": 7,
-			"expansionPrompt": "Break down the Call Graph Builder into subtasks: 1) Create MethodCallEdge model and CallGraphBuilder class skeleton, 2) Implement syntax node location for method declarations (map MethodModel back to SyntaxNodes via SemanticModel), 3) Implement InvocationExpression resolution using SemanticModel.GetSymbolInfo() for direct method calls, 4) Handle ObjectCreationExpression as constructor calls and member access patterns, 5) Implement interface dispatch resolution (interface method → known implementations mapping), 6) Handle virtual/override dispatch and delegate invocations, 7) Handle LINQ expressions, lambda invocations, and edge cases (extension methods, operator overloads, conditional access). This is the most technically challenging analysis task due to the many invocation patterns in C#.",
-			"reasoning": "This is one of the most complex tasks because C# has many invocation patterns that must be handled. Key challenges: GetSymbolInfo() can return candidates instead of a single symbol (overload resolution ambiguity), interface dispatch requires building a complete implementation map first, virtual calls need the type hierarchy, lambda/delegate invocations are indirect, LINQ chains involve extension methods with complex resolution, conditional access (?.) creates different syntax patterns, and expression-bodied members use different syntax trees. Additionally, mapping resolved IMethodSymbols back to the project's MethodModel IDs requires careful handling of generic instantiations and reduced symbols."
-		},
-		{
-			"taskId": 6,
-			"taskTitle": "Implement Cognitive Complexity Metrics Engine",
-			"complexityScore": 6,
-			"recommendedSubtasks": 5,
-			"expansionPrompt": "Break down the Cognitive Complexity Metrics Engine into subtasks: 1) Implement CognitiveComplexityCalculator as a CSharpSyntaxWalker with nesting level tracking, 2) Implement base increment rules (+1 for control flow breaks: if, else, switch, for, foreach, while, do, catch, goto, ternary, &&, ||), 3) Implement nesting increment rules (+nesting for nested control structures and lambdas), 4) Implement LinesOfCode counter (non-empty, non-comment lines) and MaxNestingDepth tracker, 5) Create MetricsEngine class that computes all metrics for method lists, handling expression-bodied members and switch expressions. Reference the SonarSource specification for cognitive complexity rules.",
-			"reasoning": "The cognitive complexity algorithm is well-documented by SonarSource, but implementing it correctly in C# syntax requires careful handling of many language constructs. Challenges include: correctly tracking nesting depth across nested structures, handling the distinction between 'if' and 'else if' (else if shouldn't increment nesting), switch expressions vs switch statements having different complexity implications, ternary operators, null-coalescing operators, and pattern matching (is/switch patterns). The LOC counter needs to handle various comment styles (single-line, multi-line, XML docs). Expression-bodied members (=>) require special handling."
-		},
-		{
-			"taskId": 7,
-			"taskTitle": "Implement CLI Framework and Analyze Command",
-			"complexityScore": 5,
-			"recommendedSubtasks": 5,
-			"expansionPrompt": "Break down the CLI Framework and Analyze Command into subtasks: 1) Set up System.CommandLine with RootCommand and basic CLI infrastructure (help text, version), 2) Implement the analyze command definition with options (--solution, --output, --verbose), 3) Implement the AnalyzeCommand handler that orchestrates the full pipeline (workspace→model→callgraph→metrics→storage), 4) Add progress reporting with elapsed time and summary statistics output, 5) Implement error handling, exit codes, and output directory management. This is primarily an orchestration task that wires together previously-built components.",
-			"reasoning": "This is primarily an integration/orchestration task. System.CommandLine has a learning curve but is well-documented. The main complexity is in correctly sequencing the pipeline steps, handling errors at each stage gracefully, and providing useful progress output. Since all the actual analysis components are built in previous tasks, this task is about wiring them together with proper error handling and user-facing output. The dependency injection setup and service lifetime management add some complexity."
-		},
-		{
-			"taskId": 8,
-			"taskTitle": "Implement CLI Query Commands: callgraph, hotspots, tree",
-			"complexityScore": 6,
-			"recommendedSubtasks": 6,
-			"expansionPrompt": "Break down the CLI Query Commands into subtasks: 1) Implement the callgraph command with method resolution (partial name matching, namespace-qualified), 2) Implement BFS/DFS traversal with depth control and direction filtering (callers/callees/both), 3) Implement the hotspots command with complexity-ordered queries and threshold filtering, 4) Implement the tree command with namespace/type hierarchy display and filtering, 5) Implement table formatting for all commands with proper column alignment, 6) Implement JSON output format for all commands ensuring deterministic, sorted output. Each command needs both table and JSON output modes.",
-			"reasoning": "Three distinct commands each with multiple options and two output formats. The callgraph command is the most complex due to graph traversal with depth limiting, bidirectional support, and partial method name resolution (which needs fuzzy matching). The tree command requires recursive hierarchy rendering. All commands need both human-readable table output (with column alignment) and machine-readable JSON output. Deterministic output ordering requires careful sorting. The main challenge is the callgraph traversal logic and method name resolution with partial matching."
-		},
-		{
-			"taskId": 9,
-			"taskTitle": "Implement Intent Normalization Module",
-			"complexityScore": 5,
-			"recommendedSubtasks": 5,
-			"expansionPrompt": "Break down the Intent Normalization Module into subtasks: 1) Implement identifier tokenizer with PascalCase/camelCase splitting and acronym handling (HTTPClient → [HTTP, Client]), 2) Implement structural signature generation (replace literals with placeholders, normalize variable names to positional, preserve control flow structure), 3) Implement semantic payload generation (combine split identifiers, parameter types, return type, called method names into natural language text), 4) Create IntentNormalizer class that combines structural and semantic normalization for each method, 5) Add storage for normalized data (NormalizedMethods table in SQLite). The key challenge is producing consistent, deterministic normalizations.",
-			"reasoning": "This task involves text processing and AST manipulation. The structural signature generation requires walking the syntax tree and applying consistent transformations (replacing literals, renaming variables). PascalCase splitting with acronym handling has known edge cases (e.g., 'XMLHTTPRequest', 'iOS', 'GetURLForID'). The semantic payload concatenation is straightforward string manipulation. Overall, this is algorithmic work with well-defined inputs and outputs, but the normalization rules need careful implementation to be deterministic and produce meaningful results."
-		},
-		{
-			"taskId": 10,
-			"taskTitle": "Implement Local Embedding Engine and Vector Index",
-			"complexityScore": 8,
-			"recommendedSubtasks": 6,
-			"expansionPrompt": "Break down the Local Embedding Engine and Vector Index into subtasks: 1) Research and select ONNX embedding model (all-MiniLM-L6-v2) and set up model download/caching infrastructure, 2) Implement EmbeddingEngine class using Microsoft.ML.OnnxRuntime with proper tokenization for the selected model, 3) Implement batch embedding generation with progress reporting, 4) Implement VectorIndex class with cosine similarity search (flat brute-force for v1, consider HNSW for larger codebases), 5) Implement vector persistence (save/load to disk in binary format), 6) Add embedding caching logic (detect changed methods, only regenerate necessary embeddings). Key challenge: ONNX runtime setup with correct tokenizer configuration for the selected model.",
-			"reasoning": "This is one of the most complex tasks due to ML infrastructure integration. Challenges include: selecting and downloading ONNX models at runtime, implementing correct tokenization (the model expects specific tokenization matching its training), OnnxRuntime session management and memory handling, batching for performance, vector serialization format design, and the vector index implementation. Even a flat brute-force index needs careful cosine similarity implementation. The caching logic adds complexity (detecting which methods changed). Cross-platform ONNX runtime compatibility (different native binaries) is another concern."
-		},
-		{
-			"taskId": 11,
-			"taskTitle": "Implement Duplicate Detection and Intent Clustering",
-			"complexityScore": 7,
-			"recommendedSubtasks": 6,
-			"expansionPrompt": "Break down the Duplicate Detection and Intent Clustering into subtasks: 1) Implement StructuralCloneDetector using edit distance or token-level Jaccard similarity on structural signatures, 2) Implement SemanticCloneDetector using kNN search on embedding vectors with threshold filtering, 3) Implement hybrid scoring formula (α * structural + (1-α) * semantic) with configurable weights, 4) Implement IntentClusterer using DBSCAN or agglomerative clustering on embedding vectors, 5) Implement cluster auto-labeling using most common identifier tokens among members, 6) Store clone pairs and clusters in SQLite (ClonePairs table, IntentClusters, MethodClusterMap). The clustering algorithm choice significantly impacts result quality.",
-			"reasoning": "This task combines multiple algorithmic challenges: string similarity computation (edit distance is O(n*m) and may need optimization for large codebases), kNN search over vectors, hybrid score computation, and unsupervised clustering. DBSCAN implementation requires choosing epsilon and minPoints parameters that work well for code embeddings. The O(n²) pairwise comparison for structural clones could be a performance bottleneck for large codebases. Auto-labeling clusters requires NLP-like token frequency analysis. The configurable thresholds add testing complexity."
-		},
-		{
-			"taskId": 12,
-			"taskTitle": "Implement Natural Language Search Command",
-			"complexityScore": 4,
 			"recommendedSubtasks": 4,
-			"expansionPrompt": "Break down the Natural Language Search Command into subtasks: 1) Implement the search command definition with System.CommandLine (query argument, --top, --threshold, --format options), 2) Implement the search pipeline (load model → embed query → load index → kNN search → filter by threshold), 3) Implement result enrichment by joining vector search results with SQLite metadata (method details, file paths, complexity), 4) Implement table and JSON output formatting with deterministic ordering. This is primarily a CLI wiring task that combines the embedding engine and vector index from Task 10.",
-			"reasoning": "This task is relatively straightforward because it's wiring together already-built components (embedding engine from Task 10, vector index, SQLite queries from Task 4). The search pipeline is a linear sequence of operations. The main work is CLI argument parsing, result formatting, and the error case when the index doesn't exist. The 'quoted phrase boosting' mentioned in the details adds minor complexity but could be deferred. Overall this is a thin CLI layer over existing functionality."
+			"expansionPrompt": "Break down into: (1) Define stage method signatures and extract LoadWorkspaceStage and ExtractCodeModelStage, (2) Extract BuildCallGraphStage, ComputeMetricsStage, and NormalizeMethodsStage, (3) Extract GenerateEmbeddingsStage, StoreResultsStage, DetectDuplicatesStage, and SaveBaselineStage, (4) Refactor the analyze command action to orchestrate stages and verify all integration tests pass",
+			"reasoning": "The analyze command is a 175-line monolithic action (lines 46-220 in 1500-line Program.cs). Extracting 8-9 static methods requires careful identification of variables passed between stages. The stages have data dependencies (workspace feeds into extraction, extraction feeds into call graph and metrics, etc.). Each stage needs the right parameter set. The constraint of keeping methods in Program.cs simplifies this. Main risk is breaking the data flow between stages."
 		},
 		{
-			"taskId": 13,
-			"taskTitle": "Implement Duplicates CLI Command",
+			"taskId": 27,
+			"taskTitle": "Add IStorageService Interface",
 			"complexityScore": 4,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down into: (1) Create IStorageService.cs with all 20+ public method signatures extracted from StorageService (confirmed via analysis), (2) Modify StorageService class declaration to implement IStorageService and verify compilation, (3) Add compile-time verification test and ensure all existing StorageServiceTests pass",
+			"reasoning": "StorageService has 20+ public methods with complex tuple return types (confirmed in analysis). Extracting these into an interface requires careful transcription of all signatures including generic tuple types, nullable annotations, and default parameters. The file is 845 lines. The interface itself will be substantial (~80-100 lines). No consumers need changing yet per the task spec. Main risk: missing a method signature or getting a return type wrong."
+		},
+		{
+			"taskId": 28,
+			"taskTitle": "Deduplicate Catch Blocks in Program.cs",
+			"complexityScore": 2,
+			"recommendedSubtasks": 0,
+			"expansionPrompt": "Extract a HandleCommandError helper method in Program.cs and replace identical catch blocks (confirmed at lines 197-219 with FileNotFoundException, InvalidOperationException, OperationCanceledException, and general Exception patterns). Apply to all commands with identical patterns.",
+			"reasoning": "The catch blocks are confirmed at lines 197-219 with 4 exception types. The refactoring is trivial - extract a 5-line helper method and replace 4 catch blocks. Program.cs also has other commands that likely repeat this pattern. The task is mechanical with minimal risk. No new tests needed beyond verifying error output format matches."
+		},
+		{
+			"taskId": 29,
+			"taskTitle": "Add ConfigureAwait(false) to Core Library Async Methods",
+			"complexityScore": 3,
+			"recommendedSubtasks": 2,
+			"expansionPrompt": "Break down into: (1) Add ConfigureAwait(false) to all await calls in StorageService.cs (845 lines, ~40+ await calls), (2) Add ConfigureAwait(false) to DriftDetector.cs (278 lines, ~20+ await calls) and verify full test suite passes",
+			"reasoning": "Confirmed that ConfigureAwait is not currently used anywhere in the Core library. StorageService.cs has numerous await calls across 20+ async methods, and DriftDetector.cs has additional ones. The change is mechanical (append .ConfigureAwait(false) to each await) but tedious due to volume. Risk is missing an await or accidentally modifying CLI/Test code. Search-and-replace with careful scoping is the approach."
+		},
+		{
+			"taskId": 30,
+			"taskTitle": "Rename search Command to token-search",
+			"complexityScore": 5,
 			"recommendedSubtasks": 4,
-			"expansionPrompt": "Break down the Duplicates CLI Command into subtasks: 1) Implement the duplicates command definition with System.CommandLine (--concept, --threshold, --type, --top, --format options), 2) Implement query logic against SQLite clone pairs with concept/type/threshold filtering, 3) Implement the export command for filtered subsets of the code graph, 4) Implement table and JSON output formatting for both commands with deterministic ordering. This is a query-and-display task over data already computed by Task 11.",
-			"reasoning": "Similar to Task 12, this is primarily a CLI presentation layer over data already computed and stored by Task 11 (Duplicate Detection and Intent Clustering). The queries against SQLite are straightforward with WHERE clauses for filtering. The export command adds a second sub-command but follows the same pattern. Deterministic sorting and formatting are the main concerns. The concept filtering requires matching against intent cluster labels, which is a simple string comparison or LIKE query."
+			"expansionPrompt": "Break down into: (1) Rename CLI command in Program.cs (lines 716-808) and update variable names, (2) Rename MCP tool from cg_search to cg_token_search in McpServer.cs (~33KB file), (3) Rename slash command file from cg:search.md to cg:token-search.md and update content, (4) Update CLAUDE.md references and SearchCommandTests.cs",
+			"reasoning": "This is a breaking rename affecting 5 files across 3 integration points (CLI, MCP, slash commands). The search command is confirmed at lines 716-808 in Program.cs. The MCP server (~33KB) has tool definitions that need updating. The slash command file (.claude/commands/cg:search.md) exists and needs renaming. CLAUDE.md references it. Tests exist in SearchCommandTests.cs. Each change is simple but the coordination across files adds complexity. Dependencies on all prior tasks make this a Phase 2 gate."
 		},
 		{
-			"taskId": 14,
-			"taskTitle": "Implement Diff and Drift Detection Engine",
+			"taskId": 31,
+			"taskTitle": "Improve Duplicates Output with File Paths and Line Ranges",
+			"complexityScore": 4,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down into: (1) Add GetMethodInfoAsync calls for each clone pair in the duplicates command output logic (lines 589-650 of Program.cs), (2) Compute end line using GetMethodMetricsAsync LOC data and format the two-line output per pair, (3) Update tests and handle edge cases (null FilePath, missing metrics)",
+			"reasoning": "The duplicates command section is identified in Program.cs. Adding file path lookups requires calling GetMethodInfoAsync (which already exists) for each pair's two methods. Computing end line from StartLine + LOC requires an additional GetMethodMetricsAsync call. The output formatting change is straightforward. Edge cases (null FilePath) need handling. Testing requires fixture methods with known locations."
+		},
+		{
+			"taskId": 32,
+			"taskTitle": "Improve Cluster Labels Using Method Signatures",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down into: (1) Implement SplitPascalCase and ExtractShortName helper methods in IntentClusterer.cs, (2) Rewrite GenerateLabel to use verb/noun counting from PascalCase-split method names with the static Stopwords field (from task 21), (3) Update DuplicateDetectionTests to verify new label format with various method name patterns",
+			"reasoning": "This rewrites the GenerateLabel method (currently lines 159-194 in the 196-line IntentClusterer.cs) with new logic: PascalCase splitting, verb/noun extraction, frequency counting. It depends on task 21's static Stopwords field. The PascalCase splitter and ExtractShortName utilities are new code. The label format changes from token-frequency to verb/noun grouping, which will affect test assertions. The existing test coverage for clustering behavior needs updating."
+		},
+		{
+			"taskId": 33,
+			"taskTitle": "Add Source Code Snippet to Context Output",
+			"complexityScore": 3,
+			"recommendedSubtasks": 2,
+			"expansionPrompt": "Break down into: (1) Add file reading logic after existing context output in the context command (around line 1034-1135 of Program.cs), showing first 20 lines from StartLine, (2) Handle edge cases (file not found, short methods, IOException) and add tests with fixture methods",
+			"reasoning": "The context command is well-defined in Program.cs. Adding a source snippet section requires File.ReadAllLinesAsync, slicing 20 lines from StartLine, and basic error handling. The method info (FilePath, StartLine) is already fetched by the context command. Edge cases are straightforward IOException catches. Testing with the test fixture's known methods is feasible since file paths are stored in the DB."
+		},
+		{
+			"taskId": 34,
+			"taskTitle": "Add Git Blame Info to Context Command",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down into: (1) Add Process.Start git blame execution with porcelain parsing after the source snippet section, (2) Parse author and author-time from porcelain output using regex, (3) Handle edge cases (git not installed, not a repo, file not tracked) and add integration tests with git fixture",
+			"reasoning": "Running external processes (git blame) adds complexity: ProcessStartInfo configuration, async stdout reading, porcelain format parsing with regex. The error handling for various git failure modes (not installed, not a repo, file untracked) requires multiple catch scenarios. Integration testing requires a git fixture with committed files. The process management and parsing logic is non-trivial even though each piece is well-understood."
+		},
+		{
+			"taskId": 35,
+			"taskTitle": "Add Test Coverage Data to Context Command",
+			"complexityScore": 3,
+			"recommendedSubtasks": 2,
+			"expansionPrompt": "Break down into: (1) Add test method discovery using SearchMethodsAsync with naming convention patterns (MethodName*Test*, *Tests*MethodName*) after existing context sections, (2) Deduplicate results, filter to actual test classes, limit display to 5, and add tests",
+			"reasoning": "This uses the existing SearchMethodsAsync method (confirmed in StorageService) with LIKE patterns to find test methods. The logic is straightforward: two searches, concat, deduplicate, filter. Output formatting is simple. The naming convention matching may produce false positives but the task acknowledges this. Testing is straightforward with the fixture solution."
+		},
+		{
+			"taskId": 36,
+			"taskTitle": "Add Recently Modified Cluster Members to Context",
 			"complexityScore": 6,
-			"recommendedSubtasks": 5,
-			"expansionPrompt": "Break down the Diff and Drift Detection Engine into subtasks: 1) Implement baseline snapshot management (save current DB as baseline, --save-baseline flag on analyze command), 2) Implement DriftDetector.Compare() method that opens both databases and computes diffs (new/removed methods, complexity changes), 3) Implement complexity regression detection with configurable thresholds (>25% increase or crossing absolute threshold), 4) Implement intent scattering detection (cluster gaining members in new namespaces), 5) Implement drift CLI command with summary/detail/json output formats. The comparison logic requires opening two SQLite databases simultaneously and performing set operations.",
-			"reasoning": "The diff engine requires comparing two database snapshots, which involves set operations (methods in A not in B, methods in B not in A) and value comparisons (complexity changes). The complexity regression logic needs percentage and absolute threshold calculations. Intent scattering detection requires comparing cluster membership across namespaces, which is more nuanced. The baseline management (copying databases, path resolution) adds operational complexity. However, the core logic is comparison and filtering, which is well-understood."
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Break down into: (1) Query cluster membership and get method info for cluster members, (2) Execute git log for each member method to get last modification timestamp, (3) Parse timestamps and format age strings, (4) Handle edge cases (no git, no cluster, no history) and add integration tests with git fixture",
+			"reasoning": "This combines database queries (GetClustersAsync, GetMethodInfoAsync) with external process execution (git log per method) and time formatting. Running git log potentially 10 times per context call adds latency concerns. The FormatAge helper is simple but the overall orchestration - querying cluster, iterating members, spawning git processes, collecting results, sorting by recency - is moderately complex. Testing requires a git fixture with multiple methods in the same cluster."
 		},
 		{
-			"taskId": 15,
-			"taskTitle": "End-to-End Integration Testing and Performance Optimization",
+			"taskId": 37,
+			"taskTitle": "Impact Command - Transitive Callers Analysis",
+			"complexityScore": 6,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Break down into: (1) Register the impact command with options in Program.cs and implement method resolution via SearchMethodsAsync, (2) Implement BFS traversal using GetCallersAsync with depth limiting and visited set, (3) Implement tree and JSON output formatters with entry point identification, (4) Add MCP tool cg_impact in McpServer.cs, slash command, and write tests with fixture's known caller chains",
+			"reasoning": "This is a new CLI command requiring: command registration with 4 options, method resolution, BFS graph traversal (queue-based with visited set), two output formats (tree with indentation, JSON), and entry point identification. The BFS logic itself is straightforward but rendering a tree from the traversal results requires parent-child tracking. Adding MCP tool integration means modifying the 33KB McpServer.cs. Integration across CLI, MCP, and slash commands adds coordination effort."
+		},
+		{
+			"taskId": 38,
+			"taskTitle": "Dead-Code Command - Unreachable Method Detection",
+			"complexityScore": 6,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Break down into: (1) Add GetDeadCodeAsync method to StorageService with LEFT JOIN SQL query excluding test/constructor/Main methods, (2) Register dead-code command in Program.cs with options for format and include-public filter, (3) Implement filtering logic for interface implementations and public methods, (4) Add MCP tool cg_dead_code, slash command, and tests with fixture containing known dead-code methods",
+			"reasoning": "Requires a new StorageService method with a LEFT JOIN query and multiple exclusion filters (tests, constructors, Main, interface implementations). The SQL needs to handle several naming convention checks. The CLI command needs 3 options. Determining interface implementations may require additional schema information not currently stored. The --include-public flag adds conditional logic. MCP and slash command integration adds cross-file coordination."
+		},
+		{
+			"taskId": 39,
+			"taskTitle": "SymbolIdGenerator Comprehensive Tests",
+			"complexityScore": 4,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down into: (1) Set up test infrastructure with helper method to create Roslyn compilations and extract IMethodSymbol, (2) Write tests for basic cases (simple method, generic, overloaded, constructor), (3) Write tests for advanced cases (nested types, extension methods, operators, ref/out params, nullable)",
+			"reasoning": "SymbolIdGenerator.cs is confirmed as a static class in Core. Each test requires constructing a Roslyn CSharpCompilation with source text, getting the semantic model, finding the method node, and calling GetMethodId. The compilation setup is boilerplate but needs proper references. Testing 8+ method varieties requires understanding how each maps to IMethodSymbol. Edge cases like operators and extension methods need careful source text construction."
+		},
+		{
+			"taskId": 40,
+			"taskTitle": "Error Path Tests for Core Classes",
+			"complexityScore": 4,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down into: (1) Write StorageService error path tests (null path, invalid path, open before init), (2) Write VectorIndex error path tests (empty index search, mismatched dimensions - depends on task 24 for null/NaN tests), (3) Write DriftDetector and IntentClusterer error path tests (missing files, empty inputs)",
+			"reasoning": "This creates a new test file covering error conditions across 4 classes. Each test is relatively simple (arrange invalid state, act, assert exception/empty result) but there are 12+ individual test cases. Some depend on task 24's validation (VectorIndex null/NaN). The DriftDetector tests need temp file management. IntentClusterer tests need empty/minimal input scenarios. The breadth across 4 classes is the main complexity factor."
+		},
+		{
+			"taskId": 41,
+			"taskTitle": "CLI Layer Tests via System.CommandLine Test Infrastructure",
+			"complexityScore": 6,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Break down into: (1) Set up test infrastructure for invoking commands programmatically with System.CommandLine 2.0.2 (SetAction pattern), (2) Write tests for command help text and option parsing for all 11+ commands, (3) Write tests for commands with valid temp databases (hotspots, tree, context), (4) Write tests for error cases (missing DB, invalid args) verifying exit codes and error output",
+			"reasoning": "System.CommandLine 2.0.2 uses the SetAction pattern (not the older ICommandHandler). Testing requires either building the root command programmatically or referencing Program.cs's command setup. Creating temp SQLite databases with proper schema for valid-path tests adds setup complexity. Testing 11+ commands with help text verification is mechanical but voluminous. Depends on IStorageService (task 27) for potential mocking. The 1500-line Program.cs command tree needs to be accessible from tests."
+		},
+		{
+			"taskId": 42,
+			"taskTitle": "OpenAI Embedding Engine Adapter",
+			"complexityScore": 6,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Break down into: (1) Create OpenAiEmbeddingEngine class implementing IEmbeddingEngine with HttpClient setup and API URL configuration, (2) Implement batching logic (100 texts per call) with request/response serialization, (3) Add exponential backoff retry logic for rate limits (429) and transient errors, (4) Write tests with mocked HttpMessageHandler covering batch splitting, retries, and error handling",
+			"reasoning": "IEmbeddingEngine interface is confirmed (8 lines, with Dimensions property and GenerateEmbedding method). The adapter needs HttpClient management, JSON serialization for OpenAI's API format, batching at 100 items, and retry logic with exponential backoff. The interface only has a synchronous GenerateEmbedding method, so async operations need wrapping. Testing with mocked HttpMessageHandler requires intercepting request/response pairs. The API response parsing with ordered embeddings adds complexity."
+		},
+		{
+			"taskId": 43,
+			"taskTitle": "ONNX Embedding Engine Adapter",
+			"complexityScore": 7,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Break down into: (1) Add Microsoft.ML.OnnxRuntime NuGet reference and create OnnxEmbeddingEngine class with InferenceSession management, (2) Implement tokenization (basic whitespace with hash-to-vocab mapping) and tensor construction for BERT-like inputs, (3) Implement mean pooling over token dimension from model output, (4) Write tests covering file-not-found, dispose, and optional integration test with real model",
+			"reasoning": "This introduces a new heavy dependency (ONNX Runtime) and requires understanding BERT-like model input/output formats. Tensor construction with DenseTensor<long> for input_ids, attention_mask, and token_type_ids is non-trivial. Mean pooling logic needs correct dimension handling. The tokenization approach (hash-to-vocab) is a simplification but still requires implementation. The task acknowledges this might belong in a separate project to avoid bloating Core. Testing without a real ONNX model file limits coverage."
+		},
+		{
+			"taskId": 44,
+			"taskTitle": "Embedding Engine Selection in Analyze Command",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down into: (1) Add --embedding-engine, --embedding-model, --embedding-dimensions options to analyze command and implement engine factory with fallback logic, (2) Add Metadata table to SchemaDefinition and SaveMetadataAsync/GetMetadataAsync methods to StorageService, (3) Integrate engine selection into the analyze pipeline and write tests for each engine type with fallback scenarios",
+			"reasoning": "Requires modifying the analyze command (lines 46-220 of 1500-line Program.cs) to add 3 options and a factory method. The Metadata table is a new schema addition requiring DDL in SchemaDefinition.cs and two new StorageService methods. The factory needs environment variable checks and graceful fallback with warnings. Integration with the existing embedding stage (lines 123-129) is localized. Depends on both OpenAI and ONNX engines being implemented first."
+		},
+		{
+			"taskId": 45,
+			"taskTitle": "Semantic Search with LLM Embeddings",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down into: (1) Create semantic-search command with options and metadata-based engine detection, (2) Implement engine recreation from metadata (matching the engine used during analysis) and query embedding generation, (3) Add MCP tool, slash command, warning logic for hash-based DBs, and tests",
+			"reasoning": "This is a new command that needs to detect which embedding engine was used (via Metadata table from task 44) and recreate it for query embedding. The command structure follows existing patterns (similar to search command at lines 716-808). The key complexity is matching the stored engine configuration and handling dimension mismatches. The VectorIndex cache from task 22 can be reused. MCP and slash command additions are mechanical."
+		},
+		{
+			"taskId": 46,
+			"taskTitle": "Coupling Command - Afferent/Efferent Metrics",
+			"complexityScore": 7,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Break down into: (1) Create CouplingAnalyzer class with namespace/type grouping logic, (2) Implement Ca/Ce counting by comparing caller/callee membership across groups, (3) Compute Instability and Distance from Main Sequence metrics, (4) Register CLI command with options and output formatters, (5) Add MCP tool, slash command, and tests with cross-namespace fixture dependencies",
+			"reasoning": "This requires a new analysis class that operates on the full method call graph (potentially large). Grouping methods by namespace or type requires parsing fully qualified names. Computing Ca/Ce requires comparing each call edge's membership across all groups - O(calls * groups) complexity. The Abstractness metric needs type metadata (interfaces/abstract classes) which may not be fully stored in the current schema. The formula implementation (Instability, Distance) is simple but the data gathering is complex."
+		},
+		{
+			"taskId": 47,
+			"taskTitle": "Churn Command - Git Frequency and Complexity Analysis",
+			"complexityScore": 6,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Break down into: (1) Create ChurnAnalyzer class with file-grouped git log execution, (2) Implement commit counting with --since parameter parsing, (3) Register CLI command combining git frequency with cognitive complexity scores, (4) Add MCP tool, slash command, and tests with git fixture containing timestamped commits",
+			"reasoning": "ChurnAnalyzer executes git log per file (not per method, which helps performance). Grouping methods by file and running one git command per file is efficient. The churn score formula (changes * CC) is simple. The main complexity is process management (spawning many git processes), date parsing, and handling non-git environments gracefully. Testing requires a git fixture with multiple commits at different times. Depends on task 34's git process patterns."
+		},
+		{
+			"taskId": 48,
+			"taskTitle": "Diff Command - Branch/Commit Comparison",
+			"complexityScore": 7,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Break down into: (1) Implement git diff --name-only execution between refs with .cs filtering, (2) Create method-to-file mapping query from StorageService, (3) Register diff command with from/to/format options, (4) Implement summary vs detail output modes showing affected methods with metrics, (5) Add MCP tool, slash command, and integration tests with branch fixtures",
+			"reasoning": "This command bridges git operations with code graph data. Getting changed files between refs is straightforward, but mapping files back to methods in the database requires either stored file paths or pattern matching. The detail mode (re-analyzing to temp DBs and using DriftDetector) significantly increases complexity. The summary mode is simpler but still requires cross-referencing git output with database content. Testing requires git branches with known differences."
+		},
+		{
+			"taskId": 49,
+			"taskTitle": "LSH Spatial Index for DBSCAN Optimization",
 			"complexityScore": 8,
-			"recommendedSubtasks": 7,
-			"expansionPrompt": "Break down the E2E Testing and Performance Optimization into subtasks: 1) Create realistic test fixture solution (50+ classes, 200+ methods with various patterns: services, handlers, repositories, known duplicates, complex methods, interface hierarchies), 2) Implement full pipeline integration test (analyze → verify database contents), 3) Implement CLI command integration tests (search, duplicates, drift, callgraph, hotspots, tree), 4) Implement determinism verification (run twice, compare outputs byte-for-byte), 5) Profile and optimize performance with Parallel.ForEachAsync for independent operations and batched SQLite transactions, 6) Add CI pipeline with GitHub Actions workflow, 7) Add CLI help text documentation and global tool packaging verification. The test fixture creation is substantial work requiring realistic C# code patterns.",
-			"reasoning": "This is a large task combining several distinct concerns: test fixture creation (writing 50+ realistic classes is substantial), integration test implementation across all commands, determinism verification, performance profiling and optimization, CI setup, and documentation. The performance optimization aspect is open-ended and may require iterating on approaches (parallelization strategies, batch sizes, lazy loading). Creating a realistic test fixture with known duplicates, specific complexity scores, and predictable call graphs requires careful design. The 2-minute performance target adds a hard constraint that may require significant optimization work."
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Break down into: (1) Implement random projection vector generation with Gaussian distribution, (2) Implement hash computation and band-based bucketing for LSH, (3) Implement BuildIndex and GetCandidateNeighbors public API, (4) Integrate with IntentClusterer's GetNeighbors method replacing brute-force search, (5) Write comprehensive tests comparing LSH results vs brute-force and benchmarking performance",
+			"reasoning": "LSH is an advanced data structure requiring solid understanding of random projections, banding, and probability of collision. The implementation needs: Gaussian random number generation (Box-Muller), hash function design for sign bits, band partitioning for tunable sensitivity, and bucket management. Integration with IntentClusterer's GetNeighbors changes the search from exact to approximate, requiring tolerance in tests. The 384-dimension vectors and DBSCAN epsilon parameter need tuning for the hash parameters. This is the most algorithmically complex task."
+		},
+		{
+			"taskId": 50,
+			"taskTitle": "Full Dependency Injection Container Setup",
+			"complexityScore": 7,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Break down into: (1) Create ServiceRegistration.cs with AddAiCodeGraph extension method and AiCodeGraphOptions class, (2) Register StorageService as scoped, embedding engines as singleton with factory, analysis services as transient, (3) Modify Program.cs to build ServiceProvider and create scopes in command actions, (4) Verify all commands work through DI resolution, (5) Write ServiceRegistrationTests verifying resolution of all services",
+			"reasoning": "Microsoft.Extensions.DependencyInjection is already referenced (v10.0.2 confirmed). The challenge is: designing the options class to cover all configuration, handling scoped vs transient vs singleton lifetimes correctly, and retrofitting the 1500-line Program.cs to use DI in all 11+ command actions. Each command currently creates services directly - changing to scope.GetRequiredService requires understanding each command's service needs. The embedding engine factory with environment variable checks adds conditional logic. Testing DI resolution covers happy paths but integration testing all commands through DI is substantial."
 		}
 	]
 }
