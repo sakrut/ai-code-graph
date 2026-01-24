@@ -63,7 +63,7 @@ Available slash commands:
 - `/cg:hotspots` - Top complexity hotspots
 - `/cg:callgraph <method>` - Explore call relationships
 - `/cg:similar <method>` - Find methods with similar intent
-- `/cg:search <query>` - Natural language code search
+- `/cg:token-search <query>` - Token-based code search
 - `/cg:duplicates` - Detected code clones
 - `/cg:clusters` - Intent clusters
 - `/cg:tree` - Code structure tree

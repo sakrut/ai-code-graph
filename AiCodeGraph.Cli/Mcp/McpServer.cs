@@ -115,8 +115,8 @@ public class McpServer
                         ["threshold"] = new JsonObject { ["type"] = "integer", ["description"] = "Minimum complexity threshold" }
                     }
                 }),
-            CreateToolDef("cg_search_code",
-                "Search code by natural language intent",
+            CreateToolDef("cg_token_search",
+                "Search code by token overlap",
                 new JsonObject
                 {
                     ["type"] = "object",
@@ -259,7 +259,7 @@ public class McpServer
             {
                 "cg_get_context" => await ToolGetContext(args, ct),
                 "cg_get_hotspots" => await ToolGetHotspots(args, ct),
-                "cg_search_code" => await ToolSearchCode(args, ct),
+                "cg_token_search" => await ToolSearchCode(args, ct),
                 "cg_get_duplicates" => await ToolGetDuplicates(args, ct),
                 "cg_get_callgraph" => await ToolGetCallgraph(args, ct),
                 "cg_get_tree" => await ToolGetTree(args, ct),

@@ -2025,7 +2025,7 @@
           "28",
           "29"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -2078,7 +2078,8 @@
         ],
         "complexity": 5,
         "recommendedSubtasks": 4,
-        "expansionPrompt": "Break down into: (1) Rename CLI command in Program.cs (lines 716-808) and update variable names, (2) Rename MCP tool from cg_search to cg_token_search in McpServer.cs (~33KB file), (3) Rename slash command file from cg:search.md to cg:token-search.md and update content, (4) Update CLAUDE.md references and SearchCommandTests.cs"
+        "expansionPrompt": "Break down into: (1) Rename CLI command in Program.cs (lines 716-808) and update variable names, (2) Rename MCP tool from cg_search to cg_token_search in McpServer.cs (~33KB file), (3) Rename slash command file from cg:search.md to cg:token-search.md and update content, (4) Update CLAUDE.md references and SearchCommandTests.cs",
+        "updatedAt": "2026-01-24T13:15:34.205Z"
       },
       {
         "id": "31",
@@ -3364,9 +3365,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-24T13:12:48.337Z",
+      "lastModified": "2026-01-24T13:15:34.205Z",
       "taskCount": 50,
-      "completedCount": 35,
+      "completedCount": 36,
       "tags": [
         "master"
       ]

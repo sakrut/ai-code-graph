@@ -592,19 +592,19 @@ clustersCommand.SetAction(async (parseResult, cancellationToken) =>
     }
 });
 
-// --- search command ---
+// --- token-search command ---
 var searchQueryArg = new Argument<string>("query") { Description = "Natural language search query" };
 var searchTopOption = new Option<int>("--top", "-t") { Description = "Number of results", DefaultValueFactory = _ => 10 };
 var searchThresholdOption = new Option<float>("--threshold") { Description = "Minimum similarity score", DefaultValueFactory = _ => 0.5f };
 var searchFormatOption = new Option<string>("--format", "-f") { Description = "table|json", DefaultValueFactory = _ => "table" };
 var searchDbOption = new Option<string>("--db") { Description = "Path to graph.db", DefaultValueFactory = _ => "./ai-code-graph/graph.db" };
 
-var searchCommand = new Command("search", "Search code by natural language intent")
+var tokenSearchCommand = new Command("token-search", "Search code by token overlap")
 {
     searchQueryArg, searchTopOption, searchThresholdOption, searchFormatOption, searchDbOption
 };
 
-searchCommand.SetAction(async (parseResult, cancellationToken) =>
+tokenSearchCommand.SetAction(async (parseResult, cancellationToken) =>
 {
     var query = parseResult.GetValue(searchQueryArg)!;
     var top = parseResult.GetValue(searchTopOption);
@@ -1221,7 +1221,7 @@ rootCommand.Add(treeCommand);
 rootCommand.Add(similarCommand);
 rootCommand.Add(duplicatesCommand);
 rootCommand.Add(clustersCommand);
-rootCommand.Add(searchCommand);
+rootCommand.Add(tokenSearchCommand);
 rootCommand.Add(exportCommand);
 rootCommand.Add(driftCommand);
 rootCommand.Add(contextCommand);
@@ -1381,13 +1381,13 @@ Steps:
         created.Add(clustersCmd);
     }
 
-    var searchCmd = Path.Combine(commandsDir, "cg:search.md");
+    var searchCmd = Path.Combine(commandsDir, "cg:token-search.md");
     if (!File.Exists(searchCmd))
     {
-        File.WriteAllText(searchCmd, $@"Search code by intent: $ARGUMENTS
+        File.WriteAllText(searchCmd, $@"Search code by token overlap: $ARGUMENTS
 
 Steps:
-1. Run `ai-code-graph search ""$ARGUMENTS"" --top 10 --db {dbPath}`
+1. Run `ai-code-graph token-search ""$ARGUMENTS"" --top 10 --db {dbPath}`
 2. If the database doesn't exist, inform the user to run `ai-code-graph analyze` first
 3. Present results ranked by similarity score
 4. Suggest which methods are most relevant to the query
@@ -1463,7 +1463,7 @@ Available slash commands (all prefixed with `cg:`):
 - `/cg:hotspots` - Top complexity hotspots
 - `/cg:callgraph <method>` - Explore call relationships
 - `/cg:similar <method>` - Find methods with similar intent
-- `/cg:search <query>` - Natural language code search
+- `/cg:token-search <query>` - Token-based code search
 - `/cg:duplicates` - Detected code clones
 - `/cg:clusters` - Intent clusters
 - `/cg:tree` - Code structure tree
@@ -1497,7 +1497,7 @@ To rebuild the graph after significant changes: `ai-code-graph analyze YourSolut
         Console.WriteLine();
         Console.WriteLine("Next steps:");
         Console.WriteLine($"  1. Run: ai-code-graph analyze YourSolution.sln");
-        Console.WriteLine($"  2. Use /cg:context, /cg:hotspots, /cg:search etc. in Claude Code");
+        Console.WriteLine($"  2. Use /cg:context, /cg:hotspots, /cg:token-search etc. in Claude Code");
         Console.WriteLine($"  3. MCP tools (cg_*) are available to any MCP-compatible IDE");
     }
     else
