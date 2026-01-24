@@ -80,11 +80,18 @@ That's it. Claude Code now has full architectural awareness of your codebase.
 
 | File | Purpose |
 |------|---------|
-| `.claude/commands/context.md` | `/context <method>` - method context before editing |
+| `.claude/commands/analyze.md` | `/analyze` - build code graph |
+| `.claude/commands/context.md` | `/context` - method context before editing |
 | `.claude/commands/hotspots.md` | `/hotspots` - complexity hotspots |
-| `.claude/commands/duplicates.md` | `/duplicates` - code clone detection |
+| `.claude/commands/callgraph.md` | `/callgraph` - call relationships |
+| `.claude/commands/similar.md` | `/similar` - find similar methods |
+| `.claude/commands/search.md` | `/search` - natural language search |
+| `.claude/commands/duplicates.md` | `/duplicates` - code clones |
+| `.claude/commands/clusters.md` | `/clusters` - intent clusters |
+| `.claude/commands/tree.md` | `/tree` - code structure |
+| `.claude/commands/export.md` | `/export` - export graph data |
 | `.claude/commands/drift.md` | `/drift` - architectural drift |
-| `.mcp.json` | MCP server config for IDE integration |
+| `.mcp.json` | MCP server config (11 tools for IDE integration) |
 | `CLAUDE.md` (appended) | Auto-context instructions for the agent |
 
 ### Using with Claude Code
@@ -92,9 +99,16 @@ That's it. Claude Code now has full architectural awareness of your codebase.
 After setup, these slash commands are available in Claude Code sessions:
 
 ```
-/context ValidateUser     # Shows complexity, callers, callees, cluster, duplicates
+/analyze MySolution.sln   # Build/rebuild the code graph
+/context ValidateUser     # Complexity, callers, callees, cluster, duplicates
 /hotspots                 # Top methods by cognitive complexity
+/callgraph Login          # Call tree for a method
+/similar CreateUser       # Find semantically similar methods
+/search "validate input"  # Natural language code search
 /duplicates               # Detected code clones
+/clusters                 # Intent clusters
+/tree                     # Code structure tree
+/export                   # Export graph data as JSON
 /drift                    # Changes since baseline
 ```
 
@@ -108,14 +122,21 @@ The `.mcp.json` created by `setup-claude` works with:
 - **Cursor** - auto-detected from `.mcp.json`
 - **Windsurf** - auto-detected from `.mcp.json`
 
-The MCP server exposes these tools:
+The MCP server exposes 11 tools:
 
 | Tool | Parameters | Description |
 |------|-----------|-------------|
+| `analyze` | `solution`, `save_baseline` | Build/rebuild the code graph |
 | `get_context` | `method` (required) | Method summary with all relationships |
 | `get_hotspots` | `top`, `threshold` | Complexity hotspots |
+| `get_callgraph` | `method`, `depth`, `direction` | Call graph traversal |
+| `get_similar` | `method`, `top` | Find similar methods |
 | `search_code` | `query`, `top` | Natural language code search |
-| `get_duplicates` | `method`, `threshold`, `top` | Code clone pairs |
+| `get_duplicates` | `method`, `top` | Code clone pairs |
+| `get_clusters` | (none) | Intent clusters |
+| `get_tree` | `namespace`, `type` | Code structure |
+| `export_graph` | `concept` | Export graph data as JSON |
+| `get_drift` | `baseline` | Architectural drift detection |
 
 ### Using Standalone (CI / Scripts)
 

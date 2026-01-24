@@ -58,12 +58,19 @@ This returns complexity, callers, callees, cluster membership, and duplicates in
 - Understand which intent cluster a method belongs to before refactoring
 
 Available slash commands:
+- `/analyze [solution]` - Analyze solution and build the graph
 - `/context <method>` - Full method context before editing
 - `/hotspots` - Top complexity hotspots
+- `/callgraph <method>` - Explore call relationships
+- `/similar <method>` - Find methods with similar intent
+- `/search <query>` - Natural language code search
 - `/duplicates` - Detected code clones
+- `/clusters` - Intent clusters
+- `/tree` - Code structure tree
+- `/export` - Export graph data
 - `/drift` - Architectural drift from baseline
 
-To rebuild the graph after significant changes: `ai-code-graph analyze -s AiCodeGraph.sln`
+To rebuild the graph after significant changes: `ai-code-graph analyze AiCodeGraph.sln`
 
 ## Task Master AI Instructions
 **Import Task Master's development workflow commands and guidelines, treat as if import is in the main CLAUDE.md file.**
