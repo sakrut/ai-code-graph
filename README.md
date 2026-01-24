@@ -292,6 +292,15 @@ Once configured, the AI agent can call tools like:
 {"tool": "cg_get_drift", "arguments": {}}
 ```
 
+### How CG Tools Compare to AI Agent Native Capabilities
+
+For a detailed empirical analysis of where pre-computed code graph tools outperform, match, or underperform an AI agent's built-in exploration workflow (Grep, Glob, Read, Explore agents), see [AI Perspective: Tool Comparison](docs/ai-perspective-tool-comparison.md).
+
+Key findings:
+- **Irreplaceable tools** (`coupling`, `hotspots`, `dead-code`): Compute metrics impossible for an AI to derive from text alone
+- **Faster tools** (`context`, `tree`, `impact`): Same info the AI could gather, but in 1 call instead of 5-10
+- **Inferior tools** (`token-search` with hash embeddings): AI's Grep + reasoning produces better results
+
 ### Standalone CLI for Scripting
 
 All features are available as CLI commands for use in CI pipelines, pre-commit hooks, or custom scripts:
