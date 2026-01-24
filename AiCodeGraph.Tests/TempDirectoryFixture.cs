@@ -24,10 +24,12 @@ public abstract class TempDirectoryFixture : IAsyncDisposable, IDisposable
             return;
 
         // On Windows, SQLite WAL mode keeps files locked briefly after disposal
-        // Retry deletion with delays to allow locks to be released
+        // Clear connection pools and retry deletion with delays to allow locks to be released
+        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+
         var attempts = 0;
-        var maxAttempts = 10;
-        var delay = 50; // ms
+        var maxAttempts = 20; // Increased for Windows
+        var delay = 100; // Start with 100ms
 
         while (attempts < maxAttempts)
         {
@@ -38,6 +40,8 @@ public abstract class TempDirectoryFixture : IAsyncDisposable, IDisposable
                 {
                     GC.Collect();
                     GC.WaitForPendingFinalizers();
+                    GC.Collect(); // Second GC to clean up finalizer queue
+                    Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
                     Thread.Sleep(delay);
                 }
 
@@ -47,7 +51,7 @@ public abstract class TempDirectoryFixture : IAsyncDisposable, IDisposable
             catch (IOException) when (attempts < maxAttempts - 1)
             {
                 attempts++;
-                delay *= 2; // Exponential backoff
+                delay = Math.Min(delay * 2, 2000); // Cap at 2 seconds
             }
         }
 

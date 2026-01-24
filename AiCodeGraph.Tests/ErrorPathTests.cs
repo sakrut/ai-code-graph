@@ -17,9 +17,11 @@ public class ErrorPathTests
             return;
 
         // On Windows, SQLite may keep files locked briefly after connection disposal
+        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+
         var attempts = 0;
-        var maxAttempts = 10;
-        var delay = 50; // ms
+        var maxAttempts = 20; // Increased for Windows
+        var delay = 100; // Start with 100ms
 
         while (attempts < maxAttempts)
         {
@@ -29,16 +31,25 @@ public class ErrorPathTests
                 {
                     GC.Collect();
                     GC.WaitForPendingFinalizers();
+                    GC.Collect(); // Second GC to clean up finalizer queue
+                    Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
                     Thread.Sleep(delay);
                 }
 
                 File.Delete(path);
+
+                // Also try to delete WAL and SHM files if they exist
+                var walPath = path + "-wal";
+                var shmPath = path + "-shm";
+                if (File.Exists(walPath)) File.Delete(walPath);
+                if (File.Exists(shmPath)) File.Delete(shmPath);
+
                 return; // Success
             }
             catch (IOException) when (attempts < maxAttempts - 1)
             {
                 attempts++;
-                delay *= 2; // Exponential backoff
+                delay = Math.Min(delay * 2, 2000); // Cap at 2 seconds
             }
         }
 
