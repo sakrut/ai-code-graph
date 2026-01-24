@@ -125,6 +125,12 @@ internal static class SchemaDefinition
             ClusterId TEXT NOT NULL REFERENCES IntentClusters(Id),
             PRIMARY KEY (MethodId, ClusterId)
         );
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS Metadata (
+            Key TEXT PRIMARY KEY,
+            Value TEXT
+        );
         """
     ];
 

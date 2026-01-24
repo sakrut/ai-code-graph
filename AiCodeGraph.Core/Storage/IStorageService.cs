@@ -16,6 +16,8 @@ public interface IStorageService : IAsyncDisposable, IDisposable
     Task SaveNormalizedMethodsAsync(List<(string MethodId, string StructuralSignature, string SemanticPayload)> normalized, CancellationToken cancellationToken = default);
     Task SaveClonePairsAsync(List<ClonePair> clonePairs, CancellationToken cancellationToken = default);
     Task SaveClustersAsync(List<IntentCluster> clusters, CancellationToken cancellationToken = default);
+    Task SaveMetadataAsync(string key, string value, CancellationToken cancellationToken = default);
+    Task<string?> GetMetadataAsync(string key, CancellationToken cancellationToken = default);
 
     // Read operations
     Task<List<(string Id, string Name, string FullName, string ReturnType, string? FilePath, int StartLine)>> GetHotspotsAsync(int top = 20, CancellationToken cancellationToken = default);

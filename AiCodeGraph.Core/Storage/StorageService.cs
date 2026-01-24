@@ -648,6 +648,36 @@ public class StorageService : IStorageService
         }
     }
 
+    public async Task SaveMetadataAsync(string key, string value, CancellationToken cancellationToken = default)
+    {
+        EnsureConnection();
+        using var cmd = _connection!.CreateCommand();
+        cmd.CommandText = """
+            CREATE TABLE IF NOT EXISTS Metadata (Key TEXT PRIMARY KEY, Value TEXT);
+            INSERT OR REPLACE INTO Metadata (Key, Value) VALUES (@key, @value)
+            """;
+        cmd.Parameters.AddWithValue("@key", key);
+        cmd.Parameters.AddWithValue("@value", value);
+        await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<string?> GetMetadataAsync(string key, CancellationToken cancellationToken = default)
+    {
+        EnsureConnection();
+
+        // Check if Metadata table exists
+        using var checkCmd = _connection!.CreateCommand();
+        checkCmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='Metadata'";
+        var exists = Convert.ToInt64(await checkCmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false)) > 0;
+        if (!exists) return null;
+
+        using var cmd = _connection!.CreateCommand();
+        cmd.CommandText = "SELECT Value FROM Metadata WHERE Key = @key";
+        cmd.Parameters.AddWithValue("@key", key);
+        var result = await cmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+        return result as string;
+    }
+
     public async Task<List<IntentCluster>> GetClustersAsync(CancellationToken cancellationToken = default)
     {
         EnsureConnection();

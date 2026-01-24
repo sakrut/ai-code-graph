@@ -2872,7 +2872,7 @@
           "42",
           "43"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -2910,7 +2910,8 @@
         ],
         "complexity": 5,
         "recommendedSubtasks": 3,
-        "expansionPrompt": "Break down into: (1) Add --embedding-engine, --embedding-model, --embedding-dimensions options to analyze command and implement engine factory with fallback logic, (2) Add Metadata table to SchemaDefinition and SaveMetadataAsync/GetMetadataAsync methods to StorageService, (3) Integrate engine selection into the analyze pipeline and write tests for each engine type with fallback scenarios"
+        "expansionPrompt": "Break down into: (1) Add --embedding-engine, --embedding-model, --embedding-dimensions options to analyze command and implement engine factory with fallback logic, (2) Add Metadata table to SchemaDefinition and SaveMetadataAsync/GetMetadataAsync methods to StorageService, (3) Integrate engine selection into the analyze pipeline and write tests for each engine type with fallback scenarios",
+        "updatedAt": "2026-01-24T13:31:02.379Z"
       },
       {
         "id": "45",
@@ -3372,9 +3373,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-24T13:28:41.316Z",
+      "lastModified": "2026-01-24T13:31:02.380Z",
       "taskCount": 50,
-      "completedCount": 43,
+      "completedCount": 44,
       "tags": [
         "master"
       ]

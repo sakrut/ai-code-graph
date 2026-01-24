@@ -36,12 +36,19 @@ var saveBaselineOption = new Option<bool>("--save-baseline")
     Description = "Save the analysis result as baseline for drift detection"
 };
 
+var embeddingEngineOption = new Option<string>("--embedding-engine") { Description = "Embedding engine: hash|openai|onnx", DefaultValueFactory = _ => "hash" };
+var embeddingModelOption = new Option<string?>("--embedding-model") { Description = "Model name (e.g., text-embedding-3-small for openai, path for onnx)" };
+var embeddingDimensionsOption = new Option<int>("--embedding-dimensions") { Description = "Embedding vector dimensions", DefaultValueFactory = _ => 384 };
+
 var analyzeCommand = new Command("analyze", "Analyze a .NET solution and build the code graph")
 {
     solutionOption,
     outputOption,
     verboseOption,
-    saveBaselineOption
+    saveBaselineOption,
+    embeddingEngineOption,
+    embeddingModelOption,
+    embeddingDimensionsOption
 };
 
 analyzeCommand.SetAction(async (parseResult, cancellationToken) =>
@@ -50,6 +57,9 @@ analyzeCommand.SetAction(async (parseResult, cancellationToken) =>
     var output = parseResult.GetValue(outputOption) ?? "./ai-code-graph";
     var verbose = parseResult.GetValue(verboseOption);
     var saveBaseline = parseResult.GetValue(saveBaselineOption);
+    var embeddingEngine = parseResult.GetValue(embeddingEngineOption) ?? "hash";
+    var embeddingModel = parseResult.GetValue(embeddingModelOption);
+    var embeddingDimensions = parseResult.GetValue(embeddingDimensionsOption);
     var totalTimer = Stopwatch.StartNew();
 
     try
@@ -62,7 +72,9 @@ analyzeCommand.SetAction(async (parseResult, cancellationToken) =>
         var edges = BuildCallGraphStage(workspace);
         var metrics = ComputeMetricsStage(workspace);
         var normalized = NormalizeMethodsStage(workspace);
-        var embeddingResults = GenerateEmbeddingsStage(normalized);
+
+        using var engine = CreateEmbeddingEngine(embeddingEngine, embeddingModel, embeddingDimensions, verbose);
+        var embeddingResults = GenerateEmbeddingsStage(normalized, engine, embeddingEngine);
 
         Directory.CreateDirectory(output);
         var dbPath = Path.Combine(output, "graph.db");
@@ -70,6 +82,10 @@ analyzeCommand.SetAction(async (parseResult, cancellationToken) =>
         await using var storage = new StorageService(dbPath);
         await StoreResultsStage(storage, extractionResults, edges, metrics, normalized, embeddingResults, cancellationToken);
         var (clonePairs, clusters) = await DetectDuplicatesStage(storage, normalized, embeddingResults, cancellationToken);
+
+        await storage.SaveMetadataAsync("embedding_engine", embeddingEngine, cancellationToken);
+        await storage.SaveMetadataAsync("embedding_model", embeddingModel ?? (embeddingEngine == "hash" ? "hash-v1" : ""), cancellationToken);
+        await storage.SaveMetadataAsync("embedding_dimensions", embeddingDimensions.ToString(), cancellationToken);
 
         if (saveBaseline)
             SaveBaselineStage(output, dbPath);
@@ -1852,16 +1868,43 @@ static List<NormalizedMethod> NormalizeMethodsStage(LoadedWorkspace workspace)
     return normalized;
 }
 
-static List<(string MethodId, float[] Vector, string Model)> GenerateEmbeddingsStage(List<NormalizedMethod> normalized)
+static List<(string MethodId, float[] Vector, string Model)> GenerateEmbeddingsStage(List<NormalizedMethod> normalized, IEmbeddingEngine engine, string engineName)
 {
-    Console.Write("Generating embeddings...");
+    Console.Write($"Generating embeddings ({engineName})...");
     var timer = Stopwatch.StartNew();
-    using var engine = new HashEmbeddingEngine();
+    var modelLabel = engineName == "hash" ? "hash-v1" : engineName;
     var results = normalized
-        .Select(n => (n.MethodId, Vector: engine.GenerateEmbedding(n.SemanticPayload), Model: "hash-v1"))
+        .Select(n => (n.MethodId, Vector: engine.GenerateEmbedding(n.SemanticPayload), Model: modelLabel))
         .ToList();
     Console.WriteLine($" done ({timer.Elapsed.TotalSeconds:F1}s)");
     return results;
+}
+
+static IEmbeddingEngine CreateEmbeddingEngine(string engineType, string? model, int dimensions, bool verbose)
+{
+    switch (engineType.ToLower())
+    {
+        case "openai":
+            var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+            if (string.IsNullOrEmpty(apiKey))
+            {
+                Console.Error.WriteLine("Warning: OPENAI_API_KEY not set, falling back to hash engine.");
+                return new HashEmbeddingEngine();
+            }
+            return new OpenAiEmbeddingEngine(apiKey, model ?? "text-embedding-3-small", dimensions);
+
+        case "onnx":
+            var modelPath = model ?? "./models/all-MiniLM-L6-v2.onnx";
+            if (!File.Exists(modelPath))
+            {
+                Console.Error.WriteLine($"Warning: ONNX model not found at {modelPath}, falling back to hash engine.");
+                return new HashEmbeddingEngine();
+            }
+            return new OnnxEmbeddingEngine(modelPath, dimensions);
+
+        default:
+            return new HashEmbeddingEngine();
+    }
 }
 
 static async Task StoreResultsStage(
