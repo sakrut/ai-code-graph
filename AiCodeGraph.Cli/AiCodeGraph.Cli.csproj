@@ -18,8 +18,17 @@
     <ToolCommandName>ai-code-graph</ToolCommandName>
     <PackageOutputPath>./nupkg</PackageOutputPath>
     <Version>0.1.0</Version>
-    <Description>AI Code Graph - Roslyn-based static analysis tool for .NET codebases</Description>
+    <PackageId>AiCodeGraph.Cli</PackageId>
+    <Description>Roslyn-based static analysis tool that builds semantic code graphs, detects duplicates, computes complexity, and exposes an MCP server for AI-assisted development.</Description>
     <Authors>AiCodeGraph Contributors</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/your-org/ai-code-graph</RepositoryUrl>
+    <PackageTags>roslyn;static-analysis;code-graph;mcp;claude-code;complexity;duplicates</PackageTags>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
 </Project>

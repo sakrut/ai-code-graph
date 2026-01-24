@@ -1160,6 +1160,168 @@ mcpCommand.SetAction(async (parseResult, cancellationToken) =>
 });
 rootCommand.Add(mcpCommand);
 
+// --- setup-claude command ---
+var setupDbOption = new Option<string>("--db") { Description = "Path to graph.db used by commands", DefaultValueFactory = _ => "./ai-code-graph/graph.db" };
+var setupCommand = new Command("setup-claude", "Scaffold Claude Code slash commands, CLAUDE.md snippet, and MCP config into the current project")
+{
+    setupDbOption
+};
+
+setupCommand.SetAction((parseResult, _) =>
+{
+    var dbPath = parseResult.GetValue(setupDbOption) ?? "./ai-code-graph/graph.db";
+    var created = new List<string>();
+
+    // 1. Create .claude/commands/ directory
+    var commandsDir = Path.Combine(Directory.GetCurrentDirectory(), ".claude", "commands");
+    Directory.CreateDirectory(commandsDir);
+
+    // 2. Write slash command files
+    var contextCmd = Path.Combine(commandsDir, "context.md");
+    if (!File.Exists(contextCmd))
+    {
+        File.WriteAllText(contextCmd, $@"Get method context before editing: $ARGUMENTS
+
+Steps:
+1. Run `ai-code-graph context ""$ARGUMENTS"" --db {dbPath}`
+2. If the database doesn't exist, inform the user to run `ai-code-graph analyze` first
+3. Review the output: complexity, callers, callees, cluster, and duplicates
+4. If complexity (CC) is high (>10), warn about the method's complexity before making changes
+5. If the method has callers, note that changes may affect those callers
+6. If duplicates exist, suggest whether the change should also apply to the duplicate methods
+7. Proceed with the user's requested edit, keeping the context in mind
+");
+        created.Add(contextCmd);
+    }
+
+    var hotspotsCmd = Path.Combine(commandsDir, "hotspots.md");
+    if (!File.Exists(hotspotsCmd))
+    {
+        File.WriteAllText(hotspotsCmd, $@"Show complexity hotspots in the codebase.
+
+Steps:
+1. Run `ai-code-graph hotspots --top 15 --db {dbPath}`
+2. If the database doesn't exist, inform the user to run `ai-code-graph analyze` first
+3. Present the results, highlighting methods with CC > 15 as candidates for refactoring
+4. For the top 3 hotspots, briefly suggest what makes them complex (deep nesting, many branches, etc.)
+");
+        created.Add(hotspotsCmd);
+    }
+
+    var duplicatesCmd = Path.Combine(commandsDir, "duplicates.md");
+    if (!File.Exists(duplicatesCmd))
+    {
+        File.WriteAllText(duplicatesCmd, $@"Show detected code duplicates in the codebase.
+
+Steps:
+1. Run `ai-code-graph duplicates --top 15 --db {dbPath}`
+2. If the database doesn't exist, inform the user to run `ai-code-graph analyze` first
+3. Group the results by clone type (Type1 = exact, Type2 = renamed, Semantic = similar logic)
+4. For Type1 clones, suggest extracting a shared utility method
+5. For Semantic clones, suggest whether they represent a pattern worth abstracting
+");
+        created.Add(duplicatesCmd);
+    }
+
+    var driftCmd = Path.Combine(commandsDir, "drift.md");
+    if (!File.Exists(driftCmd))
+    {
+        File.WriteAllText(driftCmd, $@"Run drift detection against the baseline.
+
+Steps:
+1. Check if `{Path.Combine(Path.GetDirectoryName(dbPath) ?? ".", "baseline.db")}` exists. If not, inform the user to run `ai-code-graph analyze --save-baseline` first
+2. Run `ai-code-graph drift --vs {Path.Combine(Path.GetDirectoryName(dbPath) ?? ".", "baseline.db")} --format detail --db {dbPath}`
+3. Summarize findings:
+   - New methods added
+   - Methods removed
+   - Complexity regressions (methods that got more complex)
+   - New duplicates introduced
+   - Intent scattering (logic spreading across namespaces)
+4. For complexity regressions, show the before/after values and suggest refactoring if the increase is significant
+");
+        created.Add(driftCmd);
+    }
+
+    // 3. Create .mcp.json for MCP server integration
+    var mcpJson = Path.Combine(Directory.GetCurrentDirectory(), ".mcp.json");
+    if (!File.Exists(mcpJson))
+    {
+        File.WriteAllText(mcpJson, $$"""
+{
+  "mcpServers": {
+    "ai-code-graph": {
+      "type": "stdio",
+      "command": "ai-code-graph",
+      "args": ["mcp", "--db", "{{dbPath}}"]
+    }
+  }
+}
+""");
+        created.Add(mcpJson);
+    }
+
+    // 4. Append auto-context section to CLAUDE.md
+    var claudeMd = Path.Combine(Directory.GetCurrentDirectory(), "CLAUDE.md");
+    var snippet = $@"
+## Auto-Context: Code Graph Integration
+
+When modifying methods in this codebase, run the context command first if `{dbPath}` exists:
+
+```bash
+ai-code-graph context ""MethodName"" --db {dbPath}
+```
+
+This returns complexity, callers, callees, cluster membership, and duplicates in one call. Use this information to:
+- Avoid increasing complexity of already-complex methods (CC > 10)
+- Update callers if you change a method's signature or behavior
+- Apply the same fix to duplicates when fixing bugs
+- Understand which intent cluster a method belongs to before refactoring
+
+Available slash commands:
+- `/context <method>` - Full method context before editing
+- `/hotspots` - Top complexity hotspots
+- `/duplicates` - Detected code clones
+- `/drift` - Architectural drift from baseline
+
+To rebuild the graph after significant changes: `ai-code-graph analyze -s YourSolution.sln`
+";
+
+    if (File.Exists(claudeMd))
+    {
+        var existing = File.ReadAllText(claudeMd);
+        if (!existing.Contains("Auto-Context: Code Graph Integration"))
+        {
+            File.AppendAllText(claudeMd, snippet);
+            created.Add(claudeMd + " (appended)");
+        }
+    }
+    else
+    {
+        File.WriteAllText(claudeMd, $"# Claude Code Instructions\n{snippet}");
+        created.Add(claudeMd);
+    }
+
+    // Summary
+    if (created.Count > 0)
+    {
+        Console.WriteLine("Claude Code integration set up:");
+        foreach (var path in created)
+            Console.WriteLine($"  + {Path.GetRelativePath(Directory.GetCurrentDirectory(), path)}");
+        Console.WriteLine();
+        Console.WriteLine("Next steps:");
+        Console.WriteLine($"  1. Run: ai-code-graph analyze YourSolution.sln");
+        Console.WriteLine($"  2. Use /context, /hotspots, /duplicates, /drift in Claude Code");
+        Console.WriteLine($"  3. MCP tools are available to any MCP-compatible IDE");
+    }
+    else
+    {
+        Console.WriteLine("All Claude Code integration files already exist. Nothing to do.");
+    }
+
+    return Task.CompletedTask;
+});
+rootCommand.Add(setupCommand);
+
 var parseResult = CommandLineParser.Parse(rootCommand, args);
 return await parseResult.InvokeAsync();
 

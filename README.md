@@ -188,7 +188,25 @@ AI Code Graph can be used as a context source for AI coding assistants. It provi
 
 ### Claude Code
 
-AI Code Graph ships with Claude Code slash commands in `.claude/commands/`. After analyzing your solution, use these commands inside Claude Code:
+The fastest way to set up Claude Code integration in any .NET project:
+
+```bash
+# One-command setup: creates slash commands, CLAUDE.md snippet, and .mcp.json
+ai-code-graph setup-claude
+
+# Then analyze your solution
+ai-code-graph analyze YourSolution.sln
+```
+
+This creates:
+- `.claude/commands/context.md` - `/context <method>` slash command
+- `.claude/commands/hotspots.md` - `/hotspots` slash command
+- `.claude/commands/duplicates.md` - `/duplicates` slash command
+- `.claude/commands/drift.md` - `/drift` slash command
+- `.mcp.json` - MCP server configuration for IDE integration
+- `CLAUDE.md` snippet - Auto-context instructions for the agent
+
+**Available slash commands after setup:**
 
 | Command | Description |
 |---------|-------------|
@@ -197,13 +215,7 @@ AI Code Graph ships with Claude Code slash commands in `.claude/commands/`. Afte
 | `/duplicates` | Show detected code clones grouped by type |
 | `/drift` | Run drift detection against a saved baseline |
 
-**Setup:**
-
-1. Analyze your solution: `ai-code-graph analyze YourSolution.sln`
-2. The slash commands read from `./ai-code-graph/graph.db` by default
-3. Use `/context MethodName` before modifying any method to understand its role
-
-**Auto-context (CLAUDE.md):** The project's `CLAUDE.md` instructs Claude Code to automatically run `ai-code-graph context` before modifying methods when the graph database exists. This gives the agent architectural awareness without manual intervention.
+**Auto-context:** The `CLAUDE.md` snippet instructs Claude Code to automatically run `ai-code-graph context` before modifying methods when the graph database exists. This gives the agent architectural awareness without manual intervention.
 
 ### MCP Server (for IDEs and Other AI Agents)
 
