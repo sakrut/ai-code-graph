@@ -8,7 +8,7 @@ AI Code Graph is a .NET 8.0 Roslyn-based static analysis tool packaged as a glob
 
 ```bash
 dotnet build                          # Build all projects
-dotnet test                           # Run all tests (178 tests)
+dotnet test                           # Run all tests (303 tests)
 dotnet test --filter "ClassName"      # Run specific test class
 dotnet pack AiCodeGraph.Cli           # Package as global tool
 ```
@@ -42,6 +42,7 @@ dotnet pack AiCodeGraph.Cli           # Package as global tool
 - Method IDs use the format from `SymbolIdGenerator.GetMethodId()` (fully qualified with parameter types)
 - Tests follow pattern `{ClassName}Tests.cs` in the Tests project
 - CLI commands return exit code 0 on success
+- **Tree command**: Shows only public methods by default. Use `--include-private` to show all methods. Constructors (`.ctor`, `.cctor`) are always excluded.
 
 ## Auto-Context: Code Graph Integration
 

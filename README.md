@@ -55,8 +55,11 @@ ai-code-graph hotspots --top 20 --threshold 10
 # Explore call graph for a method
 ai-code-graph callgraph --method "MyClass.MyMethod" --depth 3 --direction both
 
-# Display code structure tree
-ai-code-graph tree --depth 3
+# Display code structure tree (public methods only by default)
+ai-code-graph tree --namespace MyApp
+
+# Include private/internal methods (constructors always excluded)
+ai-code-graph tree --include-private
 
 # Find methods similar to a given method
 ai-code-graph similar --method "UserService.CreateUser" --top 10
@@ -244,7 +247,7 @@ The `mcp` subcommand runs a JSON-RPC stdio server implementing the [Model Contex
 | `cg_search_code` | `query` (required), `top` (optional) | Natural language code search via embeddings |
 | `cg_get_duplicates` | `method`, `top` (optional) | Code clone pairs, optionally filtered to a method |
 | `cg_get_clusters` | (none) | List intent clusters with cohesion and members |
-| `cg_get_tree` | `namespace`, `type` (optional) | Code structure: projects > namespaces > types > methods |
+| `cg_get_tree` | `namespace`, `type`, `include_private` (optional) | Code structure: projects > namespaces > types > methods (public only by default, constructors always excluded) |
 | `cg_export_graph` | `concept` (optional) | Export full graph data (methods, relationships, metrics) |
 | `cg_get_drift` | `baseline` (optional) | Detect architectural drift from baseline snapshot |
 
@@ -287,7 +290,7 @@ Once configured, the AI agent can call tools like:
 {"tool": "cg_search_code", "arguments": {"query": "validate user input"}}
 {"tool": "cg_get_duplicates", "arguments": {"method": "CheckAuth"}}
 {"tool": "cg_get_clusters", "arguments": {}}
-{"tool": "cg_get_tree", "arguments": {"namespace": "MyApp.Services"}}
+{"tool": "cg_get_tree", "arguments": {"namespace": "MyApp.Services", "include_private": false}}
 {"tool": "cg_export_graph", "arguments": {"concept": "validation"}}
 {"tool": "cg_get_drift", "arguments": {}}
 ```
