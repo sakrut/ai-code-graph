@@ -291,10 +291,11 @@ var nsFilterOption = new Option<string?>("--namespace", "-n") { Description = "F
 var typeFilterOption = new Option<string?>("--type") { Description = "Filter by type name" };
 var treeFormatOption = new Option<string>("--format", "-f") { Description = "tree|json", DefaultValueFactory = _ => "tree" };
 var treeDbOption = new Option<string>("--db") { Description = "Path to graph.db", DefaultValueFactory = _ => "./ai-code-graph/graph.db" };
+var includePrivateOption = new Option<bool>("--include-private") { Description = "Include non-public methods" };
 
 var treeCommand = new Command("tree", "Display code structure tree")
 {
-    nsFilterOption, typeFilterOption, treeFormatOption, treeDbOption
+    nsFilterOption, typeFilterOption, treeFormatOption, treeDbOption, includePrivateOption
 };
 
 treeCommand.SetAction(async (parseResult, cancellationToken) =>
@@ -303,6 +304,7 @@ treeCommand.SetAction(async (parseResult, cancellationToken) =>
     var typeFilter = parseResult.GetValue(typeFilterOption);
     var format = parseResult.GetValue(treeFormatOption) ?? "tree";
     var dbPath = parseResult.GetValue(treeDbOption) ?? "./ai-code-graph/graph.db";
+    var includePrivate = parseResult.GetValue(includePrivateOption);
 
     if (!File.Exists(dbPath))
     {
@@ -314,7 +316,7 @@ treeCommand.SetAction(async (parseResult, cancellationToken) =>
     await using var storage = new StorageService(dbPath);
     await storage.OpenAsync(cancellationToken);
 
-    var rows = await storage.GetTreeAsync(nsFilter, typeFilter, cancellationToken);
+    var rows = await storage.GetTreeAsync(nsFilter, typeFilter, includePrivate, includeConstructors: false, cancellationToken);
 
     if (rows.Count == 0)
     {
@@ -336,7 +338,7 @@ treeCommand.SetAction(async (parseResult, cancellationToken) =>
                     {
                         name = tg.Key.TypeName,
                         kind = tg.Key.TypeKind.ToLower(),
-                        methods = tg.OrderBy(r => r.MethodName).Select(r => new { name = r.MethodName, returnType = r.ReturnType })
+                        methods = tg.OrderBy(r => r.MethodName).Select(r => new { name = r.MethodName, returnType = r.ReturnType, accessibility = r.Accessibility.ToLower() })
                     })
                 })
             });
@@ -380,7 +382,8 @@ treeCommand.SetAction(async (parseResult, cancellationToken) =>
                 Console.WriteLine($"    {kindTag} {row.TypeName}");
                 lastType = row.TypeName;
             }
-            Console.WriteLine($"        {row.ReturnType} {row.MethodName}()");
+            var visibilityTag = row.Accessibility != "Public" ? $" [{row.Accessibility.ToLower()}]" : "";
+            Console.WriteLine($"        {row.ReturnType} {row.MethodName}(){visibilityTag}");
         }
     }
 });

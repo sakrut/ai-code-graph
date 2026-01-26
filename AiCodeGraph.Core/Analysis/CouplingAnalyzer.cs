@@ -38,7 +38,7 @@ public class CouplingAnalyzer
         }
 
         // Get type abstractness info from the tree data
-        var treeData = await storage.GetTreeAsync(null, null, ct).ConfigureAwait(false);
+        var treeData = await storage.GetTreeAsync(null, null, includePrivate: true, includeConstructors: true, ct).ConfigureAwait(false);
         var groupAbstractness = ComputeAbstractness(treeData, level);
 
         // Compute Ca and Ce for each group
@@ -95,7 +95,7 @@ public class CouplingAnalyzer
     }
 
     private static Dictionary<string, float> ComputeAbstractness(
-        List<(string ProjectName, string NamespaceName, string TypeName, string TypeKind, string MethodName, string ReturnType)> treeData,
+        List<(string ProjectName, string NamespaceName, string TypeName, string TypeKind, string MethodName, string ReturnType, string Accessibility)> treeData,
         string level)
     {
         var groupTypes = new Dictionary<string, (int Total, int Abstract)>();

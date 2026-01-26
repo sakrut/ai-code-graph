@@ -147,7 +147,7 @@ public class QueryCommandsTests : IAsyncDisposable
     {
         await SeedDatabase();
 
-        var tree = await _storage.GetTreeAsync();
+        var tree = await _storage.GetTreeAsync(includePrivate: true);
         Assert.Equal(4, tree.Count); // 4 methods
         Assert.All(tree, r => Assert.Equal("TestApp", r.ProjectName));
         Assert.All(tree, r => Assert.Equal("MyApp", r.NamespaceName));
@@ -158,7 +158,7 @@ public class QueryCommandsTests : IAsyncDisposable
     {
         await SeedDatabase();
 
-        var tree = await _storage.GetTreeAsync(namespaceFilter: "MyApp");
+        var tree = await _storage.GetTreeAsync(namespaceFilter: "MyApp", includePrivate: true);
         Assert.Equal(4, tree.Count);
 
         var empty = await _storage.GetTreeAsync(namespaceFilter: "Other");
@@ -170,7 +170,7 @@ public class QueryCommandsTests : IAsyncDisposable
     {
         await SeedDatabase();
 
-        var tree = await _storage.GetTreeAsync(typeFilter: "UserService");
+        var tree = await _storage.GetTreeAsync(typeFilter: "UserService", includePrivate: true);
         Assert.Equal(3, tree.Count); // 3 methods in UserService
         Assert.All(tree, r => Assert.Equal("UserService", r.TypeName));
     }

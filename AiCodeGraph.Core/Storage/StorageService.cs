@@ -143,8 +143,8 @@ public class StorageService : IStorageService
         using var cmd = _connection!.CreateCommand();
         cmd.Transaction = transaction;
         cmd.CommandText = """
-            INSERT OR IGNORE INTO Methods (Id, Name, FullName, ReturnType, TypeId, StartLine, EndLine, FilePath, IsStatic, IsAsync, IsVirtual, IsOverride, IsAbstract)
-            VALUES (@id, @name, @fullName, @ret, @tid, @start, @end, @path, @isStatic, @isAsync, @isVirtual, @isOverride, @isAbstract)
+            INSERT OR IGNORE INTO Methods (Id, Name, FullName, ReturnType, TypeId, StartLine, EndLine, FilePath, IsStatic, IsAsync, IsVirtual, IsOverride, IsAbstract, Accessibility)
+            VALUES (@id, @name, @fullName, @ret, @tid, @start, @end, @path, @isStatic, @isAsync, @isVirtual, @isOverride, @isAbstract, @accessibility)
             """;
         cmd.Parameters.AddWithValue("@id", method.Id);
         cmd.Parameters.AddWithValue("@name", method.Name);
@@ -159,6 +159,7 @@ public class StorageService : IStorageService
         cmd.Parameters.AddWithValue("@isVirtual", method.IsVirtual ? 1 : 0);
         cmd.Parameters.AddWithValue("@isOverride", method.IsOverride ? 1 : 0);
         cmd.Parameters.AddWithValue("@isAbstract", method.IsAbstract ? 1 : 0);
+        cmd.Parameters.AddWithValue("@accessibility", method.Accessibility.ToString());
         await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
@@ -448,7 +449,7 @@ public class StorageService : IStorageService
         return results;
     }
 
-    public async Task<List<(string ProjectName, string NamespaceName, string TypeName, string TypeKind, string MethodName, string ReturnType)>> GetTreeAsync(string? namespaceFilter = null, string? typeFilter = null, CancellationToken cancellationToken = default)
+    public async Task<List<(string ProjectName, string NamespaceName, string TypeName, string TypeKind, string MethodName, string ReturnType, string Accessibility)>> GetTreeAsync(string? namespaceFilter = null, string? typeFilter = null, bool includePrivate = false, bool includeConstructors = false, CancellationToken cancellationToken = default)
     {
         EnsureConnection();
         using var cmd = _connection!.CreateCommand();
@@ -457,10 +458,19 @@ public class StorageService : IStorageService
             conditions.Add("n.FullName LIKE @ns");
         if (typeFilter != null)
             conditions.Add("t.Name LIKE @type");
+
+        // Always exclude constructors unless explicitly requested
+        if (!includeConstructors)
+            conditions.Add("m.Name NOT IN ('.ctor', '.cctor')");
+
+        // Filter by accessibility - public only by default
+        if (!includePrivate)
+            conditions.Add("m.Accessibility = 'Public'");
+
         var where = conditions.Count > 0 ? "WHERE " + string.Join(" AND ", conditions) : "";
 
         cmd.CommandText = $"""
-            SELECT p.Name, n.FullName, t.Name, t.Kind, m.Name, m.ReturnType
+            SELECT p.Name, n.FullName, t.Name, t.Kind, m.Name, m.ReturnType, m.Accessibility
             FROM Projects p
             JOIN Namespaces n ON n.ProjectId = p.Id
             JOIN Types t ON t.NamespaceId = n.Id
@@ -473,7 +483,7 @@ public class StorageService : IStorageService
         if (typeFilter != null)
             cmd.Parameters.AddWithValue("@type", $"%{typeFilter}%");
 
-        var results = new List<(string, string, string, string, string, string)>();
+        var results = new List<(string, string, string, string, string, string, string)>();
         using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
         while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
@@ -483,7 +493,8 @@ public class StorageService : IStorageService
                 reader.GetString(2),
                 reader.GetString(3),
                 reader.GetString(4),
-                reader.GetString(5)
+                reader.GetString(5),
+                reader.GetString(6)
             ));
         }
         return results;

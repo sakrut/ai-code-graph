@@ -26,7 +26,7 @@ public interface IStorageService : IAsyncDisposable, IDisposable
     Task<List<string>> GetCallersAsync(string methodId, CancellationToken cancellationToken = default);
     Task<List<(string Id, string FullName)>> SearchMethodsAsync(string pattern, CancellationToken cancellationToken = default);
     Task<(string Id, string Name, string FullName, string? FilePath, int StartLine)?> GetMethodInfoAsync(string methodId, CancellationToken cancellationToken = default);
-    Task<List<(string ProjectName, string NamespaceName, string TypeName, string TypeKind, string MethodName, string ReturnType)>> GetTreeAsync(string? namespaceFilter = null, string? typeFilter = null, CancellationToken cancellationToken = default);
+    Task<List<(string ProjectName, string NamespaceName, string TypeName, string TypeKind, string MethodName, string ReturnType, string Accessibility)>> GetTreeAsync(string? namespaceFilter = null, string? typeFilter = null, bool includePrivate = false, bool includeConstructors = false, CancellationToken cancellationToken = default);
     Task<List<(string MethodId, float[] Vector)>> GetEmbeddingsAsync(CancellationToken cancellationToken = default);
     Task<List<ClonePair>> GetClonePairsAsync(float minThreshold = 0f, CloneType? typeFilter = null, string? conceptFilter = null, CancellationToken cancellationToken = default);
     Task<List<IntentCluster>> GetClustersAsync(CancellationToken cancellationToken = default);

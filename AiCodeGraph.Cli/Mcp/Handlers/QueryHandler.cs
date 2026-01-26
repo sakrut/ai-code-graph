@@ -48,7 +48,8 @@ public class QueryHandler : IMcpToolHandler
                 ["properties"] = new JsonObject
                 {
                     ["namespace"] = new JsonObject { ["type"] = "string", ["description"] = "Optional: filter by namespace prefix" },
-                    ["type"] = new JsonObject { ["type"] = "string", ["description"] = "Optional: filter by type name" }
+                    ["type"] = new JsonObject { ["type"] = "string", ["description"] = "Optional: filter by type name" },
+                    ["include_private"] = new JsonObject { ["type"] = "boolean", ["description"] = "Include non-public methods", ["default"] = false }
                 }
             }),
         McpProtocolHelpers.CreateToolDef("cg_dead_code",
@@ -160,8 +161,9 @@ public class QueryHandler : IMcpToolHandler
     {
         var nsFilter = args?["namespace"]?.GetValue<string>();
         var typeFilter = args?["type"]?.GetValue<string>();
+        var includePrivate = args?["include_private"]?.GetValue<bool>() ?? false;
 
-        var rows = await _storage.GetTreeAsync(nsFilter, typeFilter, ct);
+        var rows = await _storage.GetTreeAsync(nsFilter, typeFilter, includePrivate, includeConstructors: false, ct);
         if (rows.Count == 0) return "No results found.";
 
         var lines = new List<string>();
@@ -198,7 +200,8 @@ public class QueryHandler : IMcpToolHandler
                 lines.Add($"    {kindTag} {row.TypeName}");
                 lastType = row.TypeName;
             }
-            lines.Add($"        {row.ReturnType} {row.MethodName}()");
+            var visibilityTag = row.Accessibility != "Public" ? $" [{row.Accessibility.ToLower()}]" : "";
+            lines.Add($"        {row.ReturnType} {row.MethodName}(){visibilityTag}");
         }
 
         return string.Join("\n", lines);

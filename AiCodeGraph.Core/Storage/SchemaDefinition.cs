@@ -60,7 +60,8 @@ internal static class SchemaDefinition
             IsAsync INTEGER NOT NULL DEFAULT 0,
             IsVirtual INTEGER NOT NULL DEFAULT 0,
             IsOverride INTEGER NOT NULL DEFAULT 0,
-            IsAbstract INTEGER NOT NULL DEFAULT 0
+            IsAbstract INTEGER NOT NULL DEFAULT 0,
+            Accessibility TEXT NOT NULL DEFAULT 'Public'
         );
         """,
         """
