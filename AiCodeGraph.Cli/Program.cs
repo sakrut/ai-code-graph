@@ -295,11 +295,14 @@ var includePrivateOption = new Option<bool>("--include-private") { Description =
 var skipTestsOption = new Option<bool>("--skip-tests") { Description = "Exclude *.Tests projects" };
 var skipInterfacesOption = new Option<bool>("--skip-interfaces") { Description = "Exclude interface types" };
 var skipNsOption = new Option<string?>("--skip-ns") { Description = "Exclude namespaces matching patterns (comma-separated)" };
+var maxMethodsOption = new Option<int?>("--max-methods") { Description = "Show first N methods per type, then '... (+X more)'" };
+var noReturnTypesOption = new Option<bool>("--no-return-types") { Description = "Omit return type signatures" };
+var compactOption = new Option<bool>("--compact") { Description = "Enable compact mode with sensible defaults for LLM context" };
 
 var treeCommand = new Command("tree", "Display code structure tree")
 {
     nsFilterOption, typeFilterOption, treeFormatOption, treeDbOption, includePrivateOption,
-    skipTestsOption, skipInterfacesOption, skipNsOption
+    skipTestsOption, skipInterfacesOption, skipNsOption, maxMethodsOption, noReturnTypesOption, compactOption
 };
 
 treeCommand.SetAction(async (parseResult, cancellationToken) =>
@@ -312,6 +315,19 @@ treeCommand.SetAction(async (parseResult, cancellationToken) =>
     var skipTests = parseResult.GetValue(skipTestsOption);
     var skipInterfaces = parseResult.GetValue(skipInterfacesOption);
     var skipNs = parseResult.GetValue(skipNsOption);
+    var maxMethods = parseResult.GetValue(maxMethodsOption);
+    var noReturnTypes = parseResult.GetValue(noReturnTypesOption);
+    var compact = parseResult.GetValue(compactOption);
+
+    // Apply compact mode defaults (can be overridden by explicit flags)
+    if (compact)
+    {
+        skipTests = skipTests || true;
+        skipInterfaces = skipInterfaces || true;
+        skipNs ??= "Migrations,Models";
+        maxMethods ??= 5;
+        noReturnTypes = noReturnTypes || true;
+    }
 
     if (!File.Exists(dbPath))
     {
@@ -341,24 +357,64 @@ treeCommand.SetAction(async (parseResult, cancellationToken) =>
                 namespaces = pg.GroupBy(r => r.NamespaceName).OrderBy(g => g.Key).Select(ng => new
                 {
                     name = ng.Key,
-                    types = ng.GroupBy(r => (r.TypeName, r.TypeKind)).OrderBy(g => g.Key.TypeName).Select(tg => new
+                    types = ng.GroupBy(r => (r.TypeName, r.TypeKind)).OrderBy(g => g.Key.TypeName).Select(tg =>
                     {
-                        name = tg.Key.TypeName,
-                        kind = tg.Key.TypeKind.ToLower(),
-                        methods = tg.OrderBy(r => r.MethodName).Select(r => new { name = r.MethodName, returnType = r.ReturnType, accessibility = r.Accessibility.ToLower() })
+                        var methods = tg.OrderBy(r => r.MethodName).ToList();
+                        var displayMethods = maxMethods.HasValue ? methods.Take(maxMethods.Value).ToList() : methods;
+                        var truncated = maxMethods.HasValue && methods.Count > maxMethods.Value ? methods.Count - maxMethods.Value : 0;
+                        return new
+                        {
+                            name = tg.Key.TypeName,
+                            kind = tg.Key.TypeKind.ToLower(),
+                            methods = displayMethods.Select(r => new
+                            {
+                                name = r.MethodName,
+                                returnType = noReturnTypes ? null : r.ReturnType,
+                                accessibility = r.Accessibility.ToLower()
+                            }),
+                            truncated = truncated > 0 ? truncated : (int?)null
+                        };
                     })
                 })
             });
 
-        var json = System.Text.Json.JsonSerializer.Serialize(new { projects = hierarchy },
-            new System.Text.Json.JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
+        var json = System.Text.Json.JsonSerializer.Serialize(new { projects = hierarchy, compact },
+            new System.Text.Json.JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase, DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull });
         Console.WriteLine(json);
+    }
+    else if (compact)
+    {
+        // Compact markdown-style output for LLM context
+        var grouped = rows.GroupBy(r => r.ProjectName).OrderBy(g => g.Key);
+        foreach (var project in grouped)
+        {
+            Console.WriteLine($"# {project.Key}");
+            var byNamespace = project.GroupBy(r => r.NamespaceName).OrderBy(g => g.Key);
+            foreach (var ns in byNamespace)
+            {
+                var nsDisplay = ns.Key.Contains('.') ? ns.Key[(ns.Key.LastIndexOf('.') + 1)..] : ns.Key;
+                Console.WriteLine($"\n## {nsDisplay}");
+                var byType = ns.GroupBy(r => (r.TypeName, r.TypeKind)).OrderBy(g => g.Key.TypeName);
+                foreach (var type in byType)
+                {
+                    var methods = type.OrderBy(r => r.MethodName).ToList();
+                    var displayMethods = maxMethods.HasValue ? methods.Take(maxMethods.Value).ToList() : methods;
+                    var remaining = methods.Count - displayMethods.Count;
+                    var methodList = string.Join(", ", displayMethods.Select(m => m.MethodName));
+                    var suffix = remaining > 0 ? $"... (+{remaining} more)" : "";
+                    Console.WriteLine($"  {type.Key.TypeName}: {methodList}{suffix}");
+                }
+            }
+            Console.WriteLine();
+        }
     }
     else
     {
+        // Standard verbose tree output
         var lastProject = "";
         var lastNs = "";
         var lastType = "";
+        var methodCount = 0;
 
         foreach (var row in rows)
         {
@@ -388,9 +444,21 @@ treeCommand.SetAction(async (parseResult, cancellationToken) =>
                 };
                 Console.WriteLine($"    {kindTag} {row.TypeName}");
                 lastType = row.TypeName;
+                methodCount = 0;
             }
+            methodCount++;
+            if (maxMethods.HasValue && methodCount > maxMethods.Value)
+            {
+                if (methodCount == maxMethods.Value + 1)
+                {
+                    var remaining = rows.Count(r => r.ProjectName == row.ProjectName && r.NamespaceName == row.NamespaceName && r.TypeName == row.TypeName) - maxMethods.Value;
+                    Console.WriteLine($"        ... (+{remaining} more)");
+                }
+                continue;
+            }
+            var returnType = noReturnTypes ? "" : $"{row.ReturnType} ";
             var visibilityTag = row.Accessibility != "Public" ? $" [{row.Accessibility.ToLower()}]" : "";
-            Console.WriteLine($"        {row.ReturnType} {row.MethodName}(){visibilityTag}");
+            Console.WriteLine($"        {returnType}{row.MethodName}(){visibilityTag}");
         }
     }
 });

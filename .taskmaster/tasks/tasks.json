@@ -3474,9 +3474,9 @@
         "testStrategy": "1. **Unit test --skip-tests**: Create test database with projects 'MyApp' and 'MyApp.Tests'. Run tree with --skip-tests, verify only 'MyApp' appears in output.\n\n2. **Unit test --skip-interfaces**: Create test database with class 'UserService' and interface 'IUserService'. Run tree with --skip-interfaces, verify only 'UserService' appears.\n\n3. **Unit test --skip-ns**: Create test database with namespaces 'App.Controllers', 'App.Models', 'App.Migrations'. Run tree with --skip-ns 'Models,Migrations', verify only 'App.Controllers' namespace appears.\n\n4. **Combination test**: Test all three filters together to verify AND logic works correctly.\n\n5. **Backward compatibility test**: Run tree command without new flags, verify output matches pre-change behavior exactly.\n\n6. **CLI help test**: Run `tree --help` and verify new options appear with descriptions.",
         "priority": "high",
         "dependencies": [],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [],
-        "updatedAt": "2026-01-28T13:19:58.721Z"
+        "updatedAt": "2026-01-28T13:22:13.267Z"
       },
       {
         "id": "58",
@@ -3488,8 +3488,9 @@
         "dependencies": [
           "57"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "in-progress",
+        "subtasks": [],
+        "updatedAt": "2026-01-28T13:22:52.526Z"
       },
       {
         "id": "59",
@@ -3558,9 +3559,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-28T13:19:58.722Z",
+      "lastModified": "2026-01-28T13:22:52.526Z",
       "taskCount": 63,
-      "completedCount": 56,
+      "completedCount": 57,
       "tags": [
         "master"
       ]
