@@ -20,7 +20,7 @@ var solutionOption = new Option<string?>("--solution", "-s")
     Description = "Path to .sln file (auto-discovered if omitted)"
 };
 
-var outputOption = new Option<string>("--output", "-o")
+var outputOption = new Option<string>("--output", "-o", "--db")
 {
     Description = "Output directory for the database",
     DefaultValueFactory = _ => "./ai-code-graph"
@@ -40,8 +40,15 @@ var embeddingEngineOption = new Option<string>("--embedding-engine") { Descripti
 var embeddingModelOption = new Option<string?>("--embedding-model") { Description = "Model name (e.g., text-embedding-3-small for openai, path for onnx)" };
 var embeddingDimensionsOption = new Option<int>("--embedding-dimensions") { Description = "Embedding vector dimensions", DefaultValueFactory = _ => 384 };
 
+var solutionArgument = new Argument<string?>("solution")
+{
+    Description = "Path to .sln file (auto-discovered if omitted)",
+    Arity = ArgumentArity.ZeroOrOne
+};
+
 var analyzeCommand = new Command("analyze", "Analyze a .NET solution and build the code graph")
 {
+    solutionArgument,
     solutionOption,
     outputOption,
     verboseOption,
@@ -53,7 +60,8 @@ var analyzeCommand = new Command("analyze", "Analyze a .NET solution and build t
 
 analyzeCommand.SetAction(async (parseResult, cancellationToken) =>
 {
-    var solutionPath = parseResult.GetValue(solutionOption);
+    // Prefer positional argument, fallback to option for backward compatibility
+    var solutionPath = parseResult.GetValue(solutionArgument) ?? parseResult.GetValue(solutionOption);
     var output = parseResult.GetValue(outputOption) ?? "./ai-code-graph";
     var verbose = parseResult.GetValue(verboseOption);
     var saveBaseline = parseResult.GetValue(saveBaselineOption);
