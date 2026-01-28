@@ -372,13 +372,41 @@ treeCommand.SetAction(async (parseResult, cancellationToken) =>
                                 returnType = noReturnTypes ? null : r.ReturnType,
                                 accessibility = r.Accessibility.ToLower()
                             }),
-                            truncated = truncated > 0 ? truncated : (int?)null
+                            truncatedCount = truncated > 0 ? truncated : (int?)null
                         };
                     })
                 })
             });
 
-        var json = System.Text.Json.JsonSerializer.Serialize(new { projects = hierarchy, compact },
+        // Build filter metadata - only include when non-default filters are active
+        var hasActiveFilters = skipTests || skipInterfaces || !string.IsNullOrEmpty(skipNs) || maxMethods.HasValue || noReturnTypes;
+        var excludedNsList = string.IsNullOrEmpty(skipNs)
+            ? Array.Empty<string>()
+            : skipNs.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        object output;
+        if (hasActiveFilters)
+        {
+            output = new
+            {
+                projects = hierarchy,
+                compact = compact ? true : (bool?)null,
+                filters = new
+                {
+                    skipTests = skipTests ? true : (bool?)null,
+                    skipInterfaces = skipInterfaces ? true : (bool?)null,
+                    excludedNamespaces = excludedNsList.Length > 0 ? excludedNsList : null,
+                    maxMethodsPerType = maxMethods,
+                    noReturnTypes = noReturnTypes ? true : (bool?)null
+                }
+            };
+        }
+        else
+        {
+            output = new { projects = hierarchy };
+        }
+
+        var json = System.Text.Json.JsonSerializer.Serialize(output,
             new System.Text.Json.JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase, DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull });
         Console.WriteLine(json);
     }
