@@ -3515,9 +3515,9 @@
         "testStrategy": "1. Unit test TryFindMSBuildViaVsWhere returns null gracefully when vswhere.exe doesn't exist (Linux/macOS)\n2. Unit test TryFindMSBuildInCommonPaths returns null when no VS installation exists\n3. Integration test on Windows with VS installed: verify MSBuild is detected without MSBUILD_EXE_PATH\n4. Test that existing MSBuildLocator path still takes precedence when it works\n5. Test on Linux/macOS that code doesn't crash (graceful fallback to .NET SDK)",
         "priority": "high",
         "dependencies": [],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [],
-        "updatedAt": "2026-01-28T13:26:26.542Z"
+        "updatedAt": "2026-01-28T13:27:45.164Z"
       },
       {
         "id": "61",
@@ -3529,8 +3529,9 @@
         "dependencies": [
           "60"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "in-progress",
+        "subtasks": [],
+        "updatedAt": "2026-01-28T13:28:02.497Z"
       },
       {
         "id": "62",
@@ -3561,9 +3562,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-28T13:26:26.542Z",
+      "lastModified": "2026-01-28T13:28:02.497Z",
       "taskCount": 63,
-      "completedCount": 59,
+      "completedCount": 60,
       "tags": [
         "master"
       ]

@@ -104,10 +104,7 @@ public class WorkspaceLoader : IWorkspaceLoader
             }
             LastSearchedLocations.Add(("PATH search", false));
 
-            throw new InvalidOperationException(
-                "No instances of MSBuild could be detected. " +
-                "Ensure Visual Studio, VS Build Tools, or the .NET SDK is installed. " +
-                "If using .NET SDK only, ensure the SDK includes MSBuild (run 'dotnet --list-sdks' to verify).");
+            throw new MSBuildDetectionException(LastSearchedLocations);
         }
     }
 
