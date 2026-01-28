@@ -162,8 +162,11 @@ public class QueryHandler : IMcpToolHandler
         var nsFilter = args?["namespace"]?.GetValue<string>();
         var typeFilter = args?["type"]?.GetValue<string>();
         var includePrivate = args?["include_private"]?.GetValue<bool>() ?? false;
+        var skipTests = args?["skip_tests"]?.GetValue<bool>() ?? false;
+        var skipInterfaces = args?["skip_interfaces"]?.GetValue<bool>() ?? false;
+        var skipNs = args?["skip_ns"]?.GetValue<string>();
 
-        var rows = await _storage.GetTreeAsync(nsFilter, typeFilter, includePrivate, includeConstructors: false, ct);
+        var rows = await _storage.GetTreeAsync(nsFilter, typeFilter, includePrivate, includeConstructors: false, skipTests, skipInterfaces, skipNs, ct);
         if (rows.Count == 0) return "No results found.";
 
         var lines = new List<string>();

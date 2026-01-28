@@ -449,7 +449,7 @@ public class StorageService : IStorageService
         return results;
     }
 
-    public async Task<List<(string ProjectName, string NamespaceName, string TypeName, string TypeKind, string MethodName, string ReturnType, string Accessibility)>> GetTreeAsync(string? namespaceFilter = null, string? typeFilter = null, bool includePrivate = false, bool includeConstructors = false, CancellationToken cancellationToken = default)
+    public async Task<List<(string ProjectName, string NamespaceName, string TypeName, string TypeKind, string MethodName, string ReturnType, string Accessibility)>> GetTreeAsync(string? namespaceFilter = null, string? typeFilter = null, bool includePrivate = false, bool includeConstructors = false, bool skipTests = false, bool skipInterfaces = false, string? excludeNamespaces = null, CancellationToken cancellationToken = default)
     {
         EnsureConnection();
         using var cmd = _connection!.CreateCommand();
@@ -467,6 +467,25 @@ public class StorageService : IStorageService
         if (!includePrivate)
             conditions.Add("m.Accessibility = 'Public'");
 
+        // Skip test projects
+        if (skipTests)
+            conditions.Add("p.Name NOT LIKE '%.Tests' AND p.Name NOT LIKE '%.Test'");
+
+        // Skip interface types
+        if (skipInterfaces)
+            conditions.Add("t.Kind != 'Interface'");
+
+        // Exclude specific namespaces
+        var excludePatterns = new List<string>();
+        if (!string.IsNullOrEmpty(excludeNamespaces))
+        {
+            excludePatterns = excludeNamespaces.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+            for (int i = 0; i < excludePatterns.Count; i++)
+            {
+                conditions.Add($"n.FullName NOT LIKE @exns{i}");
+            }
+        }
+
         var where = conditions.Count > 0 ? "WHERE " + string.Join(" AND ", conditions) : "";
 
         cmd.CommandText = $"""
@@ -482,6 +501,10 @@ public class StorageService : IStorageService
             cmd.Parameters.AddWithValue("@ns", $"{namespaceFilter}%");
         if (typeFilter != null)
             cmd.Parameters.AddWithValue("@type", $"%{typeFilter}%");
+        for (int i = 0; i < excludePatterns.Count; i++)
+        {
+            cmd.Parameters.AddWithValue($"@exns{i}", $"%{excludePatterns[i]}%");
+        }
 
         var results = new List<(string, string, string, string, string, string, string)>();
         using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);

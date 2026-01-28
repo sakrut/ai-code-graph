@@ -292,10 +292,14 @@ var typeFilterOption = new Option<string?>("--type") { Description = "Filter by 
 var treeFormatOption = new Option<string>("--format", "-f") { Description = "tree|json", DefaultValueFactory = _ => "tree" };
 var treeDbOption = new Option<string>("--db") { Description = "Path to graph.db", DefaultValueFactory = _ => "./ai-code-graph/graph.db" };
 var includePrivateOption = new Option<bool>("--include-private") { Description = "Include non-public methods" };
+var skipTestsOption = new Option<bool>("--skip-tests") { Description = "Exclude *.Tests projects" };
+var skipInterfacesOption = new Option<bool>("--skip-interfaces") { Description = "Exclude interface types" };
+var skipNsOption = new Option<string?>("--skip-ns") { Description = "Exclude namespaces matching patterns (comma-separated)" };
 
 var treeCommand = new Command("tree", "Display code structure tree")
 {
-    nsFilterOption, typeFilterOption, treeFormatOption, treeDbOption, includePrivateOption
+    nsFilterOption, typeFilterOption, treeFormatOption, treeDbOption, includePrivateOption,
+    skipTestsOption, skipInterfacesOption, skipNsOption
 };
 
 treeCommand.SetAction(async (parseResult, cancellationToken) =>
@@ -305,6 +309,9 @@ treeCommand.SetAction(async (parseResult, cancellationToken) =>
     var format = parseResult.GetValue(treeFormatOption) ?? "tree";
     var dbPath = parseResult.GetValue(treeDbOption) ?? "./ai-code-graph/graph.db";
     var includePrivate = parseResult.GetValue(includePrivateOption);
+    var skipTests = parseResult.GetValue(skipTestsOption);
+    var skipInterfaces = parseResult.GetValue(skipInterfacesOption);
+    var skipNs = parseResult.GetValue(skipNsOption);
 
     if (!File.Exists(dbPath))
     {
@@ -316,7 +323,7 @@ treeCommand.SetAction(async (parseResult, cancellationToken) =>
     await using var storage = new StorageService(dbPath);
     await storage.OpenAsync(cancellationToken);
 
-    var rows = await storage.GetTreeAsync(nsFilter, typeFilter, includePrivate, includeConstructors: false, cancellationToken);
+    var rows = await storage.GetTreeAsync(nsFilter, typeFilter, includePrivate, includeConstructors: false, skipTests, skipInterfaces, skipNs, cancellationToken);
 
     if (rows.Count == 0)
     {
