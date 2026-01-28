@@ -1760,12 +1760,12 @@ setupCommand.SetAction((parseResult, _) =>
     var dbPath = parseResult.GetValue(setupDbOption) ?? "./ai-code-graph/graph.db";
     var created = new List<string>();
 
-    // 1. Create .claude/commands/ directory
-    var commandsDir = Path.Combine(Directory.GetCurrentDirectory(), ".claude", "commands");
+    // 1. Create .claude/commands/cg/ directory
+    var commandsDir = Path.Combine(Directory.GetCurrentDirectory(), ".claude", "commands", "cg");
     Directory.CreateDirectory(commandsDir);
 
     // 2. Write slash command files
-    var contextCmd = Path.Combine(commandsDir, "cg:context.md");
+    var contextCmd = Path.Combine(commandsDir, "context.md");
     if (!File.Exists(contextCmd))
     {
         File.WriteAllText(contextCmd, $@"Get method context before editing: $ARGUMENTS
@@ -1782,7 +1782,7 @@ Steps:
         created.Add(contextCmd);
     }
 
-    var hotspotsCmd = Path.Combine(commandsDir, "cg:hotspots.md");
+    var hotspotsCmd = Path.Combine(commandsDir, "hotspots.md");
     if (!File.Exists(hotspotsCmd))
     {
         File.WriteAllText(hotspotsCmd, $@"Show complexity hotspots in the codebase.
@@ -1796,7 +1796,7 @@ Steps:
         created.Add(hotspotsCmd);
     }
 
-    var duplicatesCmd = Path.Combine(commandsDir, "cg:duplicates.md");
+    var duplicatesCmd = Path.Combine(commandsDir, "duplicates.md");
     if (!File.Exists(duplicatesCmd))
     {
         File.WriteAllText(duplicatesCmd, $@"Show detected code duplicates in the codebase.
@@ -1811,7 +1811,7 @@ Steps:
         created.Add(duplicatesCmd);
     }
 
-    var driftCmd = Path.Combine(commandsDir, "cg:drift.md");
+    var driftCmd = Path.Combine(commandsDir, "drift.md");
     if (!File.Exists(driftCmd))
     {
         File.WriteAllText(driftCmd, $@"Run drift detection against the baseline.
@@ -1830,7 +1830,7 @@ Steps:
         created.Add(driftCmd);
     }
 
-    var callgraphCmd = Path.Combine(commandsDir, "cg:callgraph.md");
+    var callgraphCmd = Path.Combine(commandsDir, "callgraph.md");
     if (!File.Exists(callgraphCmd))
     {
         File.WriteAllText(callgraphCmd, $@"Explore method call graph: $ARGUMENTS
@@ -1845,7 +1845,7 @@ Steps:
         created.Add(callgraphCmd);
     }
 
-    var treeCmd = Path.Combine(commandsDir, "cg:tree.md");
+    var treeCmd = Path.Combine(commandsDir, "tree.md");
     if (!File.Exists(treeCmd))
     {
         File.WriteAllText(treeCmd, $@"Display code structure tree.
@@ -1859,7 +1859,7 @@ Steps:
         created.Add(treeCmd);
     }
 
-    var similarCmd = Path.Combine(commandsDir, "cg:similar.md");
+    var similarCmd = Path.Combine(commandsDir, "similar.md");
     if (!File.Exists(similarCmd))
     {
         File.WriteAllText(similarCmd, $@"Find methods similar to: $ARGUMENTS
@@ -1873,7 +1873,7 @@ Steps:
         created.Add(similarCmd);
     }
 
-    var clustersCmd = Path.Combine(commandsDir, "cg:clusters.md");
+    var clustersCmd = Path.Combine(commandsDir, "clusters.md");
     if (!File.Exists(clustersCmd))
     {
         File.WriteAllText(clustersCmd, $@"Show intent clusters in the codebase.
@@ -1887,7 +1887,7 @@ Steps:
         created.Add(clustersCmd);
     }
 
-    var searchCmd = Path.Combine(commandsDir, "cg:token-search.md");
+    var searchCmd = Path.Combine(commandsDir, "token-search.md");
     if (!File.Exists(searchCmd))
     {
         File.WriteAllText(searchCmd, $@"Search code by token overlap: $ARGUMENTS
@@ -1901,7 +1901,7 @@ Steps:
         created.Add(searchCmd);
     }
 
-    var exportCmd = Path.Combine(commandsDir, "cg:export.md");
+    var exportCmd = Path.Combine(commandsDir, "export.md");
     if (!File.Exists(exportCmd))
     {
         File.WriteAllText(exportCmd, $@"Export code graph data.
@@ -1914,7 +1914,7 @@ Steps:
         created.Add(exportCmd);
     }
 
-    var analyzeCmd = Path.Combine(commandsDir, "cg:analyze.md");
+    var analyzeCmd = Path.Combine(commandsDir, "analyze.md");
     if (!File.Exists(analyzeCmd))
     {
         File.WriteAllText(analyzeCmd, @"Analyze solution and build code graph.
@@ -1928,7 +1928,7 @@ Steps:
         created.Add(analyzeCmd);
     }
 
-    var churnCmd = Path.Combine(commandsDir, "cg:churn.md");
+    var churnCmd = Path.Combine(commandsDir, "churn.md");
     if (!File.Exists(churnCmd))
     {
         File.WriteAllText(churnCmd, $@"Show methods with high change-frequency x complexity (churn hotspots): $ARGUMENTS
@@ -1978,7 +1978,7 @@ This returns complexity, callers, callees, cluster membership, and duplicates in
 - Apply the same fix to duplicates when fixing bugs
 - Understand which intent cluster a method belongs to before refactoring
 
-Available slash commands (all prefixed with `cg:`):
+Available slash commands:
 - `/cg:analyze [solution]` - Analyze solution and build the graph
 - `/cg:context <method>` - Full method context before editing
 - `/cg:hotspots` - Top complexity hotspots

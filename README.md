@@ -138,18 +138,19 @@ ai-code-graph/
 │   ├── WorkspaceLoader.cs     # Roslyn MSBuild workspace loader
 │   └── CodeModelExtractor.cs  # Syntax/semantic model extraction
 ├── AiCodeGraph.Tests/         # Unit and integration tests
-├── .claude/commands/           # Claude Code slash commands (11 commands)
-│   ├── cg:analyze.md          # /cg:analyze - build code graph
-│   ├── cg:context.md          # /cg:context - method context
-│   ├── cg:hotspots.md         # /cg:hotspots - complexity hotspots
-│   ├── cg:callgraph.md        # /cg:callgraph - call relationships
-│   ├── cg:similar.md          # /cg:similar - find similar methods
-│   ├── cg:search.md           # /cg:search - natural language search
-│   ├── cg:duplicates.md       # /cg:duplicates - code clones
-│   ├── cg:clusters.md         # /cg:clusters - intent clusters
-│   ├── cg:tree.md             # /cg:tree - code structure
-│   ├── cg:export.md           # /cg:export - export graph data
-│   └── cg:drift.md            # /cg:drift - architectural drift
+├── .claude/commands/cg/        # Claude Code slash commands (12 commands)
+│   ├── analyze.md             # /cg:analyze - build code graph
+│   ├── context.md             # /cg:context - method context
+│   ├── hotspots.md            # /cg:hotspots - complexity hotspots
+│   ├── callgraph.md           # /cg:callgraph - call relationships
+│   ├── similar.md             # /cg:similar - find similar methods
+│   ├── token-search.md        # /cg:token-search - token-based search
+│   ├── duplicates.md          # /cg:duplicates - code clones
+│   ├── clusters.md            # /cg:clusters - intent clusters
+│   ├── tree.md                # /cg:tree - code structure
+│   ├── export.md              # /cg:export - export graph data
+│   ├── drift.md               # /cg:drift - architectural drift
+│   └── churn.md               # /cg:churn - churn hotspots
 ├── tests/fixtures/            # Test fixture solutions
 └── .github/workflows/         # CI pipeline
 ```
@@ -209,7 +210,7 @@ ai-code-graph analyze YourSolution.sln
 ```
 
 This creates:
-- `.claude/commands/*.md` - All 11 slash commands (analyze, context, hotspots, callgraph, similar, search, duplicates, clusters, tree, export, drift)
+- `.claude/commands/cg/*.md` - All 12 slash commands (analyze, context, hotspots, callgraph, similar, token-search, duplicates, clusters, tree, export, drift, churn)
 - `.mcp.json` - MCP server configuration exposing all 11 tools for IDE integration
 - `CLAUDE.md` snippet - Auto-context instructions for the agent
 
@@ -222,12 +223,13 @@ This creates:
 | `/cg:hotspots` | Show top complexity hotspots as refactoring candidates |
 | `/cg:callgraph <method>` | Explore method call relationships (callers and callees) |
 | `/cg:similar <method>` | Find methods with similar semantic intent |
-| `/cg:search <query>` | Natural language code search via embeddings |
+| `/cg:token-search <query>` | Token-based code search |
 | `/cg:duplicates` | Show detected code clones grouped by type |
 | `/cg:clusters` | Show intent clusters (groups of related methods) |
 | `/cg:tree` | Display code structure (projects, namespaces, types) |
 | `/cg:export` | Export full code graph data as JSON |
 | `/cg:drift` | Run drift detection against a saved baseline |
+| `/cg:churn` | Show change-frequency x complexity hotspots |
 
 **Auto-context:** The `CLAUDE.md` snippet instructs Claude Code to automatically run `ai-code-graph context` before modifying methods when the graph database exists. This gives the agent architectural awareness without manual intervention.
 

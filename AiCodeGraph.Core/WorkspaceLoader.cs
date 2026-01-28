@@ -17,7 +17,59 @@ public class WorkspaceLoader : IWorkspaceLoader
         lock (_registrationLock)
         {
             if (_msBuildRegistered) return;
-            MSBuildLocator.RegisterDefaults();
+
+            // Query all discovery types
+            var instances = MSBuildLocator.QueryVisualStudioInstances(
+                new VisualStudioInstanceQueryOptions
+                {
+                    DiscoveryTypes = DiscoveryType.DeveloperConsole
+                        | DiscoveryType.DotNetSdk
+                        | DiscoveryType.VisualStudioSetup
+                }).ToList();
+
+            if (instances.Count == 0)
+            {
+                // Try default query without options as fallback
+                instances = MSBuildLocator.QueryVisualStudioInstances().ToList();
+            }
+
+            if (instances.Count == 0)
+            {
+                // Try to detect MSBuild from MSBUILD_EXE_PATH or PATH
+                var msbuildPath = Environment.GetEnvironmentVariable("MSBUILD_EXE_PATH");
+                if (string.IsNullOrEmpty(msbuildPath))
+                {
+                    // Try to find MSBuild in PATH
+                    var pathEnv = Environment.GetEnvironmentVariable("PATH") ?? "";
+                    var paths = pathEnv.Split(Path.PathSeparator);
+                    foreach (var p in paths)
+                    {
+                        var candidate = Path.Combine(p, "MSBuild.exe");
+                        if (File.Exists(candidate))
+                        {
+                            msbuildPath = candidate;
+                            break;
+                        }
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(msbuildPath) && File.Exists(msbuildPath))
+                {
+                    var msbuildDir = Path.GetDirectoryName(msbuildPath)!;
+                    MSBuildLocator.RegisterMSBuildPath(msbuildDir);
+                    _msBuildRegistered = true;
+                    return;
+                }
+
+                throw new InvalidOperationException(
+                    "No instances of MSBuild could be detected. " +
+                    "Ensure Visual Studio, VS Build Tools, or the .NET SDK is installed. " +
+                    "If using .NET SDK only, ensure the SDK includes MSBuild (run 'dotnet --list-sdks' to verify).");
+            }
+
+            // Prefer the latest version
+            var instance = instances.OrderByDescending(i => i.Version).First();
+            MSBuildLocator.RegisterInstance(instance);
             _msBuildRegistered = true;
         }
     }
