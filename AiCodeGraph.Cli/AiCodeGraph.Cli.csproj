@@ -5,7 +5,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Build.Locator" Version="1.11.2" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Build.Locator" Version="1.11.2" />
     <PackageReference Include="System.CommandLine" Version="2.0.2" />
   </ItemGroup>
 
@@ -17,7 +17,7 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>ai-code-graph</ToolCommandName>
     <PackageOutputPath>./nupkg</PackageOutputPath>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <PackageId>AiCodeGraph.Cli</PackageId>
     <Description>Roslyn-based static analysis tool that builds semantic code graphs, detects duplicates, computes complexity, and exposes an MCP server for AI-assisted development.</Description>
     <Authors>AiCodeGraph Contributors</Authors>
