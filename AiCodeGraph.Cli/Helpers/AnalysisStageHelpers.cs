@@ -120,7 +120,8 @@ public static class AnalysisStageHelpers
                     Console.Error.WriteLine("Warning: OPENAI_API_KEY not set, falling back to hash engine.");
                     return new HashEmbeddingEngine();
                 }
-                return new OpenAiEmbeddingEngine(apiKey, model ?? "text-embedding-3-small", dimensions);
+                var modelName = string.IsNullOrEmpty(model) ? "text-embedding-3-small" : model;
+                return new OpenAiEmbeddingEngine(apiKey, modelName, dimensions);
 
             case "onnx":
                 var modelPath = model ?? "./models/all-MiniLM-L6-v2.onnx";
