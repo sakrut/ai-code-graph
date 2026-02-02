@@ -19,3 +19,27 @@
 **Test Strategy:**
 
 Unit tests for option parsing. Run `ai-code-graph --help` and spot-check command helps.
+
+## Subtasks
+
+### 72.1. Shared option helpers
+
+**Status:** pending  
+**Dependencies:** None  
+
+Centralize common options to reduce drift.
+
+**Details:**
+
+Introduce helpers for: --db, --format, --top, --threshold, --depth, --include-private; refactor a few commands.
+
+### 72.2. Help text organization
+
+**Status:** pending  
+**Dependencies:** 72.1  
+
+Improve readability of CLI help.
+
+**Details:**
+
+Group options, ensure defaults documented, keep concise.

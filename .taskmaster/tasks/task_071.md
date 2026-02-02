@@ -18,3 +18,16 @@
 **Test Strategy:**
 
 Verify `git status` stays clean after creating benchmark db. Verify docs mention this.
+
+## Subtasks
+
+### 71.1. Ignore benchmark artifacts
+
+**Status:** pending  
+**Dependencies:** None  
+
+Keep repo clean of generated db files.
+
+**Details:**
+
+Ensure `.gitignore` includes `benchmark/`; document local-only usage.

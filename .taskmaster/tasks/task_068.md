@@ -19,3 +19,38 @@
 **Test Strategy:**
 
 Tests: running with core excludes optional outputs; running with full includes them. CLI help documents stages.
+
+## Subtasks
+
+### 68.1. Define stages (core vs full)
+
+**Status:** pending  
+**Dependencies:** None  
+
+Decide which stages belong to core.
+
+**Details:**
+
+Document stages mapping to pipeline steps; decide defaults and CLI help text.
+
+### 68.2. Implement --stages flag in analyze
+
+**Status:** pending  
+**Dependencies:** 68.1  
+
+Allow selecting pipeline subsets.
+
+**Details:**
+
+Wire flag to pipeline runner; ensure optional stages are skipped when core.
+
+### 68.3. Make optional features opt-in
+
+**Status:** pending  
+**Dependencies:** 68.2  
+
+Move weaker features behind full stage or flag.
+
+**Details:**
+
+Token-search/semantic-search/clustering only if enabled; ensure commands gracefully explain missing stage.

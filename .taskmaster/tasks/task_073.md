@@ -19,3 +19,27 @@
 **Test Strategy:**
 
 CI green; snapshot update workflow documented.
+
+## Subtasks
+
+### 73.1. Golden snapshot tests
+
+**Status:** pending  
+**Dependencies:** None  
+
+Add snapshot tests for compact + json outputs.
+
+**Details:**
+
+Create golden files and a harness; cover context/hotspots/callgraph/impact/dead-code/coupling.
+
+### 73.2. Document snapshot update workflow
+
+**Status:** pending  
+**Dependencies:** 73.1  
+
+Make it easy to update intentionally.
+
+**Details:**
+
+Add a short doc for regenerating snapshots and reviewing diffs.

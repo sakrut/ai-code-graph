@@ -19,3 +19,27 @@
 **Test Strategy:**
 
 Docs review: quickstart is < 2 pages, actionable, and consistent with CLI behavior.
+
+## Subtasks
+
+### 69.1. Write LLM quickstart
+
+**Status:** pending  
+**Dependencies:** None  
+
+Keep it short and aligned with compact-first.
+
+**Details:**
+
+Update `docs/LLM-QUICKSTART.md` to align with `--format compact` defaults and bounded outputs.
+
+### 69.2. Trim README & link docs
+
+**Status:** pending  
+**Dependencies:** 69.1  
+
+Keep README as entrypoint and push detail to docs/
+
+**Details:**
+
+Reduce long sections; link to quickstart, output contract, integration docs.

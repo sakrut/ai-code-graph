@@ -20,3 +20,27 @@
 **Test Strategy:**
 
 Run MCP server in test mode and call a few tools; verify output size bounds and stability.
+
+## Subtasks
+
+### 70.1. Audit MCP tool outputs
+
+**Status:** pending  
+**Dependencies:** None  
+
+Ensure bounded, compact responses.
+
+**Details:**
+
+Review MCP handlers: add defaults for top/depth/max-items; ensure MethodId included.
+
+### 70.2. Add MCP integration test
+
+**Status:** pending  
+**Dependencies:** 70.1  
+
+Prevent regressions in MCP output size/shape.
+
+**Details:**
+
+Add tests that call a few MCP tools and assert bounded output and presence of MethodId.

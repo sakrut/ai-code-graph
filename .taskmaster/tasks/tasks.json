@@ -3679,8 +3679,20 @@
         "priority": "high",
         "dependencies": [],
         "status": "pending",
-        "subtasks": [],
-        "updatedAt": "2026-02-01T23:28:15Z"
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Add PRD change log section",
+            "description": "Document what changed vs v1 and why token economy is priority.",
+            "dependencies": [],
+            "details": "Update `.taskmaster/docs/prd-next.md`: add a short section “What changed vs v1” (1) compact-first outputs, (2) pipeline slimming, (3) db staleness.",
+            "status": "pending",
+            "testStrategy": "Doc review: section is clear and matches tasks 65-73.",
+            "parentId": "undefined",
+            "updatedAt": "2026-02-02T10:05:40Z"
+          }
+        ],
+        "updatedAt": "2026-02-02T10:05:40Z"
       },
       {
         "id": "65",
@@ -3691,8 +3703,59 @@
         "priority": "high",
         "dependencies": [],
         "status": "pending",
-        "subtasks": [],
-        "updatedAt": "2026-02-01T23:28:15Z"
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define output contract (compact rules)",
+            "description": "Write a short spec for compact output and bounds.",
+            "dependencies": [],
+            "details": "Add a `docs/output-contract.md` (or in README/docs) defining: one line per item, bounded lists, stable ids, no ascii tables; define defaults for top/depth/max-items.",
+            "status": "pending",
+            "testStrategy": "Spec exists and is referenced from relevant commands/docs.",
+            "parentId": "undefined",
+            "updatedAt": "2026-02-02T10:05:40Z"
+          },
+          {
+            "id": 2,
+            "title": "Implement shared --format option",
+            "description": "Introduce shared option helper for --format across commands.",
+            "dependencies": [
+              1
+            ],
+            "details": "Add shared option builder in CLI (e.g., OutputOptions) and wire `--format` to affected commands without changing default behavior yet.",
+            "status": "pending",
+            "testStrategy": "CLI help shows --format on target commands; unit test option parsing.",
+            "parentId": "undefined",
+            "updatedAt": "2026-02-02T10:05:40Z"
+          },
+          {
+            "id": 3,
+            "title": "Add compact formatter for key commands",
+            "description": "Implement compact output path for context/hotspots/callgraph/impact/dead-code/coupling.",
+            "dependencies": [
+              2
+            ],
+            "details": "Implement format switch; keep existing table output behind `table`. Ensure compact prints stable identifiers and bounded sections.",
+            "status": "pending",
+            "testStrategy": "Snapshot tests for compact outputs (golden files).",
+            "parentId": "undefined",
+            "updatedAt": "2026-02-02T10:05:40Z"
+          },
+          {
+            "id": 4,
+            "title": "Keep JSON stable",
+            "description": "Ensure JSON schema remains stable and documented.",
+            "dependencies": [
+              2
+            ],
+            "details": "Add/update serialization DTOs if needed; avoid breaking field names; document versioning strategy.",
+            "status": "pending",
+            "testStrategy": "Unit test JSON outputs; consumers can parse outputs across versions.",
+            "parentId": "undefined",
+            "updatedAt": "2026-02-02T10:05:40Z"
+          }
+        ],
+        "updatedAt": "2026-02-02T10:05:40Z"
       },
       {
         "id": "66",
@@ -3703,8 +3766,46 @@
         "priority": "high",
         "dependencies": [],
         "status": "pending",
-        "subtasks": [],
-        "updatedAt": "2026-02-01T23:28:15Z"
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Include MethodId in models",
+            "description": "Ensure a stable MethodId is present and printed.",
+            "dependencies": [],
+            "details": "Audit current MethodModel id generation; ensure it is stable and included in all relevant outputs.",
+            "status": "pending",
+            "testStrategy": "Overloads generate different ids; ids stable across runs.",
+            "parentId": "undefined",
+            "updatedAt": "2026-02-02T10:05:40Z"
+          },
+          {
+            "id": 2,
+            "title": "Add --id resolution path",
+            "description": "Allow users/agents to select a method by id.",
+            "dependencies": [
+              1
+            ],
+            "details": "Add `--id <MethodId>` to commands that accept method patterns; implement resolution precedence and disambiguation.",
+            "status": "pending",
+            "testStrategy": "Ambiguous match returns clear error; --id works.",
+            "parentId": "undefined",
+            "updatedAt": "2026-02-02T10:05:40Z"
+          },
+          {
+            "id": 3,
+            "title": "Update docs/examples to prefer ids",
+            "description": "Teach agents to use ids to avoid ambiguity.",
+            "dependencies": [
+              2
+            ],
+            "details": "Update quickstart/examples to show id usage when available.",
+            "status": "pending",
+            "testStrategy": "Docs consistent with CLI behavior.",
+            "parentId": "undefined",
+            "updatedAt": "2026-02-02T10:05:40Z"
+          }
+        ],
+        "updatedAt": "2026-02-02T10:05:40Z"
       },
       {
         "id": "67",
@@ -3715,8 +3816,46 @@
         "priority": "high",
         "dependencies": [],
         "status": "pending",
-        "subtasks": [],
-        "updatedAt": "2026-02-01T23:28:15Z"
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Add AnalysisMetadata table",
+            "description": "Persist analyzedAt, toolVersion, solutionPath, gitCommit.",
+            "dependencies": [],
+            "details": "Extend SQLite schema and storage layer to write metadata on analyze.",
+            "status": "pending",
+            "testStrategy": "Round-trip test: metadata present after analyze.",
+            "parentId": "undefined",
+            "updatedAt": "2026-02-02T10:05:40Z"
+          },
+          {
+            "id": 2,
+            "title": "Implement db-info/status command",
+            "description": "Expose metadata and staleness hint in compact form.",
+            "dependencies": [
+              1
+            ],
+            "details": "Add CLI command that reads metadata and prints: analyzedAt, solution, tool version, git commit; plus stale/not stale hint.",
+            "status": "pending",
+            "testStrategy": "Manual: modify file after analyze => db-info warns.",
+            "parentId": "undefined",
+            "updatedAt": "2026-02-02T10:05:40Z"
+          },
+          {
+            "id": 3,
+            "title": "Implement staleness heuristic",
+            "description": "Detect likely stale db cheaply.",
+            "dependencies": [
+              2
+            ],
+            "details": "Compare git HEAD commit (if repo) and/or last modified times of relevant files vs analyzedAt. Keep best-effort and explain uncertainty.",
+            "status": "pending",
+            "testStrategy": "Unit tests for heuristic logic (mockable).",
+            "parentId": "undefined",
+            "updatedAt": "2026-02-02T10:05:40Z"
+          }
+        ],
+        "updatedAt": "2026-02-02T10:05:40Z"
       },
       {
         "id": "68",
@@ -3727,8 +3866,46 @@
         "priority": "high",
         "dependencies": [],
         "status": "pending",
-        "subtasks": [],
-        "updatedAt": "2026-02-01T23:28:15Z"
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define stages (core vs full)",
+            "description": "Decide which stages belong to core.",
+            "dependencies": [],
+            "details": "Document stages mapping to pipeline steps; decide defaults and CLI help text.",
+            "status": "pending",
+            "testStrategy": "Doc exists and matches implementation.",
+            "parentId": "undefined",
+            "updatedAt": "2026-02-02T10:05:40Z"
+          },
+          {
+            "id": 2,
+            "title": "Implement --stages flag in analyze",
+            "description": "Allow selecting pipeline subsets.",
+            "dependencies": [
+              1
+            ],
+            "details": "Wire flag to pipeline runner; ensure optional stages are skipped when core.",
+            "status": "pending",
+            "testStrategy": "Tests: core run skips optional; full runs all.",
+            "parentId": "undefined",
+            "updatedAt": "2026-02-02T10:05:40Z"
+          },
+          {
+            "id": 3,
+            "title": "Make optional features opt-in",
+            "description": "Move weaker features behind full stage or flag.",
+            "dependencies": [
+              2
+            ],
+            "details": "Token-search/semantic-search/clustering only if enabled; ensure commands gracefully explain missing stage.",
+            "status": "pending",
+            "testStrategy": "Running a disabled feature provides actionable message.",
+            "parentId": "undefined",
+            "updatedAt": "2026-02-02T10:05:40Z"
+          }
+        ],
+        "updatedAt": "2026-02-02T10:05:40Z"
       },
       {
         "id": "69",
@@ -3739,8 +3916,33 @@
         "priority": "high",
         "dependencies": [],
         "status": "pending",
-        "subtasks": [],
-        "updatedAt": "2026-02-01T23:28:15Z"
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Write LLM quickstart",
+            "description": "Keep it short and aligned with compact-first.",
+            "dependencies": [],
+            "details": "Update `docs/LLM-QUICKSTART.md` to align with `--format compact` defaults and bounded outputs.",
+            "status": "pending",
+            "testStrategy": "Doc <= ~2 pages and actionable.",
+            "parentId": "undefined",
+            "updatedAt": "2026-02-02T10:05:40Z"
+          },
+          {
+            "id": 2,
+            "title": "Trim README & link docs",
+            "description": "Keep README as entrypoint and push detail to docs/",
+            "dependencies": [
+              1
+            ],
+            "details": "Reduce long sections; link to quickstart, output contract, integration docs.",
+            "status": "pending",
+            "testStrategy": "README remains accurate and shorter.",
+            "parentId": "undefined",
+            "updatedAt": "2026-02-02T10:05:40Z"
+          }
+        ],
+        "updatedAt": "2026-02-02T10:05:40Z"
       },
       {
         "id": "70",
@@ -3751,8 +3953,33 @@
         "priority": "high",
         "dependencies": [],
         "status": "pending",
-        "subtasks": [],
-        "updatedAt": "2026-02-01T23:28:15Z"
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Audit MCP tool outputs",
+            "description": "Ensure bounded, compact responses.",
+            "dependencies": [],
+            "details": "Review MCP handlers: add defaults for top/depth/max-items; ensure MethodId included.",
+            "status": "pending",
+            "testStrategy": "Manual smoke test with a sample db.",
+            "parentId": "undefined",
+            "updatedAt": "2026-02-02T10:05:40Z"
+          },
+          {
+            "id": 2,
+            "title": "Add MCP integration test",
+            "description": "Prevent regressions in MCP output size/shape.",
+            "dependencies": [
+              1
+            ],
+            "details": "Add tests that call a few MCP tools and assert bounded output and presence of MethodId.",
+            "status": "pending",
+            "testStrategy": "CI passes; tests stable.",
+            "parentId": "undefined",
+            "updatedAt": "2026-02-02T10:05:40Z"
+          }
+        ],
+        "updatedAt": "2026-02-02T10:05:40Z"
       },
       {
         "id": "71",
@@ -3763,8 +3990,20 @@
         "priority": "low",
         "dependencies": [],
         "status": "pending",
-        "subtasks": [],
-        "updatedAt": "2026-02-01T23:28:15Z"
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Ignore benchmark artifacts",
+            "description": "Keep repo clean of generated db files.",
+            "dependencies": [],
+            "details": "Ensure `.gitignore` includes `benchmark/`; document local-only usage.",
+            "status": "pending",
+            "testStrategy": "git status clean after generating benchmark db.",
+            "parentId": "undefined",
+            "updatedAt": "2026-02-02T10:05:40Z"
+          }
+        ],
+        "updatedAt": "2026-02-02T10:05:40Z"
       },
       {
         "id": "72",
@@ -3775,8 +4014,33 @@
         "priority": "high",
         "dependencies": [],
         "status": "pending",
-        "subtasks": [],
-        "updatedAt": "2026-02-01T23:28:15Z"
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Shared option helpers",
+            "description": "Centralize common options to reduce drift.",
+            "dependencies": [],
+            "details": "Introduce helpers for: --db, --format, --top, --threshold, --depth, --include-private; refactor a few commands.",
+            "status": "pending",
+            "testStrategy": "No behavior regressions; help is consistent.",
+            "parentId": "undefined",
+            "updatedAt": "2026-02-02T10:05:40Z"
+          },
+          {
+            "id": 2,
+            "title": "Help text organization",
+            "description": "Improve readability of CLI help.",
+            "dependencies": [
+              1
+            ],
+            "details": "Group options, ensure defaults documented, keep concise.",
+            "status": "pending",
+            "testStrategy": "Spot-check help output; consistent across commands.",
+            "parentId": "undefined",
+            "updatedAt": "2026-02-02T10:05:40Z"
+          }
+        ],
+        "updatedAt": "2026-02-02T10:05:40Z"
       },
       {
         "id": "73",
@@ -3787,8 +4051,33 @@
         "priority": "high",
         "dependencies": [],
         "status": "pending",
-        "subtasks": [],
-        "updatedAt": "2026-02-01T23:28:15Z"
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Golden snapshot tests",
+            "description": "Add snapshot tests for compact + json outputs.",
+            "dependencies": [],
+            "details": "Create golden files and a harness; cover context/hotspots/callgraph/impact/dead-code/coupling.",
+            "status": "pending",
+            "testStrategy": "CI fails on unintended output changes.",
+            "parentId": "undefined",
+            "updatedAt": "2026-02-02T10:05:40Z"
+          },
+          {
+            "id": 2,
+            "title": "Document snapshot update workflow",
+            "description": "Make it easy to update intentionally.",
+            "dependencies": [
+              1
+            ],
+            "details": "Add a short doc for regenerating snapshots and reviewing diffs.",
+            "status": "pending",
+            "testStrategy": "Contributor can update snapshots confidently.",
+            "parentId": "undefined",
+            "updatedAt": "2026-02-02T10:05:40Z"
+          }
+        ],
+        "updatedAt": "2026-02-02T10:05:40Z"
       }
     ],
     "metadata": {
