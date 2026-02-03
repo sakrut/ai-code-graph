@@ -1,6 +1,7 @@
 using System.CommandLine;
 using System.CommandLine.Parsing;
 using System.Diagnostics;
+using AiCodeGraph.Core.Architecture;
 using AiCodeGraph.Core.Storage;
 using AiCodeGraph.Cli.Helpers;
 
@@ -48,6 +49,13 @@ public class ContextCommand : ICommandHandler
             Console.WriteLine($"Id: {targetId}");
             if (info.Value.FilePath != null)
                 Console.WriteLine($"File: {info.Value.FilePath}:{info.Value.StartLine}");
+
+            // Check protected zone
+            var projectRoot = Path.GetDirectoryName(Path.GetDirectoryName(dbPath)) ?? ".";
+            var zoneManager = ProtectedZoneManager.TryLoadFromProject(projectRoot);
+            var protection = zoneManager.CheckProtection(info.Value.FullName);
+            if (protection.IsProtected)
+                Console.WriteLine(protection.WarningMessage);
 
             // Metrics
             var metrics = await storage.GetMethodMetricsAsync(targetId, cancellationToken);

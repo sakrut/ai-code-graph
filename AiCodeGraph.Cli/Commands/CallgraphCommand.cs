@@ -1,5 +1,6 @@
 using System.CommandLine;
 using System.CommandLine.Parsing;
+using AiCodeGraph.Core.Architecture;
 using AiCodeGraph.Core.Storage;
 using AiCodeGraph.Cli.Helpers;
 
@@ -126,6 +127,35 @@ public class CallgraphCommand : ICommandHandler
             {
                 Console.WriteLine($"{rootInfo?.FullName ?? rootId}");
                 OutputHelpers.PrintCallTree(rootId, edges, nodes, 1, depth, new HashSet<string> { rootId });
+            }
+
+            // Check for protected zones in the call graph
+            if (!OutputOptions.IsJson(format))
+            {
+                var projectRoot = Path.GetDirectoryName(Path.GetDirectoryName(dbPath)) ?? ".";
+                var zoneManager = ProtectedZoneManager.TryLoadFromProject(projectRoot);
+                if (zoneManager.Zones.Count > 0)
+                {
+                    var protectedInGraph = await zoneManager.FilterProtectedAsync(visited, storage, cancellationToken);
+                    if (protectedInGraph.Count > 0)
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine($"⚠️ Protected zones in graph ({protectedInGraph.Count}):");
+                        foreach (var (protectedId, fullName, zone) in protectedInGraph.Take(5))
+                        {
+                            var levelText = zone.Level switch
+                            {
+                                ProtectionLevel.DoNotModify => "[DO NOT MODIFY]",
+                                ProtectionLevel.RequireApproval => "[REQUIRES APPROVAL]",
+                                ProtectionLevel.Deprecated => "[DEPRECATED]",
+                                _ => $"[{zone.Level}]"
+                            };
+                            Console.WriteLine($"  {levelText} {fullName}");
+                        }
+                        if (protectedInGraph.Count > 5)
+                            Console.WriteLine($"  (+{protectedInGraph.Count - 5} more)");
+                    }
+                }
             }
         });
 

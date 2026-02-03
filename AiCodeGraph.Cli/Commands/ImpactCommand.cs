@@ -1,5 +1,6 @@
 using System.CommandLine;
 using System.CommandLine.Parsing;
+using AiCodeGraph.Core.Architecture;
 using AiCodeGraph.Core.Storage;
 using AiCodeGraph.Cli.Helpers;
 
@@ -155,6 +156,32 @@ public class ImpactCommand : ICommandHandler
 
                 Console.WriteLine();
                 Console.WriteLine($"Total: {visited.Count} methods affected, {entryPoints.Count} entry points");
+            }
+
+            // Check for protected zones in the blast radius
+            var projectRoot = Path.GetDirectoryName(Path.GetDirectoryName(dbPath)) ?? ".";
+            var zoneManager = ProtectedZoneManager.TryLoadFromProject(projectRoot);
+            if (zoneManager.Zones.Count > 0)
+            {
+                var protectedInBlast = await zoneManager.FilterProtectedAsync(visited, storage, cancellationToken);
+                if (protectedInBlast.Count > 0)
+                {
+                    Console.WriteLine();
+                    Console.WriteLine($"⚠️ Protected zones affected ({protectedInBlast.Count}):");
+                    foreach (var (protectedId, fullName, zone) in protectedInBlast.Take(10))
+                    {
+                        var levelText = zone.Level switch
+                        {
+                            ProtectionLevel.DoNotModify => "[DO NOT MODIFY]",
+                            ProtectionLevel.RequireApproval => "[REQUIRES APPROVAL]",
+                            ProtectionLevel.Deprecated => "[DEPRECATED]",
+                            _ => $"[{zone.Level}]"
+                        };
+                        Console.WriteLine($"  {levelText} {fullName}");
+                    }
+                    if (protectedInBlast.Count > 10)
+                        Console.WriteLine($"  (+{protectedInBlast.Count - 10} more)");
+                }
             }
         });
 

@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using AiCodeGraph.Core.Architecture;
 using AiCodeGraph.Core.Query;
 using AiCodeGraph.Core.Storage;
 
@@ -175,10 +176,35 @@ public class QueryHandler : IMcpToolHandler
         if (!result.Success)
             return $"Error: {result.Error}";
 
-        return FormatQueryResult(result, seed, expand, depth, rank);
+        // Check for protected zones
+        var zoneManager = new ProtectedZoneManager(); // Try loading from current directory
+        try
+        {
+            zoneManager = ProtectedZoneManager.TryLoadFromProject(Directory.GetCurrentDirectory());
+        }
+        catch { /* ignore errors loading zones */ }
+
+        var protectedMethods = new List<(string FullName, ProtectedZone Zone)>();
+        if (zoneManager.Zones.Count > 0)
+        {
+            foreach (var node in result.Nodes)
+            {
+                var check = zoneManager.CheckProtection(node.FullName);
+                if (check.IsProtected && check.Zone != null)
+                    protectedMethods.Add((node.FullName, check.Zone));
+            }
+        }
+
+        return FormatQueryResult(result, seed, expand, depth, rank, protectedMethods);
     }
 
-    private static string FormatQueryResult(QueryResult result, string seed, string direction, int depth, string rank)
+    private static string FormatQueryResult(
+        QueryResult result,
+        string seed,
+        string direction,
+        int depth,
+        string rank,
+        List<(string FullName, ProtectedZone Zone)>? protectedMethods = null)
     {
         var lines = new List<string>();
 
@@ -188,6 +214,7 @@ public class QueryHandler : IMcpToolHandler
         lines.Add("");
 
         // Compact results: [rank] metrics method location
+        var protectedSet = protectedMethods?.ToDictionary(p => p.FullName, p => p.Zone) ?? new();
         var index = 1;
         foreach (var node in result.Nodes)
         {
@@ -199,8 +226,29 @@ public class QueryHandler : IMcpToolHandler
                 ? $" {Path.GetFileName(node.FilePath)}:{node.Line}"
                 : "";
 
-            lines.Add($"[{index}] {metrics} {node.FullName}{location}");
+            var protectionMarker = protectedSet.ContainsKey(node.FullName) ? " ⚠️" : "";
+
+            lines.Add($"[{index}] {metrics} {node.FullName}{location}{protectionMarker}");
             index++;
+        }
+
+        // Add protection zone summary at the end
+        if (protectedMethods != null && protectedMethods.Count > 0)
+        {
+            lines.Add("");
+            lines.Add($"⚠️ Protected zones affected ({protectedMethods.Count}):");
+            var byLevel = protectedMethods.GroupBy(p => p.Zone.Level).OrderBy(g => g.Key);
+            foreach (var group in byLevel)
+            {
+                var levelText = group.Key switch
+                {
+                    ProtectionLevel.DoNotModify => "DO NOT MODIFY",
+                    ProtectionLevel.RequireApproval => "REQUIRES APPROVAL",
+                    ProtectionLevel.Deprecated => "DEPRECATED",
+                    _ => group.Key.ToString()
+                };
+                lines.Add($"  [{levelText}]: {string.Join(", ", group.Take(3).Select(p => p.Zone.Pattern))}");
+            }
         }
 
         return string.Join("\n", lines);
