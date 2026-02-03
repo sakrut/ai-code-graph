@@ -553,4 +553,126 @@ public class GraphQueryExecutorTests : TempDirectoryFixture
             await storage.DisposeAsync();
         }
     }
+
+    [Fact]
+    public async Task ExecuteAsync_SameQueryTwice_UsesCachedPlan()
+    {
+        var (storage, executor) = await CreateTestExecutorAsync();
+        try
+        {
+            var query = new GraphQuery
+            {
+                Seed = new QuerySeed { MethodId = "A" },
+                Expand = new QueryExpand { Direction = ExpandDirection.Callees, MaxDepth = 2 }
+            };
+
+            // Execute twice
+            var result1 = await executor.ExecuteAsync(query, useCache: true);
+            var result2 = await executor.ExecuteAsync(query, useCache: true);
+
+            Assert.True(result1.Success);
+            Assert.True(result2.Success);
+            Assert.Equal(result1.Nodes.Count, result2.Nodes.Count);
+
+            // Check cache stats
+            var stats = executor.GetCacheStats();
+            Assert.Equal(1, stats.Hits);
+            Assert.Equal(1, stats.Misses); // First query was a miss
+        }
+        finally
+        {
+            await storage.DisposeAsync();
+        }
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithUseCacheFalse_BypassesCache()
+    {
+        var (storage, executor) = await CreateTestExecutorAsync();
+        try
+        {
+            var query = new GraphQuery
+            {
+                Seed = new QuerySeed { MethodId = "A" }
+            };
+
+            // Execute without cache
+            var result1 = await executor.ExecuteAsync(query, useCache: false);
+            var result2 = await executor.ExecuteAsync(query, useCache: false);
+
+            Assert.True(result1.Success);
+            Assert.True(result2.Success);
+
+            // No cache interactions
+            var stats = executor.GetCacheStats();
+            Assert.Equal(0, stats.Hits);
+            Assert.Equal(0, stats.Misses);
+            Assert.Equal(0, stats.Size);
+        }
+        finally
+        {
+            await storage.DisposeAsync();
+        }
+    }
+
+    [Fact]
+    public async Task ClearCache_ResetsStats()
+    {
+        var (storage, executor) = await CreateTestExecutorAsync();
+        try
+        {
+            var query = new GraphQuery
+            {
+                Seed = new QuerySeed { MethodId = "A" }
+            };
+
+            await executor.ExecuteAsync(query, useCache: true);
+            await executor.ExecuteAsync(query, useCache: true);
+
+            // Cache should have entries
+            var statsBefore = executor.GetCacheStats();
+            Assert.True(statsBefore.Size > 0);
+
+            executor.ClearCache();
+
+            var statsAfter = executor.GetCacheStats();
+            Assert.Equal(0, statsAfter.Size);
+            Assert.Equal(0, statsAfter.Hits);
+            Assert.Equal(0, statsAfter.Misses);
+        }
+        finally
+        {
+            await storage.DisposeAsync();
+        }
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_DifferentQueries_CachesMissesEach()
+    {
+        var (storage, executor) = await CreateTestExecutorAsync();
+        try
+        {
+            var query1 = new GraphQuery
+            {
+                Seed = new QuerySeed { MethodId = "A" }
+            };
+
+            var query2 = new GraphQuery
+            {
+                Seed = new QuerySeed { MethodId = "B" }
+            };
+
+            await executor.ExecuteAsync(query1, useCache: true);
+            await executor.ExecuteAsync(query2, useCache: true);
+
+            var stats = executor.GetCacheStats();
+            Assert.Equal(0, stats.Hits);
+            Assert.Equal(2, stats.Misses);
+            Assert.Equal(2, stats.Size);
+        }
+        finally
+        {
+            await storage.DisposeAsync();
+        }
+    }
 }

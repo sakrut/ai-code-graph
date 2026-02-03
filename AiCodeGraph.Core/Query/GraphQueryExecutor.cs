@@ -74,17 +74,37 @@ public class GraphQueryExecutor
     private readonly IStorageService _storage;
     private readonly IGraphTraversalEngine _traversalEngine;
     private readonly GraphQueryValidator _validator = new();
+    private readonly QueryPlanCache _planCache;
 
     public GraphQueryExecutor(IStorageService storage, IGraphTraversalEngine traversalEngine)
+        : this(storage, traversalEngine, new QueryPlanCache())
+    {
+    }
+
+    public GraphQueryExecutor(IStorageService storage, IGraphTraversalEngine traversalEngine, QueryPlanCache cache)
     {
         _storage = storage;
         _traversalEngine = traversalEngine;
+        _planCache = cache;
     }
+
+    /// <summary>
+    /// Gets cache statistics.
+    /// </summary>
+    public CacheStats GetCacheStats() => _planCache.GetStats();
+
+    /// <summary>
+    /// Clears the query plan cache.
+    /// </summary>
+    public void ClearCache() => _planCache.Clear();
 
     /// <summary>
     /// Executes a GraphQuery and returns formatted results.
     /// </summary>
-    public async Task<QueryResult> ExecuteAsync(GraphQuery query, CancellationToken ct = default)
+    /// <param name="query">The query to execute.</param>
+    /// <param name="useCache">Whether to use plan caching. Default is true.</param>
+    /// <param name="ct">Cancellation token.</param>
+    public async Task<QueryResult> ExecuteAsync(GraphQuery query, bool useCache = true, CancellationToken ct = default)
     {
         var stopwatch = Stopwatch.StartNew();
 
@@ -95,8 +115,39 @@ public class GraphQueryExecutor
 
         try
         {
-            // Resolve seeds to method IDs
-            var seedMethodIds = await ResolveSeedsAsync(query.Seed, ct);
+            List<string> seedMethodIds;
+            ExpandDirection direction;
+
+            // Try to use cached plan
+            var queryHash = QueryPlanCache.ComputeQueryHash(query);
+            if (useCache && _planCache.TryGet(queryHash, out var cachedPlan) && cachedPlan != null)
+            {
+                seedMethodIds = cachedPlan.ResolvedSeeds;
+                direction = cachedPlan.Direction;
+            }
+            else
+            {
+                // Resolve seeds to method IDs
+                seedMethodIds = await ResolveSeedsAsync(query.Seed, ct);
+                if (seedMethodIds.Count == 0)
+                    return QueryResult.Fail("No methods matched the seed criteria");
+
+                direction = (query.Expand ?? new QueryExpand()).Direction;
+
+                // Cache the plan if caching is enabled
+                if (useCache)
+                {
+                    var plan = new QueryPlan
+                    {
+                        ResolvedSeeds = seedMethodIds,
+                        Direction = direction,
+                        CreatedAt = DateTime.UtcNow,
+                        QueryHash = queryHash
+                    };
+                    _planCache.Set(queryHash, plan);
+                }
+            }
+
             if (seedMethodIds.Count == 0)
                 return QueryResult.Fail("No methods matched the seed criteria");
 
@@ -104,10 +155,9 @@ public class GraphQueryExecutor
             var allNodes = new List<QueryResultNode>();
             var totalMatches = 0;
             var seenMethodIds = new HashSet<string>();
-            var expand = query.Expand ?? new QueryExpand();
 
             // If Direction is None, just return the seed methods without traversal
-            if (expand.Direction == ExpandDirection.None)
+            if (direction == ExpandDirection.None)
             {
                 foreach (var seedId in seedMethodIds)
                 {
