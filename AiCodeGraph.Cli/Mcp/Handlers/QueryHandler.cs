@@ -59,6 +59,7 @@ public class QueryHandler : IMcpToolHandler
                 ["type"] = "object",
                 ["properties"] = new JsonObject
                 {
+                    ["top"] = new JsonObject { ["type"] = "integer", ["description"] = "Maximum results to return", ["default"] = 20 },
                     ["include_overrides"] = new JsonObject { ["type"] = "boolean", ["description"] = "Include override/abstract methods", ["default"] = false }
                 }
             }),
@@ -97,11 +98,12 @@ public class QueryHandler : IMcpToolHandler
         var hotspots = await _storage.GetHotspotsWithThresholdAsync(top, threshold, ct);
         if (hotspots.Count == 0) return "No hotspots found.";
 
-        var lines = new List<string> { $"{"Method",-50} {"CC",4} {"LOC",4} {"Nest",4}" };
+        // Compact output: one line per item with MethodId
+        var lines = new List<string>();
         foreach (var h in hotspots)
         {
-            var name = h.FullName.Length > 50 ? h.FullName[..47] + "..." : h.FullName;
-            lines.Add($"{name,-50} {h.Complexity,4} {h.Loc,4} {h.Nesting,4}");
+            var location = h.FilePath != null ? $" {Path.GetFileName(h.FilePath)}:{h.StartLine}" : "";
+            lines.Add($"{h.FullName} CC:{h.Complexity} LOC:{h.Loc} Nest:{h.Nesting}{location}");
         }
         return string.Join("\n", lines);
     }
@@ -212,19 +214,22 @@ public class QueryHandler : IMcpToolHandler
 
     private async Task<string> GetDeadCode(JsonNode? args, CancellationToken ct)
     {
+        var top = args?["top"]?.GetValue<int>() ?? 20;
         var includeOverrides = args?["include_overrides"]?.GetValue<bool>() ?? false;
 
         var deadCode = await _storage.GetDeadCodeAsync(includeOverrides, ct);
         if (deadCode.Count == 0) return "No dead code detected.";
 
-        var lines = new List<string> { $"Found {deadCode.Count} potentially unreachable methods:", "" };
-        foreach (var m in deadCode.Take(30))
+        var total = deadCode.Count;
+        // Compact output: one line per item
+        var lines = new List<string>();
+        foreach (var m in deadCode.Take(top))
         {
-            var file = m.FilePath != null ? $" ({Path.GetFileName(m.FilePath)}:{m.StartLine})" : "";
-            lines.Add($"  CC={m.Complexity,2} {m.FullName}{file}");
+            var location = m.FilePath != null ? $" {Path.GetFileName(m.FilePath)}:{m.StartLine}" : "";
+            lines.Add($"{m.FullName} — 0 callers{location}");
         }
-        if (deadCode.Count > 30)
-            lines.Add($"\n  ... +{deadCode.Count - 30} more");
+        if (total > top)
+            lines.Add($"(+{total - top} more)");
 
         return string.Join("\n", lines);
     }

@@ -3970,7 +3970,7 @@
         "testStrategy": "Run MCP server in test mode and call a few tools; verify output size bounds and stability.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -3978,10 +3978,10 @@
             "description": "Ensure bounded, compact responses.",
             "dependencies": [],
             "details": "Review MCP handlers: add defaults for top/depth/max-items; ensure MethodId included.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Manual smoke test with a sample db.",
             "parentId": "undefined",
-            "updatedAt": "2026-02-02T10:05:40Z"
+            "updatedAt": "2026-02-03T21:06:55.560Z"
           },
           {
             "id": 2,
@@ -3991,13 +3991,13 @@
               1
             ],
             "details": "Add tests that call a few MCP tools and assert bounded output and presence of MethodId.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "CI passes; tests stable.",
             "parentId": "undefined",
-            "updatedAt": "2026-02-02T10:05:40Z"
+            "updatedAt": "2026-02-03T21:06:55.593Z"
           }
         ],
-        "updatedAt": "2026-02-02T10:05:40Z",
+        "updatedAt": "2026-02-03T21:06:55.593Z",
         "complexity": 4,
         "recommendedSubtasks": 0,
         "expansionPrompt": "Task has 2 well-defined subtasks covering: 1) auditing MCP tool outputs, 2) adding integration tests. No further expansion needed."
@@ -4763,9 +4763,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-02-03T21:05:40.986Z",
+      "lastModified": "2026-02-03T21:06:55.594Z",
       "taskCount": 83,
-      "completedCount": 69,
+      "completedCount": 70,
       "tags": [
         "master"
       ]
