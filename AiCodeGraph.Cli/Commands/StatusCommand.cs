@@ -33,6 +33,7 @@ public class StatusCommand : ICommandHandler
             var toolVersion = await storage.GetMetadataAsync("tool_version", cancellationToken);
             var gitCommit = await storage.GetMetadataAsync("git_commit", cancellationToken);
             var embeddingEngine = await storage.GetMetadataAsync("embedding_engine", cancellationToken);
+            var stages = await storage.GetMetadataAsync("stages", cancellationToken) ?? "unknown";
 
             DateTimeOffset? analyzedAt = null;
             if (analyzedAtStr != null && DateTimeOffset.TryParse(analyzedAtStr, out var parsed))
@@ -51,6 +52,7 @@ public class StatusCommand : ICommandHandler
                     toolVersion,
                     gitCommit,
                     embeddingEngine,
+                    stages,
                     staleness = new
                     {
                         isStale = stalenessResult.IsStale,
@@ -76,8 +78,7 @@ public class StatusCommand : ICommandHandler
                     Console.WriteLine($"Solution: {solutionPath}");
                 if (!string.IsNullOrEmpty(gitCommit))
                     Console.WriteLine($"Commit: {gitCommit[..Math.Min(7, gitCommit.Length)]}");
-                if (!string.IsNullOrEmpty(toolVersion))
-                    Console.WriteLine($"Version: {toolVersion}");
+                Console.WriteLine($"Stages: {stages}");
 
                 // Staleness indicator
                 if (stalenessResult.IsStale)
@@ -94,17 +95,18 @@ public class StatusCommand : ICommandHandler
                 Console.WriteLine($"  Solution:  {solutionPath ?? "unknown"}");
                 Console.WriteLine($"  Commit:    {gitCommit ?? "unknown"}");
                 Console.WriteLine($"  Version:   {toolVersion ?? "unknown"}");
+                Console.WriteLine($"  Stages:    {stages}");
                 Console.WriteLine($"  Embedding: {embeddingEngine ?? "unknown"}");
                 Console.WriteLine();
 
                 if (stalenessResult.IsStale)
                 {
-                    Console.WriteLine($"⚠ STALE: {stalenessResult.Reason}");
+                    Console.WriteLine($"STALE: {stalenessResult.Reason}");
                     Console.WriteLine("  Run 'ai-code-graph analyze' to update.");
                 }
                 else
                 {
-                    Console.WriteLine($"✓ {stalenessResult.Reason}");
+                    Console.WriteLine($"OK: {stalenessResult.Reason}");
                 }
             }
         });

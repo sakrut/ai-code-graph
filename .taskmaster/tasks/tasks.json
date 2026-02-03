@@ -3877,7 +3877,7 @@
         "testStrategy": "Tests: running with core excludes optional outputs; running with full includes them. CLI help documents stages.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -3885,10 +3885,10 @@
             "description": "Decide which stages belong to core.",
             "dependencies": [],
             "details": "Document stages mapping to pipeline steps; decide defaults and CLI help text.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Doc exists and matches implementation.",
             "parentId": "undefined",
-            "updatedAt": "2026-02-02T10:05:40Z"
+            "updatedAt": "2026-02-03T21:04:20.322Z"
           },
           {
             "id": 2,
@@ -3898,10 +3898,10 @@
               1
             ],
             "details": "Wire flag to pipeline runner; ensure optional stages are skipped when core.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Tests: core run skips optional; full runs all.",
             "parentId": "undefined",
-            "updatedAt": "2026-02-02T10:05:40Z"
+            "updatedAt": "2026-02-03T21:04:20.354Z"
           },
           {
             "id": 3,
@@ -3911,13 +3911,13 @@
               2
             ],
             "details": "Token-search/semantic-search/clustering only if enabled; ensure commands gracefully explain missing stage.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Running a disabled feature provides actionable message.",
             "parentId": "undefined",
-            "updatedAt": "2026-02-02T10:05:40Z"
+            "updatedAt": "2026-02-03T21:04:20.381Z"
           }
         ],
-        "updatedAt": "2026-02-02T10:05:40Z",
+        "updatedAt": "2026-02-03T21:04:20.381Z",
         "complexity": 5,
         "recommendedSubtasks": 0,
         "expansionPrompt": "Task has 3 well-defined subtasks covering: 1) stage definitions, 2) --stages flag implementation, 3) optional feature gating. No further expansion needed."
@@ -4763,9 +4763,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-02-03T21:02:17.996Z",
+      "lastModified": "2026-02-03T21:04:20.381Z",
       "taskCount": 83,
-      "completedCount": 67,
+      "completedCount": 68,
       "tags": [
         "master"
       ]

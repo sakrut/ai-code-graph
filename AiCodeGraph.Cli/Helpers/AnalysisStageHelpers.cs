@@ -164,7 +164,8 @@ public static class AnalysisStageHelpers
         StorageService storage,
         List<NormalizedMethod> normalized,
         List<(string MethodId, float[] Vector, string Model)> embeddings,
-        CancellationToken ct)
+        CancellationToken ct,
+        bool includeClusters = true)
     {
         Console.Write("Detecting duplicates...");
         var timer = Stopwatch.StartNew();
@@ -178,9 +179,14 @@ public static class AnalysisStageHelpers
         var clonePairs = hybridScorer.Merge(structuralClones, semanticClones);
         await storage.SaveClonePairsAsync(clonePairs, ct);
 
-        var clusterer = new IntentClusterer();
-        var clusters = clusterer.ClusterMethods(normalized, embeddingPairs);
-        await storage.SaveClustersAsync(clusters, ct);
+        var clusters = new List<IntentCluster>();
+        if (includeClusters)
+        {
+            Console.Write(" clustering...");
+            var clusterer = new IntentClusterer();
+            clusters = clusterer.ClusterMethods(normalized, embeddingPairs);
+            await storage.SaveClustersAsync(clusters, ct);
+        }
         Console.WriteLine($" done ({timer.Elapsed.TotalSeconds:F1}s)");
         return (clonePairs, clusters);
     }
