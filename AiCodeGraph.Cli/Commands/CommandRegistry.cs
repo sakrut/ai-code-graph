@@ -33,7 +33,8 @@ public static class CommandRegistry
             new McpCommand(),
             new SetupClaudeCommand(),
             new StatusCommand(),
-            new LayersCommand()
+            new LayersCommand(),
+            new QueryCommand()
         };
 
         foreach (var handler in handlers)
