@@ -1,3 +1,4 @@
+using AiCodeGraph.Core.Analysis;
 using AiCodeGraph.Core.Architecture;
 using AiCodeGraph.Core.Duplicates;
 using AiCodeGraph.Core.Models.CodeGraph;
@@ -806,6 +807,47 @@ public class StorageService : IStorageService
         return null;
     }
 
+    public async Task SaveBlastRadiusAsync(Dictionary<string, BlastRadiusInfo> blastRadius, CancellationToken cancellationToken = default)
+    {
+        if (blastRadius.Count == 0) return;
+
+        EnsureConnection();
+        using var transaction = _connection!.BeginTransaction();
+        try
+        {
+            // Update blast radius on existing Metrics rows using INSERT OR REPLACE
+            // This handles both update and insert cases
+            using var cmd = _connection.CreateCommand();
+            cmd.Transaction = transaction;
+            cmd.CommandText = """
+                INSERT INTO Metrics (MethodId, CognitiveComplexity, LinesOfCode, NestingDepth, BlastRadius, BlastDepth)
+                VALUES (@methodId, 0, 0, 0, @blastRadius, @blastDepth)
+                ON CONFLICT(MethodId) DO UPDATE SET
+                    BlastRadius = @blastRadius,
+                    BlastDepth = @blastDepth
+                """;
+
+            var methodIdParam = cmd.Parameters.Add("@methodId", SqliteType.Text);
+            var blastRadiusParam = cmd.Parameters.Add("@blastRadius", SqliteType.Integer);
+            var blastDepthParam = cmd.Parameters.Add("@blastDepth", SqliteType.Integer);
+
+            foreach (var (methodId, info) in blastRadius)
+            {
+                methodIdParam.Value = methodId;
+                blastRadiusParam.Value = info.TransitiveCallers;
+                blastDepthParam.Value = info.Depth;
+                await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            transaction.Commit();
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
+    }
+
     public async Task<List<IntentCluster>> GetClustersAsync(CancellationToken cancellationToken = default)
     {
         EnsureConnection();
@@ -942,15 +984,15 @@ public class StorageService : IStorageService
         return results;
     }
 
-    public async Task<(int CognitiveComplexity, int LinesOfCode, int NestingDepth)?> GetMethodMetricsAsync(string methodId, CancellationToken cancellationToken = default)
+    public async Task<(int CognitiveComplexity, int LinesOfCode, int NestingDepth, int BlastRadius, int BlastDepth)?> GetMethodMetricsAsync(string methodId, CancellationToken cancellationToken = default)
     {
         EnsureConnection();
         using var cmd = _connection!.CreateCommand();
-        cmd.CommandText = "SELECT CognitiveComplexity, LinesOfCode, NestingDepth FROM Metrics WHERE MethodId = @id";
+        cmd.CommandText = "SELECT CognitiveComplexity, LinesOfCode, NestingDepth, BlastRadius, BlastDepth FROM Metrics WHERE MethodId = @id";
         cmd.Parameters.AddWithValue("@id", methodId);
         using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
         if (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-            return (reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2));
+            return (reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2), reader.GetInt32(3), reader.GetInt32(4));
         return null;
     }
 

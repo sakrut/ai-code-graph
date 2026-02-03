@@ -1,3 +1,4 @@
+using AiCodeGraph.Core.Analysis;
 using AiCodeGraph.Core.Architecture;
 using AiCodeGraph.Core.Duplicates;
 using AiCodeGraph.Core.Models.CodeGraph;
@@ -22,6 +23,7 @@ public interface IStorageService : IAsyncDisposable, IDisposable
     Task SaveLayerAssignmentsAsync(List<LayerAssignment> assignments, CancellationToken cancellationToken = default);
     Task<List<LayerAssignment>> GetLayerAssignmentsAsync(CancellationToken cancellationToken = default);
     Task<LayerAssignment?> GetLayerForTypeAsync(string typeId, CancellationToken cancellationToken = default);
+    Task SaveBlastRadiusAsync(Dictionary<string, BlastRadiusInfo> blastRadius, CancellationToken cancellationToken = default);
 
     // Read operations
     Task<List<(string Id, string Name, string FullName, string ReturnType, string? FilePath, int StartLine)>> GetHotspotsAsync(int top = 20, CancellationToken cancellationToken = default);
@@ -36,7 +38,7 @@ public interface IStorageService : IAsyncDisposable, IDisposable
     Task<List<IntentCluster>> GetClustersAsync(CancellationToken cancellationToken = default);
     Task<List<(string Id, string Name, string FullName, string ReturnType, string? FilePath, int StartLine, int Complexity, int Loc, int Nesting, string? ClusterLabel)>> GetMethodsForExportAsync(string? conceptFilter = null, CancellationToken cancellationToken = default);
     Task<List<(string CallerId, string CalleeId)>> GetCallGraphForMethodsAsync(HashSet<string> methodIds, CancellationToken cancellationToken = default);
-    Task<(int CognitiveComplexity, int LinesOfCode, int NestingDepth)?> GetMethodMetricsAsync(string methodId, CancellationToken cancellationToken = default);
+    Task<(int CognitiveComplexity, int LinesOfCode, int NestingDepth, int BlastRadius, int BlastDepth)?> GetMethodMetricsAsync(string methodId, CancellationToken cancellationToken = default);
     Task<(string Label, int MemberCount, float Cohesion)?> GetMethodClusterAsync(string methodId, CancellationToken cancellationToken = default);
     Task<List<(string OtherMethodId, string OtherFullName, float HybridScore, CloneType Type)>> GetMethodDuplicatesAsync(string methodId, CancellationToken cancellationToken = default);
     Task<List<(string Id, string FullName, string? FilePath, int StartLine, int Complexity)>> GetDeadCodeAsync(bool includeOverrides = false, CancellationToken cancellationToken = default);
