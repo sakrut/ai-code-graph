@@ -3930,7 +3930,7 @@
         "testStrategy": "Docs review: quickstart is < 2 pages, actionable, and consistent with CLI behavior.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -3938,10 +3938,10 @@
             "description": "Keep it short and aligned with compact-first.",
             "dependencies": [],
             "details": "Update `docs/LLM-QUICKSTART.md` to align with `--format compact` defaults and bounded outputs.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Doc <= ~2 pages and actionable.",
             "parentId": "undefined",
-            "updatedAt": "2026-02-02T10:05:40Z"
+            "updatedAt": "2026-02-03T21:05:01.290Z"
           },
           {
             "id": 2,
@@ -3951,13 +3951,13 @@
               1
             ],
             "details": "Reduce long sections; link to quickstart, output contract, integration docs.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "README remains accurate and shorter.",
             "parentId": "undefined",
-            "updatedAt": "2026-02-02T10:05:40Z"
+            "updatedAt": "2026-02-03T21:05:40.986Z"
           }
         ],
-        "updatedAt": "2026-02-02T10:05:40Z",
+        "updatedAt": "2026-02-03T21:05:40.986Z",
         "complexity": 2,
         "recommendedSubtasks": 0,
         "expansionPrompt": "Task has 2 well-defined subtasks covering: 1) LLM quickstart creation, 2) README trimming. No further expansion needed - these are documentation tasks."
@@ -4763,9 +4763,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-02-03T21:04:20.381Z",
+      "lastModified": "2026-02-03T21:05:40.986Z",
       "taskCount": 83,
-      "completedCount": 68,
+      "completedCount": 69,
       "tags": [
         "master"
       ]

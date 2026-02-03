@@ -1,60 +1,62 @@
-# AI Code Graph — LLM Quickstart (minimal context, minimal tokens)
+# AI Code Graph — LLM Quickstart
 
-## What you get
-A precomputed, semantically-correct view of a .NET solution:
-- call graph (incl. interface dispatch / overrides where possible)
-- cognitive complexity hotspots
-- dead-code candidates
-- coupling/instability metrics (if enabled)
+**Goal:** Answer "what should I look at?" in 1 call, not 10.
 
-Goal: let an LLM/agent answer “what should I look at?” in **1 call**, not 10.
-
-## 1) Build the graph (one-time per repo state)
+## 1) Build the graph
 ```bash
-ai-code-graph analyze path/to/YourSolution.sln
-# output: ./ai-code-graph/graph.db
+ai-code-graph analyze YourSolution.sln
+# Output: ./ai-code-graph/graph.db
 ```
 
-Tip: run this after major changes or in CI.
-
-## 2) Before editing a method: get compact context
+For faster analysis (skips clustering):
 ```bash
-# First call: use pattern to find the method
+ai-code-graph analyze YourSolution.sln --stages core
+```
+
+## 2) Check if graph is current
+```bash
+ai-code-graph status
+# Shows: analyzed time, git commit, staleness warning
+```
+
+## 3) Before editing a method: context
+```bash
+# Find method by name
 ai-code-graph context "ValidateUser"
 
-# Output includes the method ID - use it for subsequent calls
+# Use ID for follow-up calls (faster, unambiguous)
 ai-code-graph context --id "MyApp.Services.UserService.ValidateUser(String)"
 ```
-Use this as the default pre-edit ritual. The `--id` form is preferred for follow-up calls (faster, unambiguous).
 
-What you want to see:
-- CC/LOC/Nesting
-- direct callers + direct callees
-- duplicates / cluster membership (if enabled)
-- **the method's stable ID** (copy it for future use)
+Output gives you: complexity, callers, callees, duplicates, method ID.
 
-## 3) If change may have blast radius: impact + callgraph
+## 4) Check blast radius
 ```bash
-ai-code-graph impact --id "MyApp.Services.UserService.ValidateUser(String)" --depth 3
-ai-code-graph callgraph --id "MyApp.Services.UserService.ValidateUser(String)" --direction both --depth 2
-```
-Using `--id` avoids ambiguity when multiple methods share a name.
-
-## 4) If refactoring: find the highest-leverage places
-```bash
-ai-code-graph hotspots --top 20 --threshold 10
-ai-code-graph dead-code
-ai-code-graph duplicates --threshold 0.85
+ai-code-graph impact --id "<method-id>" --depth 3
+ai-code-graph callgraph --id "<method-id>" --direction both
 ```
 
-## 5) If results look stale
-Re-run analyze:
+## 5) Find refactoring targets
 ```bash
-ai-code-graph analyze path/to/YourSolution.sln
+ai-code-graph hotspots --top 10
+ai-code-graph dead-code --top 10
+ai-code-graph coupling --top 10
 ```
 
-## Recommended defaults (token economy)
-For agent integrations, prefer:
-- bounded outputs (`--top`, `--threshold`, `--depth`)
-- compact formatting (one item per line)
-- stable method identifiers when available
+## Output Format
+
+All commands default to compact format (1 line per item). Use `--format table` for human-readable output or `--format json` for scripting.
+
+## Quick Reference
+
+| Command | Purpose |
+|---------|---------|
+| `context <method>` | Method summary before editing |
+| `impact --id <id>` | Transitive callers (blast radius) |
+| `callgraph --id <id>` | Direct callers/callees |
+| `hotspots` | High-complexity methods |
+| `dead-code` | Uncalled methods |
+| `coupling` | Afferent/efferent coupling |
+| `status` | DB staleness check |
+
+See [output-contract.md](output-contract.md) for format details.
