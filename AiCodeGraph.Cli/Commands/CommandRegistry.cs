@@ -34,7 +34,8 @@ public static class CommandRegistry
             new SetupClaudeCommand(),
             new StatusCommand(),
             new LayersCommand(),
-            new QueryCommand()
+            new QueryCommand(),
+            new CheckDepsCommand()
         };
 
         foreach (var handler in handlers)
