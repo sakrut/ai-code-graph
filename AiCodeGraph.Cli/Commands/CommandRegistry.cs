@@ -32,7 +32,8 @@ public static class CommandRegistry
             new DiffCommand(),
             new McpCommand(),
             new SetupClaudeCommand(),
-            new StatusCommand()
+            new StatusCommand(),
+            new LayersCommand()
         };
 
         foreach (var handler in handlers)
