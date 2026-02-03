@@ -31,7 +31,8 @@ public static class CommandRegistry
             new CouplingCommand(),
             new DiffCommand(),
             new McpCommand(),
-            new SetupClaudeCommand()
+            new SetupClaudeCommand(),
+            new StatusCommand()
         };
 
         foreach (var handler in handlers)

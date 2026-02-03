@@ -3824,7 +3824,7 @@
         "testStrategy": "Manual: run analyze, then db-info; modify a file; db-info should warn. Tests for metadata round-trip and heuristic behavior.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -3832,10 +3832,10 @@
             "description": "Persist analyzedAt, toolVersion, solutionPath, gitCommit.",
             "dependencies": [],
             "details": "Extend SQLite schema and storage layer to write metadata on analyze.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Round-trip test: metadata present after analyze.",
             "parentId": "undefined",
-            "updatedAt": "2026-02-02T10:05:40Z"
+            "updatedAt": "2026-02-03T21:02:17.953Z"
           },
           {
             "id": 2,
@@ -3845,10 +3845,10 @@
               1
             ],
             "details": "Add CLI command that reads metadata and prints: analyzedAt, solution, tool version, git commit; plus stale/not stale hint.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Manual: modify file after analyze => db-info warns.",
             "parentId": "undefined",
-            "updatedAt": "2026-02-02T10:05:40Z"
+            "updatedAt": "2026-02-03T21:02:17.974Z"
           },
           {
             "id": 3,
@@ -3858,13 +3858,13 @@
               2
             ],
             "details": "Compare git HEAD commit (if repo) and/or last modified times of relevant files vs analyzedAt. Keep best-effort and explain uncertainty.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests for heuristic logic (mockable).",
             "parentId": "undefined",
-            "updatedAt": "2026-02-02T10:05:40Z"
+            "updatedAt": "2026-02-03T21:02:17.996Z"
           }
         ],
-        "updatedAt": "2026-02-02T10:05:40Z",
+        "updatedAt": "2026-02-03T21:02:17.996Z",
         "complexity": 6,
         "recommendedSubtasks": 0,
         "expansionPrompt": "Task has 3 well-defined subtasks covering: 1) AnalysisMetadata table, 2) db-info command, 3) staleness heuristic. No further expansion needed."
@@ -4763,9 +4763,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-02-03T21:00:27.997Z",
+      "lastModified": "2026-02-03T21:02:17.996Z",
       "taskCount": 83,
-      "completedCount": 66,
+      "completedCount": 67,
       "tags": [
         "master"
       ]

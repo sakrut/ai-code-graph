@@ -104,6 +104,12 @@ public class AnalyzeCommand : ICommandHandler
                 await storage.SaveMetadataAsync("embedding_model", embeddingModel ?? (embeddingEngine == "hash" ? "hash-v1" : ""), cancellationToken);
                 await storage.SaveMetadataAsync("embedding_dimensions", embeddingDimensions.ToString(), cancellationToken);
 
+                // Save analysis metadata for staleness detection
+                await storage.SaveMetadataAsync("analyzed_at", DateTimeOffset.UtcNow.ToString("o"), cancellationToken);
+                await storage.SaveMetadataAsync("solution_path", Path.GetFullPath(resolvedPath), cancellationToken);
+                await storage.SaveMetadataAsync("tool_version", typeof(AnalyzeCommand).Assembly.GetName().Version?.ToString() ?? "unknown", cancellationToken);
+                await storage.SaveMetadataAsync("git_commit", GitHelpers.GetCurrentCommitHash() ?? "", cancellationToken);
+
                 if (saveBaseline)
                     AnalysisStageHelpers.SaveBaselineStage(output, dbPath);
 
