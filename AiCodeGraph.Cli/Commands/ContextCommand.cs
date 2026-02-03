@@ -50,12 +50,31 @@ public class ContextCommand : ICommandHandler
             if (info.Value.FilePath != null)
                 Console.WriteLine($"File: {info.Value.FilePath}:{info.Value.StartLine}");
 
+            // Extract type ID from method full name
+            var parenIdx = info.Value.FullName.IndexOf('(');
+            var nameWithoutParams = parenIdx >= 0 ? info.Value.FullName[..parenIdx] : info.Value.FullName;
+            var parts = nameWithoutParams.Split('.');
+            var typeId = parts.Length >= 2 ? string.Join(".", parts[..^1]) : null;
+
+            // Layer assignment
+            LayerAssignment? layerAssignment = null;
+            if (typeId != null)
+            {
+                layerAssignment = await storage.GetLayerForTypeAsync(typeId, cancellationToken);
+                if (layerAssignment != null)
+                {
+                    Console.WriteLine($"Layer: {layerAssignment.Layer} (confidence: {layerAssignment.Confidence:F2})");
+                }
+            }
+
             // Check protected zone
             var projectRoot = Path.GetDirectoryName(Path.GetDirectoryName(dbPath)) ?? ".";
             var zoneManager = ProtectedZoneManager.TryLoadFromProject(projectRoot);
             var protection = zoneManager.CheckProtection(info.Value.FullName);
             if (protection.IsProtected)
-                Console.WriteLine(protection.WarningMessage);
+                Console.WriteLine($"Protection: {protection.Zone?.Level} - {protection.Zone?.Reason}");
+            else
+                Console.WriteLine("Protection: None");
 
             // Metrics
             var metrics = await storage.GetMethodMetricsAsync(targetId, cancellationToken);
@@ -63,11 +82,46 @@ public class ContextCommand : ICommandHandler
             {
                 Console.WriteLine($"Complexity: CC={metrics.Value.CognitiveComplexity} LOC={metrics.Value.LinesOfCode} Nesting={metrics.Value.NestingDepth}");
 
-                // Blast radius
+                // Blast radius with entry points
                 if (metrics.Value.BlastRadius > 0)
                 {
                     var risk = metrics.Value.CognitiveComplexity * (1 + Math.Log(metrics.Value.BlastRadius + 1));
-                    Console.WriteLine($"Blast Radius: {metrics.Value.BlastRadius} callers (depth: {metrics.Value.BlastDepth}, risk: {risk:F1})");
+                    var blastInfo = $"Blast Radius: {metrics.Value.BlastRadius} callers (depth: {metrics.Value.BlastDepth}, risk: {risk:F1})";
+
+                    // Find entry points (callers with no callers)
+                    var entryPoints = new List<string>();
+                    var visited = new HashSet<string> { targetId };
+                    var queue = new Queue<string>();
+                    queue.Enqueue(targetId);
+
+                    while (queue.Count > 0 && visited.Count < 200) // Limit traversal
+                    {
+                        var current = queue.Dequeue();
+                        var currentCallers = await storage.GetCallersAsync(current, cancellationToken);
+
+                        if (currentCallers.Count == 0 && current != targetId)
+                            entryPoints.Add(current);
+
+                        foreach (var callerId in currentCallers)
+                        {
+                            if (visited.Add(callerId))
+                                queue.Enqueue(callerId);
+                        }
+                    }
+
+                    if (entryPoints.Count > 0)
+                    {
+                        var epNames = new List<string>();
+                        foreach (var ep in entryPoints.Take(3))
+                        {
+                            var epInfo = await storage.GetMethodInfoAsync(ep, cancellationToken);
+                            epNames.Add(epInfo?.Name ?? ep);
+                        }
+                        var epSuffix = entryPoints.Count > 3 ? $" (+{entryPoints.Count - 3} more)" : "";
+                        blastInfo += $"\n  Entry points: {string.Join(", ", epNames)}{epSuffix}";
+                    }
+
+                    Console.WriteLine(blastInfo);
                 }
             }
 
@@ -189,6 +243,82 @@ public class ContextCommand : ICommandHandler
             else
             {
                 Console.WriteLine("Tests: none found");
+            }
+
+            // Architectural Notes
+            var archNotes = new List<string>();
+
+            // High blast radius warning
+            if (metrics?.BlastRadius > 50)
+                archNotes.Add($"⚠ High blast radius - changes affect {metrics.Value.BlastRadius} callers");
+            else if (metrics?.BlastRadius > 20)
+                archNotes.Add($"⚠ Moderate blast radius - changes affect {metrics.Value.BlastRadius} callers");
+
+            // High complexity warning
+            if (metrics?.CognitiveComplexity > 15)
+                archNotes.Add($"⚠ High complexity (CC={metrics.Value.CognitiveComplexity}) - consider refactoring");
+
+            // Protection zone
+            if (protection.IsProtected && protection.Zone != null)
+                archNotes.Add($"⚠ {protection.WarningMessage}");
+
+            // Check for deprecated callees
+            if (zoneManager.Zones.Count > 0)
+            {
+                foreach (var calleeId in callees.Take(20))
+                {
+                    var calleeInfo = await storage.GetMethodInfoAsync(calleeId, cancellationToken);
+                    if (calleeInfo != null)
+                    {
+                        var calleeProtection = zoneManager.CheckProtection(calleeInfo.Value.FullName);
+                        if (calleeProtection.IsProtected && calleeProtection.Zone?.Level == ProtectionLevel.Deprecated)
+                        {
+                            archNotes.Add($"⚠ Calls deprecated method: {calleeInfo.Value.Name}");
+                        }
+                    }
+                }
+            }
+
+            // Check dependency violations (if layer data exists)
+            if (layerAssignment != null)
+            {
+                var violations = new List<string>();
+                var detector = new LayerDetector();
+                foreach (var calleeId in callees.Take(20))
+                {
+                    var calleeInfo = await storage.GetMethodInfoAsync(calleeId, cancellationToken);
+                    if (calleeInfo != null)
+                    {
+                        var calleeParenIdx = calleeInfo.Value.FullName.IndexOf('(');
+                        var calleeNameOnly = calleeParenIdx >= 0 ? calleeInfo.Value.FullName[..calleeParenIdx] : calleeInfo.Value.FullName;
+                        var calleeTypeParts = calleeNameOnly.Split('.');
+                        var calleeTypeId = calleeTypeParts.Length >= 2 ? string.Join(".", calleeTypeParts[..^1]) : null;
+
+                        if (calleeTypeId != null)
+                        {
+                            var calleeLayer = await storage.GetLayerForTypeAsync(calleeTypeId, cancellationToken);
+                            if (calleeLayer != null && !detector.IsDependencyValid(layerAssignment.Layer, calleeLayer.Layer))
+                            {
+                                violations.Add($"{layerAssignment.Layer}→{calleeLayer.Layer}");
+                            }
+                        }
+                    }
+                }
+                if (violations.Count > 0)
+                    archNotes.Add($"⚠ Layer violations: {string.Join(", ", violations.Distinct())}");
+            }
+
+            if (archNotes.Count > 0)
+            {
+                Console.WriteLine();
+                Console.WriteLine("Architectural Notes:");
+                foreach (var note in archNotes)
+                    Console.WriteLine($"  {note}");
+            }
+            else
+            {
+                Console.WriteLine();
+                Console.WriteLine("Architectural Notes: ✓ No issues detected");
             }
 
             // Source snippet
