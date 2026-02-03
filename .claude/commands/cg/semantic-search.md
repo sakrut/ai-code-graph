@@ -1,5 +1,8 @@
 Search code by semantic meaning: $ARGUMENTS
 
+Note: For most use cases, use `/cg:query` instead for graph-based retrieval (faster, deterministic).
+Use semantic-search as a fallback when you need natural language matching or when query returns no results.
+
 Steps:
 1. Run `ai-code-graph semantic-search "$ARGUMENTS" --top 10 --db ./ai-code-graph/graph.db`
 2. If the database doesn't exist, inform the user to run `ai-code-graph analyze` first

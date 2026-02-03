@@ -39,7 +39,7 @@ public class TokenSearchCommand : ICommandHandler
             DefaultValueFactory = _ => "./ai-code-graph/graph.db"
         };
 
-        var command = new Command("token-search", "Search code by token overlap")
+        var command = new Command("token-search", "Search code by token overlap (use 'query' command for graph-based retrieval)")
         {
             queryArgument, topOption, thresholdOption, formatOption, dbOption
         };

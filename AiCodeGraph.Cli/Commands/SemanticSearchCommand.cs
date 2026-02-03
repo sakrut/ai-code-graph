@@ -32,7 +32,7 @@ public class SemanticSearchCommand : ICommandHandler
             DefaultValueFactory = _ => "./ai-code-graph/graph.db"
         };
 
-        var command = new Command("semantic-search", "Search code by semantic meaning (requires LLM embeddings)")
+        var command = new Command("semantic-search", "Search code by semantic meaning (fallback when query returns no results)")
         {
             queryArgument, topOption, formatOption, dbOption
         };

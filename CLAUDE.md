@@ -58,19 +58,26 @@ This returns complexity, callers, callees, cluster membership, and duplicates in
 - Apply the same fix to duplicates when fixing bugs
 - Understand which intent cluster a method belongs to before refactoring
 
-Available slash commands:
+Available slash commands (primary):
 - `/cg:analyze [solution]` - Analyze solution and build the graph
-- `/cg:context <method>` - Full method context before editing
+- `/cg:context <method>` - Full method context before editing (recommended first step)
+- `/cg:query <pattern>` - Graph-based method retrieval (recommended for code lookup)
 - `/cg:hotspots` - Top complexity hotspots
 - `/cg:callgraph <method>` - Explore call relationships
+- `/cg:impact <method>` - Transitive impact analysis
+
+Available slash commands (secondary):
 - `/cg:similar <method>` - Find methods with similar intent
-- `/cg:token-search <query>` - Token-based code search
+- `/cg:token-search <query>` - Fallback: token-based search
+- `/cg:semantic-search <query>` - Fallback: semantic search
 - `/cg:duplicates` - Detected code clones
 - `/cg:clusters` - Intent clusters
 - `/cg:tree` - Code structure tree
 - `/cg:export` - Export graph data
 - `/cg:drift` - Architectural drift from baseline
 - `/cg:churn` - Change-frequency x complexity hotspots
+- `/cg:dead-code` - Find methods with no callers
+- `/cg:coupling <method>` - Coupling metrics
 
 To rebuild the graph after significant changes: `ai-code-graph analyze AiCodeGraph.sln`
 
