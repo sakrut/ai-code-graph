@@ -4,6 +4,7 @@ internal static class SchemaDefinition
 {
     internal static readonly string[] DropTables =
     [
+        "DROP TABLE IF EXISTS TypeLayers;",
         "DROP TABLE IF EXISTS ClonePairs;",
         "DROP TABLE IF EXISTS MethodClusterMap;",
         "DROP TABLE IF EXISTS IntentClusters;",
@@ -132,6 +133,14 @@ internal static class SchemaDefinition
             Key TEXT PRIMARY KEY,
             Value TEXT
         );
+        """,
+        """
+        CREATE TABLE TypeLayers (
+            TypeId TEXT PRIMARY KEY,
+            Layer TEXT NOT NULL,
+            Confidence REAL NOT NULL,
+            Reason TEXT
+        );
         """
     ];
 
@@ -147,6 +156,7 @@ internal static class SchemaDefinition
         "CREATE INDEX IX_NormalizedMethods_Signature ON NormalizedMethods(StructuralSignature);",
         "CREATE INDEX IX_ClonePairs_HybridScore ON ClonePairs(HybridScore DESC);",
         "CREATE INDEX IX_ClonePairs_CloneType ON ClonePairs(CloneType);",
-        "CREATE INDEX IX_MethodClusterMap_ClusterId ON MethodClusterMap(ClusterId);"
+        "CREATE INDEX IX_MethodClusterMap_ClusterId ON MethodClusterMap(ClusterId);",
+        "CREATE INDEX IX_TypeLayers_Layer ON TypeLayers(Layer);"
     ];
 }

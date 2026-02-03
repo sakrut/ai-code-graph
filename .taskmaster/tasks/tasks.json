@@ -4296,9 +4296,10 @@
               1
             ],
             "details": "1. **Update SchemaDefinition.cs**:\n   - Add to DropTables array: `\"DROP TABLE IF EXISTS TypeLayers;\"`\n   - Add to CreateTables array:\n     ```sql\n     CREATE TABLE TypeLayers (\n         TypeId TEXT PRIMARY KEY REFERENCES Types(Id),\n         Layer TEXT NOT NULL,\n         Confidence REAL NOT NULL,\n         Reason TEXT\n     );\n     ```\n   - Add to CreateIndexes: `\"CREATE INDEX IX_TypeLayers_Layer ON TypeLayers(Layer);\"`\n\n2. **Update IStorageService.cs** with new interface methods:\n   - `Task SaveLayerAssignmentsAsync(List<LayerAssignment> assignments, CancellationToken ct)`\n   - `Task<List<LayerAssignment>> GetLayerAssignmentsAsync(CancellationToken ct)`\n   - `Task<LayerAssignment?> GetLayerForTypeAsync(string typeId, CancellationToken ct)`\n\n3. **Implement in StorageService.cs** following existing patterns:\n   - Write method: Use transaction, INSERT OR REPLACE, parameter binding (reference SaveMetricsAsync at lines 195-226)\n   - Read method: Query all rows, map to LayerAssignment records (reference GetTreeAsync at lines 452-524)\n   - Single lookup: WHERE TypeId = @id with nullable return",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "1. Test round-trip: save assignments, read them back, verify data integrity. 2. Test UPDATE behavior when re-saving with different layer. 3. Test GetLayerForTypeAsync returns null for non-existent TypeId. 4. Test index usage with large dataset queries.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-02-03T21:26:30.028Z"
           },
           {
             "id": 3,
@@ -4331,7 +4332,7 @@
         "complexity": 6,
         "recommendedSubtasks": 4,
         "expansionPrompt": "Break down into: 1) Define ArchitecturalLayer enum and LayerAssignment record, implement pattern matching logic. 2) Add TypeLayers table to SQLite schema and storage methods. 3) Implement dependency-direction refinement to improve confidence. 4) Add 'layers' CLI command following ICommandHandler pattern.",
-        "updatedAt": "2026-02-03T21:24:15.702Z"
+        "updatedAt": "2026-02-03T21:26:30.028Z"
       },
       {
         "id": "77",
@@ -4771,7 +4772,7 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-02-03T21:24:15.702Z",
+      "lastModified": "2026-02-03T21:26:30.028Z",
       "taskCount": 83,
       "completedCount": 73,
       "tags": [

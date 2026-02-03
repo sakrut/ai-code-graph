@@ -1,3 +1,4 @@
+using AiCodeGraph.Core.Architecture;
 using AiCodeGraph.Core.Duplicates;
 using AiCodeGraph.Core.Models.CodeGraph;
 using Microsoft.Data.Sqlite;
@@ -710,6 +711,99 @@ public class StorageService : IStorageService
         cmd.Parameters.AddWithValue("@key", key);
         var result = await cmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
         return result as string;
+    }
+
+    public async Task SaveLayerAssignmentsAsync(List<LayerAssignment> assignments, CancellationToken cancellationToken = default)
+    {
+        EnsureConnection();
+        using var transaction = _connection!.BeginTransaction();
+        try
+        {
+            // Clear existing assignments
+            using (var clearCmd = _connection.CreateCommand())
+            {
+                clearCmd.Transaction = transaction;
+                clearCmd.CommandText = "DELETE FROM TypeLayers";
+                await clearCmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            // Insert new assignments
+            using var cmd = _connection.CreateCommand();
+            cmd.Transaction = transaction;
+            cmd.CommandText = "INSERT INTO TypeLayers (TypeId, Layer, Confidence, Reason) VALUES (@typeId, @layer, @confidence, @reason)";
+            var typeIdParam = cmd.Parameters.Add("@typeId", SqliteType.Text);
+            var layerParam = cmd.Parameters.Add("@layer", SqliteType.Text);
+            var confidenceParam = cmd.Parameters.Add("@confidence", SqliteType.Real);
+            var reasonParam = cmd.Parameters.Add("@reason", SqliteType.Text);
+
+            foreach (var assignment in assignments)
+            {
+                typeIdParam.Value = assignment.TypeId;
+                layerParam.Value = assignment.Layer.ToString();
+                confidenceParam.Value = assignment.Confidence;
+                reasonParam.Value = assignment.Reason ?? (object)DBNull.Value;
+                await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            transaction.Commit();
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
+    }
+
+    public async Task<List<LayerAssignment>> GetLayerAssignmentsAsync(CancellationToken cancellationToken = default)
+    {
+        EnsureConnection();
+        var assignments = new List<LayerAssignment>();
+
+        // Check if table exists
+        using var checkCmd = _connection!.CreateCommand();
+        checkCmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='TypeLayers'";
+        var exists = Convert.ToInt64(await checkCmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false)) > 0;
+        if (!exists) return assignments;
+
+        using var cmd = _connection!.CreateCommand();
+        cmd.CommandText = "SELECT TypeId, Layer, Confidence, Reason FROM TypeLayers ORDER BY Layer, Confidence DESC";
+        using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var layer = Enum.TryParse<ArchitecturalLayer>(reader.GetString(1), out var l) ? l : ArchitecturalLayer.Unknown;
+            assignments.Add(new LayerAssignment(
+                reader.GetString(0),
+                layer,
+                reader.GetFloat(2),
+                reader.IsDBNull(3) ? "" : reader.GetString(3)));
+        }
+        return assignments;
+    }
+
+    public async Task<LayerAssignment?> GetLayerForTypeAsync(string typeId, CancellationToken cancellationToken = default)
+    {
+        EnsureConnection();
+
+        // Check if table exists
+        using var checkCmd = _connection!.CreateCommand();
+        checkCmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='TypeLayers'";
+        var exists = Convert.ToInt64(await checkCmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false)) > 0;
+        if (!exists) return null;
+
+        using var cmd = _connection!.CreateCommand();
+        cmd.CommandText = "SELECT TypeId, Layer, Confidence, Reason FROM TypeLayers WHERE TypeId = @typeId";
+        cmd.Parameters.AddWithValue("@typeId", typeId);
+        using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        if (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var layer = Enum.TryParse<ArchitecturalLayer>(reader.GetString(1), out var l) ? l : ArchitecturalLayer.Unknown;
+            return new LayerAssignment(
+                reader.GetString(0),
+                layer,
+                reader.GetFloat(2),
+                reader.IsDBNull(3) ? "" : reader.GetString(3));
+        }
+        return null;
     }
 
     public async Task<List<IntentCluster>> GetClustersAsync(CancellationToken cancellationToken = default)
