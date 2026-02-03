@@ -3678,7 +3678,7 @@
         "testStrategy": "Review: PRD is readable, scoped, and matches planned tasks. No conflicting docs.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -3686,13 +3686,16 @@
             "description": "Document what changed vs v1 and why token economy is priority.",
             "dependencies": [],
             "details": "Update `.taskmaster/docs/prd-next.md`: add a short section “What changed vs v1” (1) compact-first outputs, (2) pipeline slimming, (3) db staleness.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Doc review: section is clear and matches tasks 65-73.",
             "parentId": "undefined",
-            "updatedAt": "2026-02-02T10:05:40Z"
+            "updatedAt": "2026-02-03T20:51:41.133Z"
           }
         ],
-        "updatedAt": "2026-02-02T10:05:40Z"
+        "updatedAt": "2026-02-03T20:51:41.133Z",
+        "complexity": 2,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "This is a documentation task already with a well-defined subtask. No further expansion needed - the existing subtask covers adding the change log section."
       },
       {
         "id": "65",
@@ -3755,7 +3758,10 @@
             "updatedAt": "2026-02-02T10:05:40Z"
           }
         ],
-        "updatedAt": "2026-02-02T10:05:40Z"
+        "updatedAt": "2026-02-02T10:05:40Z",
+        "complexity": 7,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "Task already has 4 well-defined subtasks covering: 1) output contract specification, 2) shared --format option implementation, 3) compact formatter for key commands, 4) JSON stability. No further expansion needed."
       },
       {
         "id": "66",
@@ -3805,7 +3811,10 @@
             "updatedAt": "2026-02-02T10:05:40Z"
           }
         ],
-        "updatedAt": "2026-02-02T10:05:40Z"
+        "updatedAt": "2026-02-02T10:05:40Z",
+        "complexity": 5,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "Task has 3 well-defined subtasks covering: 1) ensuring MethodId in models, 2) --id resolution path, 3) documentation updates. No further expansion needed."
       },
       {
         "id": "67",
@@ -3855,7 +3864,10 @@
             "updatedAt": "2026-02-02T10:05:40Z"
           }
         ],
-        "updatedAt": "2026-02-02T10:05:40Z"
+        "updatedAt": "2026-02-02T10:05:40Z",
+        "complexity": 6,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "Task has 3 well-defined subtasks covering: 1) AnalysisMetadata table, 2) db-info command, 3) staleness heuristic. No further expansion needed."
       },
       {
         "id": "68",
@@ -3905,7 +3917,10 @@
             "updatedAt": "2026-02-02T10:05:40Z"
           }
         ],
-        "updatedAt": "2026-02-02T10:05:40Z"
+        "updatedAt": "2026-02-02T10:05:40Z",
+        "complexity": 5,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "Task has 3 well-defined subtasks covering: 1) stage definitions, 2) --stages flag implementation, 3) optional feature gating. No further expansion needed."
       },
       {
         "id": "69",
@@ -3942,7 +3957,10 @@
             "updatedAt": "2026-02-02T10:05:40Z"
           }
         ],
-        "updatedAt": "2026-02-02T10:05:40Z"
+        "updatedAt": "2026-02-02T10:05:40Z",
+        "complexity": 2,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "Task has 2 well-defined subtasks covering: 1) LLM quickstart creation, 2) README trimming. No further expansion needed - these are documentation tasks."
       },
       {
         "id": "70",
@@ -3979,7 +3997,10 @@
             "updatedAt": "2026-02-02T10:05:40Z"
           }
         ],
-        "updatedAt": "2026-02-02T10:05:40Z"
+        "updatedAt": "2026-02-02T10:05:40Z",
+        "complexity": 4,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "Task has 2 well-defined subtasks covering: 1) auditing MCP tool outputs, 2) adding integration tests. No further expansion needed."
       },
       {
         "id": "71",
@@ -4003,7 +4024,10 @@
             "updatedAt": "2026-02-02T10:05:40Z"
           }
         ],
-        "updatedAt": "2026-02-02T10:05:40Z"
+        "updatedAt": "2026-02-02T10:05:40Z",
+        "complexity": 1,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "Task has 1 well-defined subtask which is sufficient for this simple configuration task. No further expansion needed."
       },
       {
         "id": "72",
@@ -4040,7 +4064,10 @@
             "updatedAt": "2026-02-02T10:05:40Z"
           }
         ],
-        "updatedAt": "2026-02-02T10:05:40Z"
+        "updatedAt": "2026-02-02T10:05:40Z",
+        "complexity": 6,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "Task has 2 well-defined subtasks covering: 1) shared option helpers, 2) help text organization. No further expansion needed."
       },
       {
         "id": "73",
@@ -4077,14 +4104,668 @@
             "updatedAt": "2026-02-02T10:05:40Z"
           }
         ],
-        "updatedAt": "2026-02-02T10:05:40Z"
+        "updatedAt": "2026-02-02T10:05:40Z",
+        "complexity": 5,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "Task has 2 well-defined subtasks covering: 1) golden snapshot tests, 2) documentation of update workflow. No further expansion needed."
+      },
+      {
+        "id": "74",
+        "title": "Implement Graph Traversal Engine with Configurable Strategies",
+        "description": "Build a graph-native traversal engine that replaces token-search as the primary retrieval mechanism, supporting BFS/DFS with depth limits, filtering, and multiple ranking strategies (blast radius, complexity, coupling).",
+        "details": "Create `AiCodeGraph.Core/Query/GraphTraversalEngine.cs`:\n\n```csharp\npublic record TraversalConfig(\n    string SeedMethodId,\n    TraversalDirection Direction,  // Callers | Callees | Both\n    int MaxDepth,\n    TraversalStrategy Strategy,    // BFS | DFS\n    RankingStrategy Ranking,       // BlastRadius | Complexity | Coupling | Combined\n    FilterConfig? Filter           // Optional namespace/type/accessibility filters\n);\n\npublic enum RankingStrategy { BlastRadius, Complexity, Coupling, Combined }\n\npublic class GraphTraversalEngine\n{\n    private readonly IStorageService _storage;\n    \n    public async Task<TraversalResult> TraverseAsync(TraversalConfig config, CancellationToken ct)\n    {\n        // 1. Validate seed method exists\n        // 2. BFS/DFS from seed collecting nodes + edges\n        // 3. Apply filters (namespace, type, accessibility)\n        // 4. Rank collected nodes by configured strategy\n        // 5. Return ranked subgraph\n    }\n    \n    private async Task<int> ComputeBlastRadius(string methodId, CancellationToken ct)\n    {\n        // Transitive caller count (cached per traversal)\n    }\n}\n```\n\nRanking strategies:\n- **BlastRadius**: Count transitive callers (higher = more impactful)\n- **Complexity**: Use precomputed cognitive complexity\n- **Coupling**: Use afferent/efferent coupling from CouplingAnalyzer\n- **Combined**: Weighted combination of above\n\nKey design decisions:\n- Cache blast radius computations within a traversal session\n- Return a subgraph with nodes + edges, not just method IDs\n- Include ranking scores in results for transparency\n- Support early termination when max results reached",
+        "testStrategy": "1. Unit tests for each ranking strategy with known graphs. 2. Test BFS vs DFS produce different traversal orders. 3. Test depth limits are respected. 4. Test filters correctly exclude nodes. 5. Integration test with TestSolution fixture. 6. Benchmark with 1000+ node graphs to ensure sub-second traversal.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define TraversalConfig, TraversalResult, and Core Interfaces",
+            "description": "Create the foundational data structures and interfaces for the GraphTraversalEngine including configuration records, result types, enums for traversal direction/strategy/ranking, and filter configuration.",
+            "dependencies": [],
+            "details": "Create `AiCodeGraph.Core/Query/` directory with the following files:\n\n1. **TraversalTypes.cs** - Define core enums:\n   - `TraversalDirection { Callers, Callees, Both }`\n   - `TraversalStrategy { BFS, DFS }`\n   - `RankingStrategy { BlastRadius, Complexity, Coupling, Combined }`\n\n2. **FilterConfig.cs** - Define filtering options:\n   - `NamespacePatterns` (include/exclude patterns)\n   - `TypePatterns` (include/exclude patterns)\n   - `AccessibilityFilter` (Public, Internal, Private, etc.)\n   - `ExcludeGeneratedCode` boolean\n\n3. **TraversalConfig.cs** - Main configuration record:\n   - `SeedMethodId` (required string)\n   - `Direction` (TraversalDirection)\n   - `MaxDepth` (int, default 3)\n   - `Strategy` (TraversalStrategy, default BFS)\n   - `Ranking` (RankingStrategy, default BlastRadius)\n   - `MaxResults` (int?, for early termination)\n   - `Filter` (FilterConfig?)\n\n4. **TraversalResult.cs** - Result structures:\n   - `TraversalNode` record: MethodId, FullName, Depth, Direction, RankingScore, Metrics (complexity, coupling)\n   - `TraversalEdge` record: FromMethodId, ToMethodId, EdgeDirection\n   - `TraversalResult` record: SeedMethodId, Nodes (list), Edges (list), TotalNodesVisited, TraversalTimeMs\n\n5. **IGraphTraversalEngine.cs** - Interface:\n   - `Task<TraversalResult> TraverseAsync(TraversalConfig config, CancellationToken ct)`\n\nFollow existing patterns from `MethodModel.cs` and `ClonePair.cs` for record definitions.",
+            "status": "pending",
+            "testStrategy": "Unit tests for record initialization and default values. Test FilterConfig pattern matching logic with various namespace/type patterns. Test TraversalConfig validation (e.g., MaxDepth > 0, SeedMethodId not empty). Verify all enums serialize/deserialize correctly for future JSON query support.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Implement BFS/DFS Traversal Logic with Depth Limits",
+            "description": "Build the core traversal algorithms supporting both Breadth-First Search and Depth-First Search strategies with configurable depth limits, direction control, and early termination.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create `AiCodeGraph.Core/Query/GraphTraversalEngine.cs` with traversal implementation:\n\n1. **Constructor dependencies**:\n   - `IStorageService _storage` (inject existing storage service)\n   - Private caches: `Dictionary<string, int> _blastRadiusCache`, `HashSet<string> _visited`\n\n2. **TraverseAsync main method**:\n   - Validate seed method exists via `_storage.GetMethodInfoAsync()`\n   - Initialize visited set, nodes list, edges list\n   - Call `TraverseBfsAsync()` or `TraverseDfsAsync()` based on config.Strategy\n   - Apply filters post-traversal\n   - Rank nodes using configured strategy\n   - Return `TraversalResult` with timing info\n\n3. **TraverseBfsAsync implementation** (follow pattern from CallgraphCommand.cs:46-90):\n   - Use `Queue<(string Id, int Depth)>` for level-order traversal\n   - Track visited nodes to prevent cycles\n   - For each node at current depth < MaxDepth:\n     - If Direction is Callers or Both: call `_storage.GetCallersAsync()`, add edges\n     - If Direction is Callees or Both: call `_storage.GetCalleesAsync()`, add edges\n   - Support MaxResults early termination\n\n4. **TraverseDfsAsync implementation**:\n   - Use `Stack<(string Id, int Depth)>` instead of Queue\n   - Same logic but explores depth-first\n   - Track path to detect back-edges vs cross-edges\n\n5. **ApplyFilters helper method**:\n   - Filter nodes by namespace patterns using regex or glob matching\n   - Filter by accessibility level\n   - Remove filtered nodes from edges list\n\nUse `Stopwatch` for timing. Support `CancellationToken` throughout with `ct.ThrowIfCancellationRequested()`.",
+            "status": "pending",
+            "testStrategy": "Unit tests: 1) BFS produces level-order traversal (test with known graph, verify depth ordering). 2) DFS explores branches before siblings (verify stack-based ordering). 3) Depth limit stops at MaxDepth (no nodes beyond limit). 4) Direction=Callers only follows incoming edges. 5) Direction=Both follows both directions. 6) MaxResults causes early termination. 7) Cycle detection prevents infinite loops. 8) CancellationToken properly aborts. Use mocked IStorageService for deterministic graph structure.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Implement BlastRadius Ranking Strategy with Transitive Caller Count",
+            "description": "Implement the BlastRadius ranking strategy that computes the transitive impact of each node by counting all unique methods that would be affected by a change (total transitive callers).",
+            "dependencies": [
+              2
+            ],
+            "details": "Add BlastRadius computation to `GraphTraversalEngine.cs`:\n\n1. **ComputeBlastRadiusAsync method**:\n   ```csharp\n   private async Task<int> ComputeBlastRadiusAsync(string methodId, CancellationToken ct)\n   {\n       if (_blastRadiusCache.TryGetValue(methodId, out var cached))\n           return cached;\n       \n       // BFS to count all transitive callers (methods affected by change)\n       var affected = new HashSet<string>();\n       var queue = new Queue<string>();\n       queue.Enqueue(methodId);\n       \n       while (queue.Count > 0)\n       {\n           var current = queue.Dequeue();\n           var callers = await _storage.GetCallersAsync(current, ct);\n           foreach (var caller in callers)\n           {\n               if (affected.Add(caller))\n                   queue.Enqueue(caller);\n           }\n       }\n       \n       var radius = affected.Count;\n       _blastRadiusCache[methodId] = radius;\n       return radius;\n   }\n   ```\n\n2. **RankByBlastRadiusAsync method**:\n   - For each node in traversal result, compute blast radius\n   - Sort nodes descending by blast radius (higher = more impactful)\n   - Set `node.RankingScore` to the blast radius value\n\n3. **Caching strategy**:\n   - Cache is per-traversal session (cleared when TraverseAsync starts)\n   - Optional: Consider batch computation using `GetCallGraphForMethodsAsync()` for large node sets to reduce DB round-trips\n\n4. **Performance consideration**:\n   - For nodes already in the traversal (if Direction=Callers), reuse the visited set\n   - Early termination: if blast radius exceeds a threshold and we only need top N, skip remaining computations\n\nFollow the pattern from ImpactCommand.cs which already computes transitive callers for impact analysis.",
+            "status": "pending",
+            "testStrategy": "Unit tests: 1) Leaf method (no callers) has blast radius 0. 2) Method with one direct caller has blast radius 1. 3) Method with transitive chain A->B->C: C has radius 2 (both A and B affected). 4) Diamond dependency (A->C, B->C, D->A, D->B): C has radius 3. 5) Cache hit returns same value without DB call. 6) Cycle handling: A->B->A doesn't cause infinite loop. Integration test with TestSolution fixture verifying real graph blast radii.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Implement Complexity and Coupling Ranking Strategies",
+            "description": "Implement the Complexity ranking strategy using precomputed cognitive complexity metrics and the Coupling ranking strategy using afferent/efferent coupling from CouplingAnalyzer patterns.",
+            "dependencies": [
+              2
+            ],
+            "details": "Add Complexity and Coupling ranking to `GraphTraversalEngine.cs`:\n\n1. **RankByComplexityAsync method**:\n   ```csharp\n   private async Task RankByComplexityAsync(List<TraversalNode> nodes, CancellationToken ct)\n   {\n       foreach (var node in nodes)\n       {\n           var metrics = await _storage.GetMethodMetricsAsync(node.MethodId, ct);\n           node.RankingScore = metrics?.CognitiveComplexity ?? 0;\n       }\n       nodes.Sort((a, b) => b.RankingScore.CompareTo(a.RankingScore)); // Descending\n   }\n   ```\n\n2. **RankByCouplingAsync method** (adapt CouplingAnalyzer pattern):\n   - For each node, compute method-level coupling:\n     - Afferent (Ca): count of unique methods calling this method\n     - Efferent (Ce): count of unique methods this method calls\n   - Score = Ca + Ce (total coupling) or use instability I = Ce / (Ca + Ce)\n   - Higher coupling = higher ranking score (more interconnected)\n   ```csharp\n   private async Task RankByCouplingAsync(List<TraversalNode> nodes, CancellationToken ct)\n   {\n       foreach (var node in nodes)\n       {\n           var callers = await _storage.GetCallersAsync(node.MethodId, ct);\n           var callees = await _storage.GetCalleesAsync(node.MethodId, ct);\n           var ca = callers.Count;\n           var ce = callees.Count;\n           // Use total coupling as score; high coupling = high impact\n           node.RankingScore = ca + ce;\n           // Optionally store instability for Combined strategy\n           node.Metrics = node.Metrics with { AfferentCoupling = ca, EfferentCoupling = ce };\n       }\n       nodes.Sort((a, b) => b.RankingScore.CompareTo(a.RankingScore));\n   }\n   ```\n\n3. **Extend TraversalNode.Metrics**:\n   - Add `CognitiveComplexity`, `AfferentCoupling`, `EfferentCoupling` fields\n   - Populate during ranking for transparency in results\n\n4. **Fallback handling**:\n   - If metrics not found for a method (external/unanalyzed), use score 0\n   - Log warning but don't fail traversal",
+            "status": "pending",
+            "testStrategy": "Unit tests: 1) Complexity ranking orders by CognitiveComplexity descending. 2) Method with no metrics defaults to score 0. 3) Coupling ranking computes Ca+Ce correctly. 4) Method with no callers/callees has coupling 0. 5) Hub method (many callers and callees) ranks highest. 6) Verify Metrics fields are populated on nodes. Integration test: analyze TestSolution, traverse from known method, verify complexity values match stored metrics.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Add Combined Ranking Strategy with Weighted Scoring and Performance Caching",
+            "description": "Implement the Combined ranking strategy that uses weighted combination of BlastRadius, Complexity, and Coupling, plus add session-level caching for all metrics to optimize performance on large graphs.",
+            "dependencies": [
+              3,
+              4
+            ],
+            "details": "Complete the ranking system in `GraphTraversalEngine.cs`:\n\n1. **CombinedRankingWeights record**:\n   ```csharp\n   public record CombinedRankingWeights(\n       float BlastRadiusWeight = 0.4f,\n       float ComplexityWeight = 0.35f,\n       float CouplingWeight = 0.25f\n   );\n   ```\n\n2. **RankByCombinedAsync method**:\n   - Compute all three metrics for each node\n   - Normalize each metric to 0-1 range using min-max scaling within the result set\n   - Combined score = (BR_norm * BR_weight) + (CC_norm * CC_weight) + (Coup_norm * Coup_weight)\n   ```csharp\n   private async Task RankByCombinedAsync(List<TraversalNode> nodes, CombinedRankingWeights weights, CancellationToken ct)\n   {\n       // Compute raw scores\n       var blastRadii = new Dictionary<string, int>();\n       var complexities = new Dictionary<string, int>();\n       var couplings = new Dictionary<string, int>();\n       \n       foreach (var node in nodes)\n       {\n           blastRadii[node.MethodId] = await ComputeBlastRadiusAsync(node.MethodId, ct);\n           var metrics = await _storage.GetMethodMetricsAsync(node.MethodId, ct);\n           complexities[node.MethodId] = metrics?.CognitiveComplexity ?? 0;\n           var callers = await _storage.GetCallersAsync(node.MethodId, ct);\n           var callees = await _storage.GetCalleesAsync(node.MethodId, ct);\n           couplings[node.MethodId] = callers.Count + callees.Count;\n       }\n       \n       // Normalize and combine\n       var maxBR = blastRadii.Values.Max();\n       var maxCC = complexities.Values.Max();\n       var maxCoup = couplings.Values.Max();\n       \n       foreach (var node in nodes)\n       {\n           var brNorm = maxBR > 0 ? (float)blastRadii[node.MethodId] / maxBR : 0;\n           var ccNorm = maxCC > 0 ? (float)complexities[node.MethodId] / maxCC : 0;\n           var coupNorm = maxCoup > 0 ? (float)couplings[node.MethodId] / maxCoup : 0;\n           node.RankingScore = brNorm * weights.BlastRadiusWeight + ccNorm * weights.ComplexityWeight + coupNorm * weights.CouplingWeight;\n       }\n       nodes.Sort((a, b) => b.RankingScore.CompareTo(a.RankingScore));\n   }\n   ```\n\n3. **Session-level caching**:\n   - Add `_metricsCache` dictionary for complexity lookups\n   - Add `_callersCache` and `_calleesCache` for coupling lookups\n   - Clear all caches at start of `TraverseAsync()`\n   - Consider using `GetCallGraphForMethodsAsync()` for batch loading when traversal has >50 nodes\n\n4. **Batch optimization** (optional but recommended):\n   ```csharp\n   private async Task PrefetchCallGraphAsync(HashSet<string> methodIds, CancellationToken ct)\n   {\n       var edges = await _storage.GetCallGraphForMethodsAsync(methodIds, ct);\n       foreach (var (callerId, calleeId) in edges)\n       {\n           // Populate caches\n           if (!_callersCache.TryGetValue(calleeId, out var callers))\n               _callersCache[calleeId] = callers = new List<string>();\n           callers.Add(callerId);\n           // Same for callees...\n       }\n   }\n   ```\n\n5. **Main dispatcher** in TraverseAsync:\n   ```csharp\n   switch (config.Ranking)\n   {\n       case RankingStrategy.BlastRadius: await RankByBlastRadiusAsync(nodes, ct); break;\n       case RankingStrategy.Complexity: await RankByComplexityAsync(nodes, ct); break;\n       case RankingStrategy.Coupling: await RankByCouplingAsync(nodes, ct); break;\n       case RankingStrategy.Combined: await RankByCombinedAsync(nodes, DefaultWeights, ct); break;\n   }\n   ```",
+            "status": "pending",
+            "testStrategy": "Unit tests: 1) Combined ranking with equal weights produces expected order. 2) Normalization handles edge cases (all zeros, single node). 3) Cache reduces DB calls (mock storage, count invocations). 4) Batch prefetch populates caches correctly. 5) Weights sum validation (warn if not ~1.0). Integration test: traverse TestSolution with Combined strategy, verify nodes have all three metric components. Performance test: traverse 500+ node graph, verify sub-second completion with caching. Benchmark comparison: with vs without batch prefetch.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 7,
+        "recommendedSubtasks": 5,
+        "expansionPrompt": "Break down into: 1) Define TraversalConfig, TraversalResult, and core interfaces. 2) Implement BFS/DFS traversal logic with depth limits. 3) Implement BlastRadius ranking strategy using transitive caller count. 4) Implement Complexity and Coupling ranking strategies using existing metrics. 5) Add Combined ranking with weighted scoring and caching for performance."
+      },
+      {
+        "id": "75",
+        "title": "Implement Unified Graph Query Schema",
+        "description": "Create a formal query schema that unifies all graph operations (seed, expand, filter, rank) into a single declarative model that can be serialized, validated, cached, and executed by the traversal engine.",
+        "details": "Create `AiCodeGraph.Core/Query/GraphQuery.cs`:\n\n```csharp\npublic record GraphQuery\n{\n    public required QuerySeed Seed { get; init; }      // Starting point(s)\n    public QueryExpand? Expand { get; init; }          // How to traverse\n    public QueryFilter? Filter { get; init; }          // What to include/exclude\n    public QueryRank? Rank { get; init; }              // How to order results\n    public QueryOutput? Output { get; init; }          // Format and limits\n}\n\npublic record QuerySeed\n{\n    public string? MethodId { get; init; }             // Exact method ID\n    public string? MethodPattern { get; init; }        // Fuzzy match pattern\n    public string? Namespace { get; init; }            // All methods in namespace\n    public string? Cluster { get; init; }              // All methods in intent cluster\n}\n\npublic record QueryExpand\n{\n    public ExpandDirection Direction { get; init; }    // Callers | Callees | Both | None\n    public int MaxDepth { get; init; } = 3;\n    public bool IncludeTransitive { get; init; } = true;\n}\n\npublic record QueryFilter\n{\n    public List<string>? IncludeNamespaces { get; init; }\n    public List<string>? ExcludeNamespaces { get; init; }\n    public List<string>? IncludeTypes { get; init; }\n    public int? MinComplexity { get; init; }\n    public int? MaxComplexity { get; init; }\n    public bool ExcludeTests { get; init; } = true;\n}\n\npublic record QueryRank\n{\n    public RankStrategy Strategy { get; init; } = RankStrategy.BlastRadius;\n    public bool Descending { get; init; } = true;\n}\n\npublic record QueryOutput\n{\n    public int MaxResults { get; init; } = 20;\n    public OutputFormat Format { get; init; } = OutputFormat.Compact;\n    public bool IncludeMetrics { get; init; } = true;\n    public bool IncludeLocation { get; init; } = true;\n}\n```\n\nImplement `GraphQueryExecutor` that:\n1. Parses and validates GraphQuery objects\n2. Executes via GraphTraversalEngine\n3. Formats output according to QueryOutput\n4. Caches query plans for repeated similar queries\n\nAdd JSON schema for GraphQuery to support MCP and CLI --query-file options.",
+        "testStrategy": "1. JSON serialization round-trip tests. 2. Validation tests for invalid queries (missing seed, conflicting filters). 3. Execution tests with various query combinations. 4. Cache hit/miss tests. 5. Test query from file and inline JSON.",
+        "priority": "high",
+        "dependencies": [
+          "74"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define GraphQuery Record Hierarchy and Enums",
+            "description": "Create the complete record type hierarchy for the unified graph query schema including GraphQuery, QuerySeed, QueryExpand, QueryFilter, QueryRank, and QueryOutput records along with their supporting enums.",
+            "dependencies": [],
+            "details": "Create `AiCodeGraph.Core/Query/GraphQuery.cs` with the following records:\n\n1. **Enums** (at top of file):\n   - `ExpandDirection { None, Callers, Callees, Both }` - direction for graph traversal\n   - `RankStrategy { BlastRadius, Complexity, Coupling, Combined }` - how to order results\n   - `OutputFormat { Compact, Json, Table }` - output formatting options\n\n2. **QuerySeed record** - defines starting point(s) for the query:\n   - `string? MethodId` - exact method ID for precise lookup\n   - `string? MethodPattern` - fuzzy match pattern (supports wildcards)\n   - `string? Namespace` - all methods in a namespace\n   - `string? Cluster` - all methods in an intent cluster\n   - At least one property must be non-null for a valid seed\n\n3. **QueryExpand record** - controls traversal behavior:\n   - `ExpandDirection Direction` - which edges to follow\n   - `int MaxDepth` with default 3 - traversal depth limit\n   - `bool IncludeTransitive` with default true - include indirect relationships\n\n4. **QueryFilter record** - inclusion/exclusion rules:\n   - `List<string>? IncludeNamespaces` - whitelist namespaces\n   - `List<string>? ExcludeNamespaces` - blacklist namespaces\n   - `List<string>? IncludeTypes` - whitelist specific types\n   - `int? MinComplexity` - complexity floor\n   - `int? MaxComplexity` - complexity ceiling\n   - `bool ExcludeTests` with default true - filter test code\n\n5. **QueryRank record** - result ordering:\n   - `RankStrategy Strategy` with default BlastRadius\n   - `bool Descending` with default true\n\n6. **QueryOutput record** - formatting and limits:\n   - `int MaxResults` with default 20\n   - `OutputFormat Format` with default Compact\n   - `bool IncludeMetrics` with default true\n   - `bool IncludeLocation` with default true\n\n7. **GraphQuery record** - main container with `required` keyword for Seed:\n   - `required QuerySeed Seed`\n   - `QueryExpand? Expand`\n   - `QueryFilter? Filter`\n   - `QueryRank? Rank`\n   - `QueryOutput? Output`\n\nFollow existing codebase patterns: use `init` properties, nullable reference types, XML documentation comments for public API.",
+            "status": "pending",
+            "testStrategy": "Unit tests in `GraphQueryTests.cs`: 1) Verify record immutability and `with` expressions work correctly. 2) Test default values are applied (MaxDepth=3, MaxResults=20, etc.). 3) Test all enum values can be serialized/deserialized. 4) Test creating GraphQuery with minimal required properties (just Seed). 5) Test creating GraphQuery with all properties populated.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Implement GraphQuery Validation and Error Handling",
+            "description": "Create a GraphQueryValidator class that validates GraphQuery objects, ensuring seeds are valid, filters are consistent, and all constraints are met before execution.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create `AiCodeGraph.Core/Query/GraphQueryValidator.cs` with a `GraphQueryValidator` class:\n\n1. **Public Method**: `ValidationResult Validate(GraphQuery query)`\n\n2. **ValidationResult record**:\n   - `bool IsValid`\n   - `List<string> Errors` - list of validation error messages\n   - Static factory methods: `Success()` and `Failure(params string[] errors)`\n\n3. **Seed Validation Rules**:\n   - At least one seed property must be non-null (MethodId, MethodPattern, Namespace, or Cluster)\n   - MethodId if provided must not be empty/whitespace\n   - MethodPattern if provided must be valid (non-empty, reasonable length < 500 chars)\n   - Namespace if provided must be valid .NET namespace format\n   - Cluster if provided must be non-empty\n\n4. **Expand Validation Rules**:\n   - MaxDepth must be >= 0 and <= 100 (prevent runaway traversals)\n   - If Direction is None and IncludeTransitive is true, warn or error\n\n5. **Filter Validation Rules**:\n   - MinComplexity if provided must be >= 0\n   - MaxComplexity if provided must be >= MinComplexity (if both set)\n   - Namespace patterns should be valid (no invalid characters)\n   - IncludeNamespaces and ExcludeNamespaces should not have overlapping entries\n\n6. **Output Validation Rules**:\n   - MaxResults must be >= 1 and <= 1000\n\n7. **Extension Method**: Add `Validate()` extension on GraphQuery for fluent usage.\n\nFollow existing validation patterns from `CommandHelpers.ValidateDatabase()` - return meaningful error messages that help users fix issues.",
+            "status": "pending",
+            "testStrategy": "Unit tests in `GraphQueryValidatorTests.cs`: 1) Test valid query passes validation. 2) Test empty seed fails with appropriate message. 3) Test negative MaxDepth fails. 4) Test MaxDepth > 100 fails. 5) Test MinComplexity > MaxComplexity fails. 6) Test overlapping Include/Exclude namespaces fails. 7) Test MaxResults bounds (0 fails, 1001 fails, 500 passes). 8) Test multiple validation errors are collected and returned together.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Create GraphQueryExecutor with TraversalEngine Bridge",
+            "description": "Implement the GraphQueryExecutor class that translates GraphQuery objects into TraversalConfig, executes via GraphTraversalEngine, and returns formatted results.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Create `AiCodeGraph.Core/Query/GraphQueryExecutor.cs`:\n\n1. **Constructor Dependencies**:\n   - `IStorageService storage` - for resolving seeds and fetching data\n   - `GraphTraversalEngine traversalEngine` - for executing traversals (from Task 74)\n\n2. **Public Method**: `Task<QueryResult> ExecuteAsync(GraphQuery query, CancellationToken ct)`\n\n3. **QueryResult record**:\n   - `bool Success`\n   - `string? Error` - error message if failed\n   - `List<QueryResultNode> Nodes` - resulting methods\n   - `int TotalMatches` - count before MaxResults limit\n   - `TimeSpan ExecutionTime`\n\n4. **QueryResultNode record**:\n   - `string MethodId`\n   - `string FullName`\n   - `int Depth` - distance from seed (0 for seeds)\n   - `float? RankScore` - if ranking applied\n   - `int? Complexity`, `int? Loc`, `int? Nesting` - if IncludeMetrics\n   - `string? FilePath`, `int? Line` - if IncludeLocation\n\n5. **Seed Resolution** (private method `ResolveSeedsAsync`):\n   - MethodId: direct lookup via `storage.GetMethodInfoAsync()`\n   - MethodPattern: use `storage.SearchMethodsAsync()` for fuzzy match\n   - Namespace: query methods by namespace prefix\n   - Cluster: use `storage.GetMethodsByClusterAsync()` or similar\n   - Return `List<string>` of resolved method IDs\n\n6. **Query to TraversalConfig Translation** (private method):\n   - Map `ExpandDirection` to `TraversalDirection`\n   - Map `QueryFilter` to `FilterConfig`\n   - Map `QueryRank.Strategy` to `RankingStrategy`\n   - Set depth limits from `QueryExpand.MaxDepth`\n\n7. **Result Formatting** (private method):\n   - Apply `QueryOutput.MaxResults` limit\n   - Include/exclude metrics and location based on Output flags\n   - Order by RankScore if ranking was applied\n\n8. **Error Handling**:\n   - Validate query before execution (call GraphQueryValidator)\n   - Handle seed resolution failures gracefully\n   - Catch and wrap traversal engine exceptions",
+            "status": "pending",
+            "testStrategy": "Unit tests in `GraphQueryExecutorTests.cs` using mock IStorageService and mock/stub GraphTraversalEngine: 1) Test simple MethodId seed executes correctly. 2) Test MethodPattern seed resolves multiple methods. 3) Test filter application (namespace exclusion works). 4) Test MaxResults limits output. 5) Test IncludeMetrics=false excludes complexity data. 6) Test invalid query returns error result without throwing. 7) Test execution time is captured. Integration test with real StorageService and test fixture database.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Implement Query Plan Caching for Repeated Similar Queries",
+            "description": "Add a caching layer to GraphQueryExecutor that caches query plans and optionally results for repeated similar queries to improve performance.",
+            "dependencies": [
+              3
+            ],
+            "details": "Enhance `GraphQueryExecutor` with query plan caching:\n\n1. **QueryPlan record** (internal class):\n   - `List<string> ResolvedSeeds` - cached seed resolution\n   - `TraversalConfig TraversalConfig` - pre-built config\n   - `DateTime CreatedAt` - for cache expiration\n   - `string QueryHash` - unique identifier for this query shape\n\n2. **QueryPlanCache class** (internal):\n   - `ConcurrentDictionary<string, QueryPlan>` for thread-safe caching\n   - `int MaxCacheSize` - configurable limit (default 100)\n   - `TimeSpan CacheExpiration` - configurable TTL (default 5 minutes)\n   - Methods: `TryGet(string hash, out QueryPlan)`, `Set(string hash, QueryPlan)`, `Clear()`\n\n3. **Query Hashing** (private method `ComputeQueryHash`):\n   - Create deterministic hash from GraphQuery properties\n   - Include: Seed properties, Expand settings, Filter settings, Rank strategy\n   - Exclude: Output settings (same query, different formatting = same plan)\n   - Use SHA256 or similar for collision resistance\n\n4. **Cache Integration in ExecuteAsync**:\n   - Compute query hash\n   - Check cache for existing plan\n   - If cache hit: skip seed resolution and config building, use cached plan\n   - If cache miss: build plan, cache it, then execute\n   - Add `bool useCache = true` parameter to ExecuteAsync for opt-out\n\n5. **Cache Invalidation**:\n   - Time-based expiration (plans older than TTL are evicted)\n   - Size-based eviction (LRU when cache exceeds MaxCacheSize)\n   - Manual `ClearCache()` method on executor\n\n6. **Optional Result Caching** (secondary feature):\n   - Cache full QueryResult for identical queries (same hash + same Output)\n   - Shorter TTL for results (default 1 minute)\n   - Opt-in via `cacheResults` parameter\n\n7. **Metrics**:\n   - Track cache hit/miss counts\n   - Expose via `GetCacheStats()` method returning `(int Hits, int Misses, int Size)`",
+            "status": "pending",
+            "testStrategy": "Unit tests in `QueryPlanCacheTests.cs`: 1) Test cache hit returns same plan for identical queries. 2) Test cache miss for different queries. 3) Test Output changes don't affect cache key. 4) Test cache expiration evicts old entries. 5) Test LRU eviction when cache is full. 6) Test Clear() empties cache. 7) Test thread safety with concurrent access. 8) Test cache stats are accurate. Integration test: execute same query twice, verify second is faster.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Add JSON Schema Definition and Serialization for --query-file Support",
+            "description": "Create JSON schema for GraphQuery, implement JSON serialization/deserialization, and add --query-file option support to relevant CLI commands.",
+            "dependencies": [
+              1,
+              2,
+              3
+            ],
+            "details": "Implement JSON schema and CLI integration:\n\n1. **JSON Serialization Configuration** in `AiCodeGraph.Core/Query/GraphQuerySerializer.cs`:\n   - Create `JsonSerializerOptions` with camelCase naming policy\n   - Configure enum serialization as strings (not integers)\n   - Add `JsonStringEnumConverter` for all query enums\n   - Handle nullable properties correctly\n   - Methods: `string Serialize(GraphQuery)`, `GraphQuery? Deserialize(string json)`\n\n2. **JSON Schema Generation** in `AiCodeGraph.Core/Query/GraphQuerySchema.cs`:\n   - Create static method `string GenerateJsonSchema()`\n   - Define schema following JSON Schema draft-07\n   - Include all property types, defaults, constraints (min/max values)\n   - Add descriptions from XML docs\n   - Include enum value lists\n   - Schema should be embeddable in MCP tool definitions\n\n3. **Sample Schema Structure**:\n```json\n{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"required\": [\"seed\"],\n  \"properties\": {\n    \"seed\": { \"$ref\": \"#/definitions/QuerySeed\" },\n    \"expand\": { \"$ref\": \"#/definitions/QueryExpand\" },\n    ...\n  },\n  \"definitions\": { ... }\n}\n```\n\n4. **CLI Integration** - Add `--query-file` option to relevant commands:\n   - Create shared `Option<FileInfo?>` for `--query-file` / `-q`\n   - In command handlers: if query-file provided, load and deserialize\n   - Validate loaded query before execution\n   - Error handling for file not found, invalid JSON, validation failures\n\n5. **New Query Command** in `AiCodeGraph.Cli/Commands/QueryCommand.cs`:\n   - Implements `ICommandHandler`\n   - Arguments: optional inline JSON query\n   - Options: `--query-file`, `--db`, `--schema` (output schema only)\n   - When `--schema` flag: output JSON schema and exit\n   - Otherwise: parse query from file or inline, execute, output results\n\n6. **Example Query Files** in docs or tests:\n   - Create example .json files showing various query patterns\n   - Simple seed-only query\n   - Full query with all options\n   - Common use cases (find hotspots, trace callers, etc.)\n\n7. **Register in CommandRegistry**:\n   - Add `QueryCommand` to the command registry\n   - Update help text to reference query file format",
+            "status": "pending",
+            "testStrategy": "Unit tests: 1) Round-trip serialization test - serialize then deserialize GraphQuery, verify equality. 2) Test enum values serialize as strings. 3) Test null optional properties are omitted or handled. 4) Test generated JSON schema is valid JSON Schema. 5) Test deserialize from example query files. 6) Test error handling for malformed JSON. 7) Test --query-file loads and executes correctly. 8) Integration test: create temp query file, run CLI with --query-file, verify output. 9) Test --schema flag outputs valid schema.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 8,
+        "recommendedSubtasks": 5,
+        "expansionPrompt": "Break down into: 1) Define GraphQuery, QuerySeed, QueryExpand, QueryFilter, QueryRank, QueryOutput records. 2) Implement query validation and error handling. 3) Create GraphQueryExecutor that bridges to GraphTraversalEngine. 4) Implement query plan caching for repeated similar queries. 5) Add JSON schema definition and serialization support for --query-file option."
+      },
+      {
+        "id": "76",
+        "title": "Add Architectural Layer Detection",
+        "description": "Implement automatic detection of architectural layers (API/Presentation, Application/Services, Domain, Infrastructure) based on namespace naming conventions, type attributes, and dependency patterns.",
+        "details": "Create `AiCodeGraph.Core/Architecture/LayerDetector.cs`:\n\n```csharp\npublic enum ArchitecturalLayer\n{\n    Presentation,    // Controllers, ViewModels, Views\n    Application,     // Services, Handlers, Commands\n    Domain,          // Entities, ValueObjects, DomainServices\n    Infrastructure,  // Repositories, DbContexts, ExternalClients\n    Shared,          // Cross-cutting (logging, exceptions, extensions)\n    Unknown\n}\n\npublic record LayerAssignment(string TypeId, ArchitecturalLayer Layer, float Confidence, string Reason);\n\npublic class LayerDetector\n{\n    // Configurable naming patterns (defaults for Clean Architecture / DDD)\n    private static readonly Dictionary<ArchitecturalLayer, string[]> DefaultPatterns = new()\n    {\n        [Presentation] = [\"*.Controllers.*\", \"*.Api.*\", \"*.Web.*\", \"*.ViewModels.*\"],\n        [Application] = [\"*.Services.*\", \"*.Application.*\", \"*.Handlers.*\", \"*.Commands.*\", \"*.Queries.*\"],\n        [Domain] = [\"*.Domain.*\", \"*.Core.*\", \"*.Entities.*\", \"*.Models.*\"],\n        [Infrastructure] = [\"*.Infrastructure.*\", \"*.Data.*\", \"*.Repositories.*\", \"*.Persistence.*\"]\n    };\n    \n    public async Task<List<LayerAssignment>> DetectLayersAsync(IStorageService storage, CancellationToken ct)\n    {\n        // 1. Load all types with their namespaces\n        // 2. Apply pattern matching for initial assignment\n        // 3. Refine using dependency direction (lower layers shouldn't depend on higher)\n        // 4. Check for attribute hints ([ApiController], [Service], etc.)\n        // 5. Return assignments with confidence scores\n    }\n}\n```\n\nStore layer assignments in SQLite (new TypeLayers table):\n```sql\nCREATE TABLE TypeLayers (\n    TypeId TEXT PRIMARY KEY,\n    Layer TEXT NOT NULL,\n    Confidence REAL NOT NULL,\n    Reason TEXT\n);\n```\n\nAdd CLI command: `ai-code-graph layers --db graph.db` to display layer assignments.\nAdd to analyze pipeline as optional stage.",
+        "testStrategy": "1. Test pattern matching with known namespaces. 2. Test confidence scoring when patterns conflict. 3. Test dependency-based refinement (Service calling Repository is valid, vice versa is suspect). 4. Integration test with TestSolution fixture (add layered namespaces). 5. Manual test with real-world Clean Architecture projects.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define ArchitecturalLayer enum, LayerAssignment record, and implement pattern matching logic",
+            "description": "Create the core domain models (ArchitecturalLayer enum and LayerAssignment record) and implement the pattern-based layer detection logic in LayerDetector class.",
+            "dependencies": [],
+            "details": "Create `AiCodeGraph.Core/Architecture/LayerDetector.cs` with:\n\n1. **ArchitecturalLayer enum** (following TypeKind.cs pattern):\n   - Presentation (Controllers, ViewModels, Views, Api)\n   - Application (Services, Handlers, Commands, Queries)\n   - Domain (Entities, ValueObjects, DomainServices, Core)\n   - Infrastructure (Repositories, DbContexts, Persistence, Data)\n   - Shared (cross-cutting concerns)\n   - Unknown (fallback)\n\n2. **LayerAssignment record** (following MethodModel.cs pattern):\n   - TypeId (string) - references Types table\n   - Layer (ArchitecturalLayer)\n   - Confidence (float 0.0-1.0)\n   - Reason (string explaining the assignment)\n\n3. **LayerDetector class** with:\n   - `DefaultPatterns` dictionary mapping layers to namespace glob patterns (*.Controllers.*, *.Api.*, etc.)\n   - `MatchPatternAsync()` method that loads types from storage via `GetTreeAsync()` and matches namespace patterns\n   - Pattern matching using simple string Contains/EndsWith logic on FullName (reference CouplingAnalyzer.GetGroup method at lines 72-95)\n   - Confidence scoring: 1.0 for direct match, 0.8 for partial match, 0.5 for attribute-based hints\n   - Support for [ApiController] and similar attribute detection via type metadata\n\nUse async/await with CancellationToken and ConfigureAwait(false) per codebase conventions.",
+            "status": "pending",
+            "testStrategy": "1. Unit test pattern matching with known namespaces (MyApp.Controllers.UserController → Presentation with 1.0 confidence). 2. Test partial matches (MyApp.Web.Home → Presentation with 0.8 confidence). 3. Test Unknown assignment for unmatched namespaces. 4. Test confidence scoring when multiple patterns could apply.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Add TypeLayers table to SQLite schema and implement storage methods",
+            "description": "Extend the SQLite schema with TypeLayers table and add corresponding read/write methods to StorageService.",
+            "dependencies": [
+              1
+            ],
+            "details": "1. **Update SchemaDefinition.cs**:\n   - Add to DropTables array: `\"DROP TABLE IF EXISTS TypeLayers;\"`\n   - Add to CreateTables array:\n     ```sql\n     CREATE TABLE TypeLayers (\n         TypeId TEXT PRIMARY KEY REFERENCES Types(Id),\n         Layer TEXT NOT NULL,\n         Confidence REAL NOT NULL,\n         Reason TEXT\n     );\n     ```\n   - Add to CreateIndexes: `\"CREATE INDEX IX_TypeLayers_Layer ON TypeLayers(Layer);\"`\n\n2. **Update IStorageService.cs** with new interface methods:\n   - `Task SaveLayerAssignmentsAsync(List<LayerAssignment> assignments, CancellationToken ct)`\n   - `Task<List<LayerAssignment>> GetLayerAssignmentsAsync(CancellationToken ct)`\n   - `Task<LayerAssignment?> GetLayerForTypeAsync(string typeId, CancellationToken ct)`\n\n3. **Implement in StorageService.cs** following existing patterns:\n   - Write method: Use transaction, INSERT OR REPLACE, parameter binding (reference SaveMetricsAsync at lines 195-226)\n   - Read method: Query all rows, map to LayerAssignment records (reference GetTreeAsync at lines 452-524)\n   - Single lookup: WHERE TypeId = @id with nullable return",
+            "status": "pending",
+            "testStrategy": "1. Test round-trip: save assignments, read them back, verify data integrity. 2. Test UPDATE behavior when re-saving with different layer. 3. Test GetLayerForTypeAsync returns null for non-existent TypeId. 4. Test index usage with large dataset queries.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Implement dependency-direction refinement to improve layer confidence",
+            "description": "Add dependency analysis logic to LayerDetector that adjusts confidence scores based on valid/invalid dependency directions between architectural layers.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Add `RefineBydependencyDirectionAsync()` method to LayerDetector:\n\n1. **Define valid dependency rules** (Clean Architecture):\n   - Presentation → Application → Domain ← Infrastructure\n   - Presentation can depend on Application (valid)\n   - Application can depend on Domain (valid)\n   - Infrastructure can depend on Domain (valid)\n   - Domain should NOT depend on Application/Infrastructure/Presentation (violation)\n   - Infrastructure should NOT depend on Application/Presentation (violation)\n\n2. **Load call graph data** from storage:\n   - Use `GetCallGraphForMethodsAsync()` to get caller→callee relationships\n   - Group by type to get type-level dependencies\n\n3. **Analyze dependency violations**:\n   - For each type, check if its dependencies follow valid patterns\n   - If Domain type calls Infrastructure type → suspicious, lower confidence\n   - If Infrastructure type calls Presentation → suspicious, lower confidence\n   - Track violation counts and adjust confidence: `newConfidence = originalConfidence * (1 - 0.1 * violationCount)`\n\n4. **Re-classify ambiguous types**:\n   - Types with low pattern-match confidence but consistent dependency behavior → increase confidence\n   - Types with high pattern-match but dependency violations → flag with warning in Reason\n\nReference CouplingAnalyzer.cs (lines 44-70) for dependency traversal pattern using groupMembers and call relationships.",
+            "status": "pending",
+            "testStrategy": "1. Test valid dependency: Service→Repository doesn't lower confidence. 2. Test violation: Repository→Controller lowers confidence. 3. Test Domain type calling Infrastructure is flagged. 4. Test confidence never goes below 0.1. 5. Test Reason field includes violation details.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Add 'layers' CLI command following ICommandHandler pattern",
+            "description": "Create LayersCommand.cs implementing ICommandHandler to display architectural layer assignments via the CLI.",
+            "dependencies": [
+              1,
+              2,
+              3
+            ],
+            "details": "1. **Create `AiCodeGraph.Cli/Commands/LayersCommand.cs`** following DeadCodeCommand.cs pattern:\n   - Implement `ICommandHandler.BuildCommand()`\n   - Command name: `\"layers\"`, description: `\"Display architectural layer assignments for types\"`\n\n2. **Define options**:\n   - `--db, -d` (string): Database path, default `\"./ai-code-graph/graph.db\"`\n   - `--layer, -l` (string?): Filter by specific layer (optional)\n   - `--min-confidence` (float): Minimum confidence threshold, default 0.0\n   - `--format, -f` (string): Output format (\"table\" | \"json\"), default \"table\"\n   - `--top, -t` (int): Limit results, default 50\n\n3. **SetAction implementation**:\n   - Validate database exists using `CommandHelpers.ValidateDatabase()`\n   - Open StorageService with `OpenAsync()`\n   - Call `GetLayerAssignmentsAsync()` to retrieve data\n   - Apply filters (layer, min-confidence)\n   - Sort by Layer then by Confidence descending\n   - Format output (table: columns for TypeId, Layer, Confidence, Reason; JSON: serialize list)\n\n4. **Register in CommandRegistry.cs**:\n   - Add `new LayersCommand()` to handlers array\n\n5. **Table format example**:\n   ```\n   Layer          | Type                           | Confidence | Reason\n   ---------------|--------------------------------|------------|------------------\n   Presentation   | MyApp.Controllers.UserController | 0.95      | Namespace pattern: *.Controllers.*\n   Application    | MyApp.Services.UserService       | 0.90      | Namespace pattern: *.Services.*\n   ```",
+            "status": "pending",
+            "testStrategy": "1. Test command runs without error on valid database. 2. Test --layer filter shows only matching layer. 3. Test --min-confidence filters low-confidence results. 4. Test JSON output is valid JSON array. 5. Test missing database shows appropriate error. 6. Integration test with TestSolution fixture.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 6,
+        "recommendedSubtasks": 4,
+        "expansionPrompt": "Break down into: 1) Define ArchitecturalLayer enum and LayerAssignment record, implement pattern matching logic. 2) Add TypeLayers table to SQLite schema and storage methods. 3) Implement dependency-direction refinement to improve confidence. 4) Add 'layers' CLI command following ICommandHandler pattern."
+      },
+      {
+        "id": "77",
+        "title": "Implement Forbidden Dependency Detection",
+        "description": "Create a rule engine that detects architectural violations based on layer dependencies, circular references, and custom forbidden patterns (e.g., Domain → Infrastructure, Controller → Repository).",
+        "details": "Create `AiCodeGraph.Core/Architecture/DependencyRuleEngine.cs`:\n\n```csharp\npublic record DependencyRule(\n    string Name,\n    string FromPattern,       // Glob pattern for source (e.g., \"*.Domain.*\")\n    string ToPattern,         // Glob pattern for target (e.g., \"*.Infrastructure.*\")\n    RuleType Type,            // Forbidden | Required | Allowed\n    string? Explanation       // Why this rule exists\n);\n\npublic enum RuleType { Forbidden, Required, Allowed }\n\npublic record DependencyViolation(\n    DependencyRule Rule,\n    string FromMethodId,\n    string ToMethodId,\n    string FromFullName,\n    string ToFullName\n);\n\npublic class DependencyRuleEngine\n{\n    private readonly List<DependencyRule> _rules;\n    \n    // Load rules from: 1) built-in defaults, 2) .ai-code-graph/rules.json, 3) CLI --rules-file\n    public static DependencyRuleEngine LoadRules(string? rulesPath = null);\n    \n    public async Task<List<DependencyViolation>> CheckViolationsAsync(IStorageService storage, CancellationToken ct)\n    {\n        // 1. Load all method calls from MethodCalls table\n        // 2. For each call, check against forbidden rules\n        // 3. Optionally check required dependencies exist\n        // 4. Return violations sorted by severity\n    }\n}\n```\n\nDefault built-in rules (Clean Architecture):\n- Domain → Infrastructure: Forbidden (domain should be pure)\n- Domain → Presentation: Forbidden\n- Application → Presentation: Forbidden\n- Infrastructure → Domain: Allowed (repositories implement domain interfaces)\n- Circular references within same namespace: Warning\n\nAdd CLI command: `ai-code-graph check-deps --rules rules.json --db graph.db`\nOutput shows violations grouped by rule, with file:line locations.",
+        "testStrategy": "1. Unit tests for rule pattern matching. 2. Test default rules catch common violations. 3. Test custom rules from JSON file. 4. Test circular reference detection. 5. Integration test with intentionally violating code in TestSolution.",
+        "priority": "high",
+        "dependencies": [
+          "76"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define DependencyRule, RuleType, and DependencyViolation models with rule file loading",
+            "description": "Create the core model records and enum for dependency rules, and implement JSON rule file loading with support for built-in defaults, project config, and CLI override.",
+            "dependencies": [],
+            "details": "Create `AiCodeGraph.Core/Architecture/DependencyRuleEngine.cs` with the following models:\n\n1. **RuleType enum**:\n```csharp\npublic enum RuleType { Forbidden, Required, Allowed }\n```\n\n2. **DependencyRule record**:\n```csharp\npublic record DependencyRule(\n    string Name,\n    string FromPattern,       // Glob pattern (e.g., \"*.Domain.*\")\n    string ToPattern,         // Glob pattern (e.g., \"*.Infrastructure.*\")\n    RuleType Type,\n    string? Explanation\n);\n```\n\n3. **DependencyViolation record**:\n```csharp\npublic record DependencyViolation(\n    DependencyRule Rule,\n    string FromMethodId,\n    string ToMethodId,\n    string FromFullName,\n    string ToFullName\n);\n```\n\n4. **Rule loading methods** in DependencyRuleEngine class:\n- `LoadRules(string? rulesPath)` - static factory that loads rules from:\n  1. Built-in defaults (hardcoded)\n  2. `.ai-code-graph/rules.json` if exists\n  3. CLI --rules-file override if provided\n- Use `System.Text.Json.JsonSerializer` for deserialization\n- Rules from later sources override/extend earlier sources\n\nFollow the record patterns from `MethodModel.cs` (positional parameters) and `TypeKind.cs` for the enum. Place in `AiCodeGraph.Core.Architecture` namespace.",
+            "status": "pending",
+            "testStrategy": "Unit tests: Verify DependencyRule and DependencyViolation record instantiation. Test LoadRules with no file (returns defaults), with valid JSON file (parses correctly), with invalid JSON (throws meaningful exception), and with multiple sources (merges correctly). Test serialization round-trip.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Implement glob pattern matching for FromPattern/ToPattern against method namespaces",
+            "description": "Create a PatternMatcher utility that matches method full names against glob-style patterns like \"*.Domain.*\" and \"*.Controllers.*\".",
+            "dependencies": [
+              1
+            ],
+            "details": "Create `AiCodeGraph.Core/Architecture/PatternMatcher.cs` with:\n\n```csharp\npublic static class PatternMatcher\n{\n    /// <summary>\n    /// Match text against glob pattern. Supports * wildcard.\n    /// Examples: \"*.Domain.*\" matches \"MyApp.Domain.Entities.User\"\n    /// </summary>\n    public static bool MatchesPattern(string text, string pattern)\n    {\n        // Handle edge cases\n        if (pattern == \"*\") return true;\n        if (!pattern.Contains('*'))\n            return text.Equals(pattern, StringComparison.OrdinalIgnoreCase);\n        \n        // Convert glob to regex: * -> .*, escape other special chars\n        var regexPattern = \"^\" + Regex.Escape(pattern).Replace(\"\\\\*\", \".*\") + \"$\";\n        return Regex.IsMatch(text, regexPattern, RegexOptions.IgnoreCase);\n    }\n    \n    /// <summary>\n    /// Extract namespace/type path from full method name.\n    /// \"MyApp.Domain.User.Validate()\" -> \"MyApp.Domain.User\"\n    /// </summary>\n    public static string ExtractNamespacePath(string fullMethodName);\n}\n```\n\nKey implementation notes:\n- Use compiled regex with caching for performance (Regex.IsMatch with pattern reuse)\n- Handle patterns with multiple wildcards: \"*.Services.*.Handler\"\n- ExtractNamespacePath removes method name and parameters, keeps namespace.type\n- Follow the namespace extraction pattern from CouplingAnalyzer.GetGroup()\n- Consider adding pattern validation (no consecutive wildcards, etc.)",
+            "status": "pending",
+            "testStrategy": "Theory tests with InlineData covering: simple exact match, single wildcard at start (*.Domain), single wildcard at end (MyApp.*), wildcards on both ends (*.Controllers.*), multiple wildcards (*.Services.*.Handler), case insensitivity, no match scenarios. Test ExtractNamespacePath with various method signatures including generics and overloads.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Add built-in default rules for Clean Architecture patterns",
+            "description": "Implement default architectural rules that enforce Clean Architecture layer dependencies, including forbidden cross-layer dependencies and circular reference warnings.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Add `GetDefaultRules()` method to DependencyRuleEngine that returns Clean Architecture rules:\n\n```csharp\nprivate static List<DependencyRule> GetDefaultRules() => new()\n{\n    // Domain layer - should be pure, no external dependencies\n    new(\"Domain → Infrastructure\", \"*.Domain.*\", \"*.Infrastructure.*\", \n        RuleType.Forbidden, \"Domain should be pure and not depend on infrastructure\"),\n    new(\"Domain → Presentation\", \"*.Domain.*\", \"*.Presentation.*\", \n        RuleType.Forbidden, \"Domain should not depend on presentation layer\"),\n    new(\"Domain → Controllers\", \"*.Domain.*\", \"*.Controllers.*\", \n        RuleType.Forbidden, \"Domain should not reference controllers\"),\n    new(\"Domain → Api\", \"*.Domain.*\", \"*.Api.*\", \n        RuleType.Forbidden, \"Domain should not depend on API layer\"),\n    \n    // Application layer - orchestrates domain, no presentation deps\n    new(\"Application → Presentation\", \"*.Application.*\", \"*.Presentation.*\", \n        RuleType.Forbidden, \"Application should not depend on presentation\"),\n    new(\"Application → Controllers\", \"*.Application.*\", \"*.Controllers.*\", \n        RuleType.Forbidden, \"Application should not reference controllers\"),\n    \n    // Common anti-patterns\n    new(\"Controller → Repository\", \"*.Controllers.*\", \"*.Repositories.*\", \n        RuleType.Forbidden, \"Controllers should use services, not repositories directly\"),\n    new(\"Controller → Repository\", \"*.Controllers.*\", \"*.Repository.*\", \n        RuleType.Forbidden, \"Controllers should use services, not repositories directly\"),\n};\n```\n\nAlso implement the core `CheckViolationsAsync` method that:\n1. Loads all method calls from storage via `GetCallGraphForMethodsAsync`\n2. For each call, extracts namespace paths using PatternMatcher\n3. Checks each call against forbidden rules\n4. Returns violations sorted by rule name, then by from method",
+            "status": "pending",
+            "testStrategy": "Test default rules count and expected rules exist. Integration test with TestSolution: add intentionally violating code (Domain calling Infrastructure) and verify it's caught. Test that valid dependencies (Application → Domain) don't trigger violations. Test rule priority/ordering.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Create 'check-deps' CLI command with --rules option and formatted output",
+            "description": "Add a new CLI command that runs the dependency rule engine and outputs violations grouped by rule, with file:line locations, supporting both table and JSON formats.",
+            "dependencies": [
+              1,
+              2,
+              3
+            ],
+            "details": "Create `AiCodeGraph.Cli/Commands/CheckDepsCommand.cs` implementing ICommandHandler:\n\n```csharp\npublic class CheckDepsCommand : ICommandHandler\n{\n    public Command BuildCommand()\n    {\n        var dbOption = new Option<string>(\"--db\") \n        { \n            Description = \"Path to graph.db\",\n            DefaultValueFactory = _ => \"./ai-code-graph/graph.db\" \n        };\n        var rulesOption = new Option<string?>(\"--rules\") \n        { \n            Description = \"Path to custom rules.json file\" \n        };\n        var formatOption = new Option<string>(\"--format\", \"-f\") \n        { \n            Description = \"Output format: table|json\",\n            DefaultValueFactory = _ => \"table\" \n        };\n        \n        var command = new Command(\"check-deps\", \n            \"Check for forbidden architectural dependencies\")\n        { dbOption, rulesOption, formatOption };\n        \n        command.SetAction(async (parseResult, ct) =>\n        {\n            // Load rules, run engine, output results\n        });\n        \n        return command;\n    }\n}\n```\n\nOutput format (table):\n```\nRule: Domain → Infrastructure (5 violations)\n  MyApp.Domain.User.Validate() → MyApp.Infrastructure.Database.Save()\n    Location: User.cs:45\n  ...\n\nTotal: 12 violations across 3 rules\n```\n\nRegister in CommandRegistry.cs. Use CommandHelpers.ValidateDatabase() pattern for DB validation.",
+            "status": "pending",
+            "testStrategy": "Test command builds with all options. Integration test: run against test database with known violations, verify correct exit code (1 for violations, 0 for clean). Test --format json produces valid JSON. Test --rules loads custom file. Test error handling for missing database.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 6,
+        "recommendedSubtasks": 4,
+        "expansionPrompt": "Break down into: 1) Define DependencyRule and DependencyViolation models, implement rule file loading. 2) Implement pattern matching for FromPattern/ToPattern against method calls. 3) Add built-in default rules for Clean Architecture patterns. 4) Create 'check-deps' CLI command with --rules option."
+      },
+      {
+        "id": "78",
+        "title": "Add Blast Radius Computation and Visualization",
+        "description": "Compute and store blast radius (transitive impact count) for every method, enabling quick identification of high-impact code that requires careful changes.",
+        "details": "Extend analysis pipeline to compute blast radius:\n\n```csharp\n// In AiCodeGraph.Core/Analysis/BlastRadiusAnalyzer.cs\npublic class BlastRadiusAnalyzer\n{\n    public async Task<Dictionary<string, BlastRadiusInfo>> ComputeBlastRadiusAsync(\n        IStorageService storage, CancellationToken ct)\n    {\n        // 1. Build reverse call graph (callee → callers)\n        // 2. For each method, BFS to count unique transitive callers\n        // 3. Track entry points (methods with no callers)\n        // 4. Compute depth (max distance from any entry point)\n    }\n}\n\npublic record BlastRadiusInfo(\n    int DirectCallers,\n    int TransitiveCallers,\n    int Depth,\n    List<string> EntryPoints  // Top-level methods that can trigger this\n);\n```\n\nStore in SQLite (extend Metrics table or new BlastRadius table):\n```sql\nALTER TABLE Metrics ADD COLUMN BlastRadius INTEGER DEFAULT 0;\nALTER TABLE Metrics ADD COLUMN BlastDepth INTEGER DEFAULT 0;\n```\n\nEnhance CLI commands:\n- `ai-code-graph hotspots --sort blast-radius` - Sort by impact instead of complexity\n- `ai-code-graph impact --method X` - Already exists, add blast radius to output\n- `ai-code-graph context --method X` - Add blast radius to compact output\n\nCombined risk score: `risk = complexity * log(blast_radius + 1)` for identifying high-risk methods.",
+        "testStrategy": "1. Unit tests for blast radius computation with known graphs. 2. Test entry point detection. 3. Test depth calculation (max distance from roots). 4. Test combined risk score formula. 5. Performance test with 5000+ methods (should complete in < 5s).",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement BlastRadiusAnalyzer with Reverse Call Graph BFS Traversal",
+            "description": "Create the BlastRadiusAnalyzer class in AiCodeGraph.Core/Analysis/ that computes transitive caller counts using BFS on the reverse call graph, leveraging the existing StorageService.GetCallersAsync pattern from ImpactCommand.",
+            "dependencies": [],
+            "details": "Create AiCodeGraph.Core/Analysis/BlastRadiusAnalyzer.cs:\n\n1. Define BlastRadiusInfo record: (DirectCallers, TransitiveCallers, Depth, EntryPoints)\n2. Implement ComputeBlastRadiusAsync method that:\n   - Fetches all method IDs from storage.GetMethodsForExportAsync()\n   - Builds complete reverse call graph in-memory using storage.GetCallGraphForMethodsAsync()\n   - For each method, performs BFS on reverse graph to count unique transitive callers\n   - Tracks entry points (methods with zero callers in full graph)\n   - Computes depth as max distance from any entry point\n3. Use Dictionary<string, HashSet<string>> for reverse adjacency list\n4. Return Dictionary<string, BlastRadiusInfo> with results for all methods\n5. Ensure O(V+E) complexity per method with visited set tracking\n6. Follow existing analyzer patterns from CouplingAnalyzer.cs and ChurnAnalyzer.cs",
+            "status": "pending",
+            "testStrategy": "Unit tests with in-memory SQLite: 1) Simple linear chain (A→B→C) verifies depth=2, transitive=2 for C. 2) Diamond pattern (A→B, A→C, B→D, C→D) verifies D has transitive=3. 3) Entry point detection test. 4) Isolated method (no callers) has blast radius 0. 5) Performance test with 1000+ methods completes in <2s.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Extend SQLite Schema with BlastRadius and BlastDepth Columns",
+            "description": "Add BlastRadius and BlastDepth columns to the Metrics table in SchemaDefinition.cs and extend IStorageService/StorageService with methods to save and retrieve blast radius data.",
+            "dependencies": [
+              1
+            ],
+            "details": "1. Update SchemaDefinition.cs Metrics table definition (line ~82):\n   - Add 'BlastRadius INTEGER DEFAULT 0'\n   - Add 'BlastDepth INTEGER DEFAULT 0'\n   - Consider adding index: 'CREATE INDEX IX_Metrics_BlastRadius ON Metrics(BlastRadius DESC)'\n\n2. Extend IStorageService interface with:\n   - SaveBlastRadiusAsync(Dictionary<string, BlastRadiusInfo> results, CancellationToken ct)\n   - GetBlastRadiusAsync(string methodId) returning BlastRadiusInfo?\n\n3. Implement in StorageService.cs:\n   - SaveBlastRadiusAsync: Use UPDATE statement to set BlastRadius/BlastDepth on existing Metrics rows\n   - Handle case where Metrics row doesn't exist (INSERT with defaults for other columns)\n   - Batch updates to avoid N queries\n\n4. Update GetMethodMetricsAsync to include BlastRadius/BlastDepth in returned data\n5. Update GetHotspotsWithThresholdAsync to optionally sort by blast radius",
+            "status": "pending",
+            "testStrategy": "1) Test schema migration creates columns with correct defaults. 2) Test SaveBlastRadiusAsync correctly updates existing metrics rows. 3) Test GetMethodMetricsAsync returns blast radius data. 4) Test null/default handling for methods without blast radius computed. 5) Verify index is created for efficient sorting.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Integrate Blast Radius Computation into Analysis Pipeline",
+            "description": "Add a new ComputeBlastRadiusStage to AnalysisStageHelpers.cs that runs after StoreResultsStage, computing and persisting blast radius metrics for all analyzed methods.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "1. Create new stage method in AnalysisStageHelpers.cs:\n   - ComputeBlastRadiusStage(IStorageService storage, bool verbose, CancellationToken ct)\n   - Instantiate BlastRadiusAnalyzer and call ComputeBlastRadiusAsync\n   - Call storage.SaveBlastRadiusAsync with results\n   - Include timing diagnostics like other stages\n\n2. Update AnalyzeCommand handler to call the new stage:\n   - Insert after StoreResultsStage (needs call graph data in DB)\n   - Before DetectDuplicatesStage (independent of duplicates)\n\n3. Add verbose output showing:\n   - Number of methods processed\n   - Max blast radius found\n   - Count of high-impact methods (blast radius > threshold)\n   - Execution time\n\n4. Implement combined risk score calculation:\n   - risk = complexity * log(blast_radius + 1)\n   - Store in a computed field or calculate on-demand in commands",
+            "status": "pending",
+            "testStrategy": "1) Integration test running full analyze command produces blast radius data in DB. 2) Test stage executes in correct order (after call graph stored). 3) Verify timing/diagnostic output in verbose mode. 4) Test with TestSolution fixture produces expected blast radius values.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Update Hotspots and Context Commands with Blast Radius Display and Sorting",
+            "description": "Enhance the hotspots command with --sort blast-radius option and add blast radius information to the context command output, including the combined risk score formula.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "1. Update HotspotsCommand.cs:\n   - Add new option: --sort <complexity|blast-radius|risk>\n   - Implement blast-radius sorting using storage query with ORDER BY BlastRadius DESC\n   - Implement risk sorting using: complexity * log(blast_radius + 1)\n   - Update table output to include BlastRadius column when sorted by it\n   - Update JSON output to include blast radius data\n\n2. Update ContextCommand.cs:\n   - Add blast radius section after Metrics display (around line 75)\n   - Show: Blast Radius, Blast Depth, Entry Points (first 3-5)\n   - Calculate and display combined risk score\n   - Format: 'Blast Radius: 45 callers (depth: 3, risk: 12.4)'\n\n3. Update ImpactCommand.cs (already exists):\n   - Include pre-computed blast radius in summary output\n   - Compare computed transitive callers with stored blast radius\n\n4. Ensure consistent formatting with existing command outputs",
+            "status": "pending",
+            "testStrategy": "1) Test hotspots --sort blast-radius returns methods ordered by blast radius DESC. 2) Test hotspots --sort risk returns methods ordered by combined risk score. 3) Test context command includes blast radius section in output. 4) Test JSON output includes blast radius fields. 5) Test commands gracefully handle methods without blast radius data (show 0 or N/A).",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 5,
+        "recommendedSubtasks": 4,
+        "expansionPrompt": "Break down into: 1) Implement BlastRadiusAnalyzer with reverse call graph traversal. 2) Extend SQLite schema with BlastRadius/BlastDepth columns in Metrics table. 3) Integrate computation into analyze pipeline via AnalysisStageHelpers. 4) Update hotspots/context commands to use blast radius for sorting and display."
+      },
+      {
+        "id": "79",
+        "title": "Implement 'Do Not Touch' Zone Marking",
+        "description": "Allow marking methods, types, or namespaces as 'do not touch' zones via configuration, and warn agents/users when queries or changes affect these protected areas.",
+        "details": "Create `AiCodeGraph.Core/Architecture/ProtectedZones.cs`:\n\n```csharp\npublic record ProtectedZone(\n    string Pattern,           // Glob pattern (e.g., \"*.Security.*\", \"PaymentService.*\")\n    ProtectionLevel Level,    // DoNotModify | RequireApproval | Deprecated\n    string Reason,            // Why this is protected\n    string? OwnerContact      // Who to contact for changes\n);\n\npublic enum ProtectionLevel { DoNotModify, RequireApproval, Deprecated }\n\npublic class ProtectedZoneManager\n{\n    // Load from .ai-code-graph/protected-zones.json\n    public List<ProtectedZone> Zones { get; }\n    \n    public bool IsProtected(string methodFullName, out ProtectedZone? zone);\n    public List<(string MethodId, ProtectedZone Zone)> GetProtectedMethods(IStorageService storage);\n}\n```\n\nConfiguration file `.ai-code-graph/protected-zones.json`:\n```json\n{\n  \"zones\": [\n    {\n      \"pattern\": \"*.Security.*\",\n      \"level\": \"DoNotModify\",\n      \"reason\": \"Security-critical authentication and authorization code\",\n      \"owner\": \"security-team@company.com\"\n    },\n    {\n      \"pattern\": \"PaymentService.*\",\n      \"level\": \"RequireApproval\",\n      \"reason\": \"PCI compliance scope - changes need security review\"\n    },\n    {\n      \"pattern\": \"*.LegacyAdapter.*\",\n      \"level\": \"Deprecated\",\n      \"reason\": \"Scheduled for removal in Q3 - don't add new dependencies\"\n    }\n  ]\n}\n```\n\nIntegrate with commands:\n- `ai-code-graph context` - Warn if method is in protected zone\n- `ai-code-graph impact` - Highlight protected methods in blast radius\n- `ai-code-graph callgraph` - Mark protected nodes distinctly\n- MCP tools - Include protection warnings in responses",
+        "testStrategy": "1. Test pattern matching for various glob patterns. 2. Test protection level checks. 3. Test integration with context command (warning appears). 4. Test with missing config file (graceful fallback). 5. Test performance with 100+ protected zones.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define ProtectedZone model and ProtectedZoneManager class",
+            "description": "Create the core data models and manager class for protected zone functionality in a new Architecture folder within AiCodeGraph.Core.",
+            "dependencies": [],
+            "details": "Create `AiCodeGraph.Core/Architecture/ProtectedZones.cs` containing:\n\n1. **ProtectionLevel enum** with values: DoNotModify, RequireApproval, Deprecated\n\n2. **ProtectedZone record** (following codebase record conventions):\n   - `string Pattern` - Glob pattern (e.g., \"*.Security.*\", \"PaymentService.*\")\n   - `ProtectionLevel Level` - Protection classification\n   - `string Reason` - Why this zone is protected\n   - `string? OwnerContact` - Optional contact for change requests\n\n3. **ProtectedZoneConfig record** for JSON deserialization:\n   - `List<ProtectedZoneJson> Zones` property\n   - `ProtectedZoneJson` record with camelCase JSON property names matching the config file schema\n\n4. **ProtectedZoneManager class** with:\n   - `List<ProtectedZone> Zones { get; }` property\n   - Constructor that takes a list of zones\n   - `bool IsProtected(string methodFullName, out ProtectedZone? zone)` - Check if method matches any zone\n   - `List<(string MethodId, ProtectedZone Zone)> GetProtectedMethods(IStorageService storage)` - Get all protected methods from database\n\nFollow the namespace pattern `AiCodeGraph.Core.Architecture`. Use positional record parameters for immutability consistent with other models like MethodModel, ClonePair, and IntentCluster.",
+            "status": "pending",
+            "testStrategy": "Create ProtectedZoneManagerTests.cs with tests for: 1) IsProtected returns true for matching patterns, 2) IsProtected returns false for non-matching methods, 3) Multiple zones with different protection levels, 4) Empty zones list returns no matches, 5) Null/empty method names handled gracefully.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Implement JSON configuration loading from .ai-code-graph/protected-zones.json",
+            "description": "Add configuration file loading capability to ProtectedZoneManager using System.Text.Json, with graceful fallback when the file is missing.",
+            "dependencies": [
+              1
+            ],
+            "details": "Extend ProtectedZoneManager with static factory method for loading configuration:\n\n1. **Add static LoadAsync method**:\n   ```csharp\n   public static async Task<ProtectedZoneManager> LoadAsync(string? configPath = null, CancellationToken ct = default)\n   ```\n   - Default path: `.ai-code-graph/protected-zones.json` relative to current directory\n   - If file doesn't exist, return manager with empty zones list (graceful fallback)\n   - Use `System.Text.Json.JsonSerializer.DeserializeAsync<ProtectedZoneConfig>()` with options:\n     - `PropertyNamingPolicy = JsonNamingPolicy.CamelCase`\n     - `PropertyNameCaseInsensitive = true`\n\n2. **JSON Schema** (config file format):\n   ```json\n   {\n     \"zones\": [\n       {\n         \"pattern\": \"*.Security.*\",\n         \"level\": \"DoNotModify\",\n         \"reason\": \"Security-critical code\",\n         \"owner\": \"security-team@company.com\"\n       }\n     ]\n   }\n   ```\n\n3. **Map level strings to enum**: Convert \"DoNotModify\", \"RequireApproval\", \"Deprecated\" strings to ProtectionLevel enum values (case-insensitive).\n\n4. **Validation**: Skip/warn about zones with empty patterns or invalid level values rather than throwing.",
+            "status": "pending",
+            "testStrategy": "Test with: 1) Valid JSON file with multiple zones loads correctly, 2) Missing config file returns empty zones without error, 3) Invalid JSON throws meaningful exception, 4) Invalid level string is handled gracefully, 5) Empty zones array works, 6) Path override parameter works correctly.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Add glob pattern matching for method/namespace/type identification",
+            "description": "Implement pattern matching logic that converts glob patterns to regex and matches against fully qualified method names.",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement pattern matching within ProtectedZoneManager (or reuse PatternMatcher if Task 77 is complete):\n\n1. **Pattern Matching Implementation**:\n   - Support `*` wildcard matching any sequence of characters\n   - Match against method's FullName property (format: `ReturnType Namespace.Type.Method(parameters)`)\n   - Also support matching against extracted namespace/type path (without return type and parameters)\n   - Case-insensitive matching\n\n2. **Helper method for namespace extraction**:\n   ```csharp\n   private static string ExtractNamespacePath(string fullMethodName)\n   // \"void MyApp.Domain.User.Validate(string)\" -> \"MyApp.Domain.User.Validate\"\n   ```\n\n3. **Pattern matching logic**:\n   ```csharp\n   private static bool MatchesPattern(string text, string pattern)\n   // Convert glob to regex: \"*.Security.*\" -> \"^.*\\.Security\\..*$\"\n   // Use Regex.Escape for special characters, then replace \\* with .*\n   ```\n\n4. **IsProtected implementation**:\n   - Iterate through all zones\n   - Return first matching zone (priority based on order in config)\n   - Extract namespace path from method FullName for matching\n   - Return false with null zone if no match\n\n5. **GetProtectedMethods implementation**:\n   - Query storage for all methods (use SearchMethodsAsync with \"*\" or similar)\n   - Check each method against all zones\n   - Return list of tuples with method ID and matching zone",
+            "status": "pending",
+            "testStrategy": "Test pattern matching: 1) \"*.Security.*\" matches \"MyApp.Security.Auth.Login\", 2) \"PaymentService.*\" matches \"PaymentService.ProcessPayment\", 3) Pattern doesn't match unrelated namespaces, 4) Case-insensitive matching works, 5) Multiple wildcards work (\"*.Controllers.*Handler*\"), 6) GetProtectedMethods returns correct results with test database.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Integrate protection warnings into context, impact, and callgraph commands",
+            "description": "Modify existing CLI commands to load protected zones configuration and display warnings when queries involve protected methods.",
+            "dependencies": [
+              1,
+              2,
+              3
+            ],
+            "details": "Update CLI commands to integrate ProtectedZoneManager:\n\n1. **ContextCommand integration** (`AiCodeGraph.Cli/Commands/ContextCommand.cs`):\n   - Load ProtectedZoneManager at start of command execution\n   - After finding the target method, check if it's protected\n   - If protected, output warning with level, reason, and owner contact:\n     ```\n     ⚠️ PROTECTED ZONE [DoNotModify]: Security-critical authentication code\n        Contact: security-team@company.com\n     ```\n   - Add optional `--zones-file` option to override config path\n\n2. **ImpactCommand integration** (`AiCodeGraph.Cli/Commands/ImpactCommand.cs`):\n   - Load ProtectedZoneManager\n   - During BFS traversal, track which methods in blast radius are protected\n   - In output (both tree and JSON format), mark protected methods:\n     - Tree: Append `[PROTECTED:DoNotModify]` or similar suffix\n     - JSON: Add `protectedZone` object with level, reason, owner\n   - Summary at end: \"X methods in blast radius are in protected zones\"\n\n3. **CallgraphCommand integration** (`AiCodeGraph.Cli/Commands/CallgraphCommand.cs`):\n   - Similar pattern to ImpactCommand\n   - Mark protected nodes in output with protection level indicator\n   - Use distinct formatting (e.g., brackets or prefix) for protected methods\n\n4. **Shared option**: Consider adding protected zones option to CommandHelpers for reuse:\n   ```csharp\n   public static Option<string?> CreateZonesOption() =>\n       new(\"--zones-file\", \"Path to protected-zones.json\");\n   ```\n\n5. **MCP Integration**: Update MCP tool handlers (get_context, get_impact) to include protection warnings in responses - follow same pattern as CLI commands.",
+            "status": "pending",
+            "testStrategy": "Integration tests: 1) context command shows warning for protected method, 2) context command shows no warning for unprotected method, 3) impact command marks protected methods in tree output, 4) impact command includes protection in JSON output, 5) callgraph command marks protected nodes, 6) Missing zones file doesn't break commands, 7) --zones-file override works correctly.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 5,
+        "recommendedSubtasks": 4,
+        "expansionPrompt": "Break down into: 1) Define ProtectedZone model and ProtectedZoneManager class. 2) Implement JSON config loading from .ai-code-graph/protected-zones.json. 3) Add pattern matching (glob) for method/namespace/type identification. 4) Integrate protection warnings into context, impact, and callgraph commands."
+      },
+      {
+        "id": "80",
+        "title": "Add Graph-First Query CLI Command",
+        "description": "Add `ai-code-graph query` command that accepts the unified GraphQuery schema via JSON, replacing token-search as the recommended retrieval method for agents.",
+        "details": "Add CLI command in `AiCodeGraph.Cli/Commands/QueryCommand.cs`:\n\n```csharp\nvar queryCommand = new Command(\"query\", \"Execute a graph query (recommended for agents)\");\n\nvar queryJsonOption = new Option<string?>(\"--json\", \"Inline JSON query\");\nvar queryFileOption = new Option<string?>(\"--file\", \"Path to query JSON file\");\nvar seedOption = new Option<string?>(\"--seed\", \"Quick seed: method pattern or ID\");\nvar depthOption = new Option<int>(\"--depth\", () => 3, \"Traversal depth\");\nvar directionOption = new Option<string>(\"--direction\", () => \"both\", \"callers|callees|both\");\nvar rankOption = new Option<string>(\"--rank\", () => \"blast-radius\", \"blast-radius|complexity|coupling\");\nvar topOption = new Option<int>(\"--top\", () => 20, \"Max results\");\nvar formatOption = new Option<string>(\"--format\", () => \"compact\", \"compact|json|table\");\n```\n\nExamples:\n```bash\n# Quick query with options\nai-code-graph query --seed \"UserService\" --depth 2 --rank complexity --top 10\n\n# Full query from JSON\nai-code-graph query --json '{\n  \"seed\": {\"methodPattern\": \"*Validate*\"},\n  \"expand\": {\"direction\": \"callers\", \"maxDepth\": 3},\n  \"filter\": {\"excludeTests\": true},\n  \"rank\": {\"strategy\": \"blastRadius\"},\n  \"output\": {\"maxResults\": 10, \"format\": \"compact\"}\n}'\n\n# Query from file (for complex/reusable queries)\nai-code-graph query --file queries/find-security-callers.json\n```\n\nOutput format (compact):\n```\nQuery: seed=*Validate*, direction=callers, depth=3, rank=blast-radius\nResults (10 of 47):\n  BR=156 CC=8  void AuthController.Login(LoginRequest)  src/Controllers/AuthController.cs:42\n  BR=89  CC=12 Task<User> UserService.CreateUser(CreateUserDto)  src/Services/UserService.cs:67\n  ...\n```",
+        "testStrategy": "1. Test quick query options produce valid GraphQuery. 2. Test JSON parsing for complex queries. 3. Test file-based queries. 4. Test all output formats. 5. Test error handling for invalid JSON/missing seed. 6. Integration test with TestSolution.",
+        "priority": "high",
+        "dependencies": [
+          "74",
+          "75"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define QueryCommand with Quick Options (--seed, --depth, --direction, --rank)",
+            "description": "Create QueryCommand.cs implementing ICommandHandler with the quick-query options that translate to GraphQuery objects for simple use cases without requiring full JSON input.",
+            "dependencies": [],
+            "details": "Create `AiCodeGraph.Cli/Commands/QueryCommand.cs` following existing command patterns (reference ContextCommand.cs and CallgraphCommand.cs):\n\n1. **Implement ICommandHandler interface**:\n   - `Command BuildCommand()` returns configured \"query\" command\n\n2. **Define quick options**:\n   - `--seed, -s` (string?): Method pattern or ID for quick queries\n   - `--depth, -d` (int): Traversal depth, default 3\n   - `--direction` (string): \"callers\" | \"callees\" | \"both\", default \"both\"\n   - `--rank, -r` (string): \"blast-radius\" | \"complexity\" | \"coupling\", default \"blast-radius\"\n   - `--top, -t` (int): Max results, default 20\n   - `--db` (string): Database path, default \"./ai-code-graph/graph.db\"\n   - `--format, -f` (string): \"compact\" | \"json\" | \"table\", default \"compact\"\n\n3. **SetAction handler**:\n   - Validate database with `CommandHelpers.ValidateDatabase()`\n   - Open StorageService\n   - Build GraphQuery from quick options (seed → QuerySeed.MethodPattern, depth → QueryExpand.MaxDepth, etc.)\n   - Execute via GraphQueryExecutor (from Task 75)\n   - Output results in requested format\n\n4. **Register in CommandRegistry.cs**:\n   - Add `new QueryCommand()` to handlers array\n\nExample usage: `ai-code-graph query --seed \"UserService\" --depth 2 --rank complexity --top 10`",
+            "status": "pending",
+            "testStrategy": "1. Unit test option parsing produces correct values. 2. Test --seed with pattern creates valid GraphQuery.Seed.MethodPattern. 3. Test direction mapping: \"callers\" → ExpandDirection.Callers. 4. Test rank mapping: \"blast-radius\" → RankStrategy.BlastRadius. 5. Integration test with TestSolution fixture using quick options.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Add --json and --file Options for Complex Query Input",
+            "description": "Extend QueryCommand with --json option for inline JSON queries and --file option for loading queries from files, enabling full GraphQuery schema usage for complex queries.",
+            "dependencies": [
+              1
+            ],
+            "details": "Extend `QueryCommand.cs` with JSON input options:\n\n1. **Add new options**:\n   - `--json, -j` (string?): Inline JSON query string\n   - `--file, -F` (FileInfo?): Path to query JSON file\n\n2. **Option precedence logic** in SetAction:\n   - If `--file` provided: read file contents, parse as JSON\n   - Else if `--json` provided: use inline JSON directly\n   - Else if `--seed` provided: use quick options (existing subtask 1 logic)\n   - Else: error - no query specified\n\n3. **JSON deserialization**:\n   - Use GraphQuerySerializer from Task 75 (or System.Text.Json with configured options)\n   - Handle JsonException with clear error message including line/position\n   - Validate deserialized query using GraphQueryValidator from Task 75\n\n4. **File loading**:\n   - Check file exists, return error if not\n   - Read file with appropriate encoding (UTF-8)\n   - Support cancellation token for async file read\n\n5. **Merge behavior** (optional enhancement):\n   - If --file/--json provided with quick options, quick options override specific fields\n   - Example: `--file base.json --top 50` uses file query but overrides MaxResults\n\nExample usages:\n- `ai-code-graph query --json '{\"seed\": {\"methodPattern\": \"*Validate*\"}}'`\n- `ai-code-graph query --file queries/security-audit.json`\n- `ai-code-graph query --file base.json --top 50 --format json`",
+            "status": "pending",
+            "testStrategy": "1. Test --json parses valid JSON correctly. 2. Test invalid JSON shows helpful error with position. 3. Test --file loads existing file. 4. Test --file with non-existent file shows error. 5. Test option precedence (--file wins over --json). 6. Test quick options override file query fields. 7. Integration test with sample query files.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Implement Argument-to-GraphQuery Translation Logic",
+            "description": "Create a QueryBuilder helper class that translates CLI arguments and options into a fully validated GraphQuery object, handling all mapping logic between string options and enum values.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create `AiCodeGraph.Cli/Commands/QueryBuilder.cs` to centralize translation logic:\n\n1. **QueryBuilder class** with static methods:\n   - `GraphQuery BuildFromOptions(string? seed, int depth, string direction, string rank, int top)` - converts quick options\n   - `GraphQuery MergeWithOptions(GraphQuery baseQuery, int? depth, string? direction, string? rank, int? top)` - merges JSON with overrides\n\n2. **Direction string mapping**:\n   ```csharp\n   private static ExpandDirection ParseDirection(string direction) => direction.ToLowerInvariant() switch\n   {\n       \"callers\" => ExpandDirection.Callers,\n       \"callees\" => ExpandDirection.Callees,\n       \"both\" => ExpandDirection.Both,\n       _ => throw new ArgumentException($\"Invalid direction: {direction}. Use: callers, callees, both\")\n   };\n   ```\n\n3. **Rank strategy mapping**:\n   ```csharp\n   private static RankStrategy ParseRankStrategy(string rank) => rank.ToLowerInvariant() switch\n   {\n       \"blast-radius\" or \"blastradius\" => RankStrategy.BlastRadius,\n       \"complexity\" => RankStrategy.Complexity,\n       \"coupling\" => RankStrategy.Coupling,\n       \"combined\" => RankStrategy.Combined,\n       _ => throw new ArgumentException($\"Invalid rank: {rank}. Use: blast-radius, complexity, coupling, combined\")\n   };\n   ```\n\n4. **Seed interpretation**:\n   - If seed contains `::` or looks like full method ID → use QuerySeed.MethodId\n   - If seed contains `*` or partial name → use QuerySeed.MethodPattern\n   - Add heuristic for namespace detection (contains `.` but no `(` or `::`) → QuerySeed.Namespace\n\n5. **GraphQuery assembly**:\n   ```csharp\n   return new GraphQuery\n   {\n       Seed = new QuerySeed { MethodPattern = seed },\n       Expand = new QueryExpand { Direction = ParseDirection(direction), MaxDepth = depth },\n       Rank = new QueryRank { Strategy = ParseRankStrategy(rank) },\n       Output = new QueryOutput { MaxResults = top, Format = OutputFormat.Compact }\n   };\n   ```\n\n6. **Validation**:\n   - Call GraphQueryValidator.Validate() on built query\n   - Return validation errors as ArgumentException with all issues listed",
+            "status": "pending",
+            "testStrategy": "1. Test BuildFromOptions creates correct GraphQuery for all direction values. 2. Test rank parsing with hyphenated and non-hyphenated variants. 3. Test seed heuristic: \"*Service*\" → MethodPattern. 4. Test seed heuristic: \"MyNamespace.MyClass::MyMethod(int)\" → MethodId. 5. Test MergeWithOptions correctly overrides specific fields. 6. Test invalid direction/rank throws with helpful message. 7. Test validation errors are surfaced.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Implement Compact/JSON/Table Output Formatters for Query Results",
+            "description": "Create output formatters for the three supported formats (compact, json, table), producing agent-friendly compact output as default and structured formats for integration.",
+            "dependencies": [
+              1,
+              3
+            ],
+            "details": "Create `AiCodeGraph.Cli/Commands/QueryOutputFormatter.cs` with format-specific output logic:\n\n1. **IQueryOutputFormatter interface** (optional, or just static methods):\n   - `void Format(QueryResult result, GraphQuery query, TextWriter output)`\n\n2. **Compact format** (default, agent-optimized):\n   ```\n   Query: seed=*Validate*, direction=callers, depth=3, rank=blast-radius\n   Results (10 of 47):\n     BR=156 CC=8  void AuthController.Login(LoginRequest)  src/Controllers/AuthController.cs:42\n     BR=89  CC=12 Task<User> UserService.CreateUser(CreateUserDto)  src/Services/UserService.cs:67\n     ...\n   ```\n   - First line: echo query parameters for context\n   - Second line: result count (shown vs total)\n   - Each result: rank score (BR/CC/COUP), method signature, location\n   - Use fixed-width columns for scores to enable visual scanning\n   - Truncate long method names to fit terminal width\n\n3. **JSON format** (for programmatic consumption):\n   ```json\n   {\n     \"query\": { \"seed\": \"*Validate*\", ... },\n     \"totalMatches\": 47,\n     \"results\": [\n       { \"methodId\": \"...\", \"fullName\": \"...\", \"rankScore\": 156, \"complexity\": 8, \"location\": \"...\" }\n     ]\n   }\n   ```\n   - Use consistent JSON serialization options (camelCase, indented)\n   - Include full query echo for reproducibility\n\n4. **Table format** (for human review):\n   ```\n   Rank | Score | Complexity | Method                                    | Location\n   -----|-------|------------|-------------------------------------------|------------------------\n   1    | 156   | 8          | AuthController.Login(LoginRequest)        | src/.../AuthController.cs:42\n   2    | 89    | 12         | UserService.CreateUser(CreateUserDto)     | src/.../UserService.cs:67\n   ```\n   - Use markdown-compatible table format\n   - Include rank number for easy reference\n   - Shorten paths to prevent line wrapping\n\n5. **Integration in QueryCommand.SetAction**:\n   - Parse `--format` option\n   - Call appropriate formatter\n   - Write to Console.Out\n\n6. **Error output**:\n   - If query fails validation: output errors in same format (JSON has \"errors\" array, compact/table use Console.Error)",
+            "status": "pending",
+            "testStrategy": "1. Test compact format includes query echo line. 2. Test compact format aligns columns correctly. 3. Test JSON format is valid JSON. 4. Test JSON round-trip: serialize then deserialize produces equivalent data. 5. Test table format has correct column headers. 6. Test long method names are truncated in compact/table. 7. Test result count shows 'X of Y' format. 8. Test error formatting for each output type. 9. Visual inspection of output in terminal.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 6,
+        "recommendedSubtasks": 4,
+        "expansionPrompt": "Break down into: 1) Define QueryCommand implementing ICommandHandler with quick options (--seed, --depth, --direction, --rank). 2) Add --json and --file options for complex query input. 3) Implement argument-to-GraphQuery translation logic. 4) Implement compact/json/table output formatters for query results."
+      },
+      {
+        "id": "81",
+        "title": "Add MCP Graph Query Tool",
+        "description": "Expose the graph query capability via MCP as `cg_query` tool, enabling AI agents to perform complex graph-first retrievals in a single call.",
+        "details": "Add to `AiCodeGraph.Cli/Mcp/Handlers/QueryHandler.cs`:\n\n```csharp\npublic class QueryHandler : IMcpToolHandler\n{\n    public McpTool GetToolDefinition() => new(\n        \"cg_query\",\n        \"Execute a graph query for method retrieval (recommended over search)\",\n        new McpToolInputSchema(\"object\", new()\n        {\n            [\"seed\"] = new(\"string\", \"Method pattern, ID, namespace, or cluster name\"),\n            [\"expand\"] = new(\"string\", \"none|callers|callees|both (default: both)\"),\n            [\"depth\"] = new(\"integer\", \"Max traversal depth (default: 3)\"),\n            [\"rank\"] = new(\"string\", \"blast-radius|complexity|coupling (default: blast-radius)\"),\n            [\"top\"] = new(\"integer\", \"Max results (default: 20)\"),\n            [\"excludeTests\"] = new(\"boolean\", \"Exclude test methods (default: true)\")\n        }, Required: [\"seed\"])\n    );\n    \n    public async Task<McpToolResult> HandleAsync(Dictionary<string, object> args, CancellationToken ct)\n    {\n        // Parse args into GraphQuery\n        // Execute via GraphQueryExecutor\n        // Format as compact text response\n    }\n}\n```\n\nResponse format (optimized for token economy):\n```\nQuery: seed=ValidateUser, direction=callers, depth=3\n10 results (of 47 total), ranked by blast-radius:\n[1] BR=156 CC=8 AuthController.Login src/Controllers:42\n[2] BR=89 CC=12 UserService.CreateUser src/Services:67\n...\nProtected zones affected: Security.* (DoNotModify)\nArchitectural layers: Presentation(3) Application(5) Domain(2)\n```",
+        "testStrategy": "1. Test tool schema is valid MCP format. 2. Test argument parsing. 3. Test response stays within token budget (< 2000 chars for typical queries). 4. Test protection zone warnings included. 5. Integration test via MCP stdio.",
+        "priority": "high",
+        "dependencies": [
+          "80"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define cg_query tool schema following IMcpToolHandler pattern",
+            "description": "Add the cg_query tool definition to an MCP handler using McpProtocolHelpers.CreateToolDef() with all required parameters (seed, expand, depth, rank, top, excludeTests) and proper JSON schema structure.",
+            "dependencies": [],
+            "details": "Create or extend a handler class implementing IMcpToolHandler. In GetToolDefinitions(), add the cg_query tool using McpProtocolHelpers.CreateToolDef() with:\n- Tool name: 'cg_query'\n- Description: 'Execute a graph query for method retrieval (recommended over search)'\n- Schema with properties:\n  - seed (string, required): 'Method pattern, ID, namespace, or cluster name'\n  - expand (string, optional, default 'both'): 'none|callers|callees|both'\n  - depth (integer, optional, default 3): 'Max traversal depth'\n  - rank (string, optional, default 'blast-radius'): 'blast-radius|complexity|coupling'\n  - top (integer, optional, default 20): 'Max results'\n  - excludeTests (boolean, optional, default true): 'Exclude test methods'\n- Required array: ['seed']\n\nAdd 'cg_query' to the SupportedTools property. Follow the existing pattern in QueryHandler.cs or ContextHandler.cs.",
+            "status": "pending",
+            "testStrategy": "Verify tool appears in MCP tools/list response with correct schema. Validate all property types, descriptions, and required field match specification. Test schema parsing with sample JSON inputs.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Implement HandleAsync with argument parsing and GraphQueryExecutor integration",
+            "description": "Implement the cg_query handler method that parses JsonNode arguments, constructs a GraphQuery object, executes it via GraphQueryExecutor, and returns results.",
+            "dependencies": [
+              1
+            ],
+            "details": "In HandleAsync(), add case for 'cg_query' that delegates to a HandleQueryAsync method:\n\n1. Parse arguments from JsonNode:\n   - seed (required): args?['seed']?.GetValue<string>()\n   - expand: args?['expand']?.GetValue<string>() ?? 'both'\n   - depth: args?['depth']?.GetValue<int>() ?? 3\n   - rank: args?['rank']?.GetValue<string>() ?? 'blast-radius'\n   - top: args?['top']?.GetValue<int>() ?? 20\n   - excludeTests: args?['excludeTests']?.GetValue<bool>() ?? true\n\n2. Validate required parameter: if seed is null/empty, return 'Error: seed parameter required'\n\n3. Construct GraphQuery object (from Task 75/80 dependency) with parsed parameters\n\n4. Execute via GraphQueryExecutor.ExecuteAsync(query, ct)\n\n5. Handle empty results: return 'No methods found matching seed: {seed}'\n\n6. Pass QueryResult to response formatter (subtask 3)\n\nNote: This depends on GraphQueryExecutor from Task 80. If implementing before Task 80 is complete, stub the executor call.",
+            "status": "pending",
+            "testStrategy": "Test argument parsing with valid/invalid inputs. Test required parameter validation. Test with mock GraphQueryExecutor to verify correct query construction. Integration test with actual executor once available.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Implement token-budget-aware response formatting with protection zone warnings",
+            "description": "Create compact response formatter targeting <2000 chars that includes ranked results, protection zone warnings, and architectural layer summary.",
+            "dependencies": [
+              2
+            ],
+            "details": "Create a private method FormatQueryResponse(QueryResult result, GraphQuery query) that returns a compact string:\n\n1. Header line:\n   'Query: seed={seed}, direction={expand}, depth={depth}'\n   '{count} results (of {total} total), ranked by {rank}:'\n\n2. Result rows (truncate to fit budget):\n   '[{idx}] BR={blastRadius} CC={complexity} {MethodName.Truncate(40)} {filePath}:{line}'\n   Example: '[1] BR=156 CC=8 AuthController.Login src/Controllers:42'\n\n3. Protection zone warnings (if any affected):\n   'Protected zones affected: Security.* (DoNotModify), Data.* (ReviewRequired)'\n\n4. Architectural layer summary:\n   'Architectural layers: Presentation({n}) Application({n}) Domain({n})'\n\n5. Token budget enforcement:\n   - Target <2000 chars total\n   - Truncate method names to 40 chars with ellipsis\n   - Limit result count if needed to fit budget\n   - Omit protection/layer sections if no space\n\nUse StringBuilder for efficient string construction. Follow compact format patterns from existing ContextHandler and QueryHandler output.",
+            "status": "pending",
+            "testStrategy": "Test response stays under 2000 chars for typical queries (20 results). Test truncation of long method names. Test protection zone warning inclusion. Test architectural layer aggregation. Test edge cases: empty results, single result, max results.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 5,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Break down into: 1) Define cg_query tool schema in MCP format following IMcpToolHandler pattern. 2) Implement QueryHandler with argument parsing and GraphQueryExecutor integration. 3) Implement token-budget-aware response formatting with protection zone warnings."
+      },
+      {
+        "id": "82",
+        "title": "Deprecate Token Search as Primary Retrieval",
+        "description": "Update documentation, CLI help, and MCP tool descriptions to recommend graph query over token/semantic search, while keeping search available as a secondary recall mechanism.",
+        "details": "Changes required:\n\n1. **CLI help text updates**:\n   - `token-search` command: Add deprecation notice pointing to `query`\n   - `semantic-search` command: Add note about limited accuracy without LLM embeddings\n   - `query` command: Mark as \"recommended for AI agents\"\n\n2. **MCP tool descriptions**:\n   - `cg_search_code`: Update description to \"Fallback search when graph query returns no results\"\n   - `cg_query`: Mark as \"Primary retrieval method - use this first\"\n\n3. **Documentation updates**:\n   - `docs/LLM-QUICKSTART.md`: Replace search examples with query examples\n   - `README.md`: Update \"How CG Tools Compare\" section\n   - `CLAUDE.md`: Update slash command recommendations\n\n4. **Slash commands** (`.claude/commands/cg/`):\n   - Add `query.md` as the new primary retrieval command\n   - Update `token-search.md` with deprecation note\n   - Update `semantic-search.md` with accuracy warning\n\n5. **Add migration guide**: `docs/MIGRATION-graph-first.md` explaining:\n   - Why graph query is preferred (deterministic, structural, faster)\n   - When to still use search (unknown method names, natural language)\n   - Example query equivalents for common search patterns",
+        "testStrategy": "1. Review all help text for consistency. 2. Verify deprecation warnings appear. 3. Test slash commands still work. 4. Docs review for accuracy. 5. Manual test of recommended workflow in Claude Code session.",
+        "priority": "medium",
+        "dependencies": [
+          "80",
+          "81"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Update CLI Help Text for Search Commands",
+            "description": "Add deprecation notices and recommendations to CLI command help text for token-search, semantic-search, and query commands.",
+            "dependencies": [],
+            "details": "In AiCodeGraph.Cli/Commands/, update the command descriptions:\n\n1. TokenSearchCommand.cs: Change description to include deprecation notice: \"[Deprecated] Search code by token overlap. Prefer 'query' command for structured retrieval. Use token-search only as fallback when method names are unknown.\"\n\n2. SemanticSearchCommand.cs: Update description to warn about accuracy: \"Search code by semantic meaning. Note: Accuracy is limited with hash-based embeddings. For best results, re-analyze with --embedding-engine openai.\"\n\n3. QueryCommand.cs (if exists, or add to existing query command): Mark description as \"[Recommended] Primary retrieval method for AI agents. Query the code graph by method name, caller/callee relationships, or complexity metrics.\"",
+            "status": "pending",
+            "testStrategy": "Run `ai-code-graph token-search --help`, `ai-code-graph semantic-search --help`, and `ai-code-graph query --help` to verify deprecation notices and recommendations appear in help output.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Update MCP Tool Descriptions",
+            "description": "Modify MCP server tool descriptions to prioritize graph query over search methods.",
+            "dependencies": [],
+            "details": "In AiCodeGraph.Cli/Mcp/McpServer.cs, update the tool registration descriptions:\n\n1. Find `cg_token_search` tool registration and update description to: \"Fallback search when graph query returns no results. Searches by token overlap - use cg_query first for structured retrieval.\"\n\n2. Find `cg_semantic_search` tool registration and update description to: \"Fallback semantic search. Limited accuracy with hash-based embeddings. Use cg_query first.\"\n\n3. Find `cg_query` tool (or the primary graph query tool) and update description to: \"Primary retrieval method - use this first. Query code graph by method name, callers, callees, complexity, or cluster membership.\"",
+            "status": "pending",
+            "testStrategy": "Start MCP server and call tools/list to verify updated descriptions. Test that descriptions correctly indicate query as primary and search as fallback.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Update Documentation Files",
+            "description": "Revise README.md, docs/LLM-QUICKSTART.md, and CLAUDE.md to recommend graph query as the primary retrieval method.",
+            "dependencies": [],
+            "details": "Update these documentation files:\n\n1. **docs/LLM-QUICKSTART.md**: Replace token-search/semantic-search examples with query command examples. Add section explaining why graph query is preferred.\n\n2. **README.md**: Update \"How CG Tools Compare\" section to show query as primary method, with search methods listed as fallbacks. Update any quick-start examples.\n\n3. **CLAUDE.md**: Update slash command recommendations section. Change `/cg:token-search` and `/cg:semantic-search` references to note they are fallbacks. Promote `/cg:query` (or equivalent) as the recommended first choice for retrieval.",
+            "status": "pending",
+            "testStrategy": "Review all three files for consistency. Verify query is presented as primary method throughout. Check that search methods are clearly marked as secondary/fallback options.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Update Slash Command Files",
+            "description": "Modify Claude Code slash commands to add query.md and update existing search commands with deprecation notes.",
+            "dependencies": [],
+            "details": "In `.claude/commands/cg/` directory:\n\n1. **Create query.md**: Add new slash command file for graph query as primary retrieval. Include examples of common query patterns (by method name, by caller, by complexity).\n\n2. **Update token-search.md**: Add deprecation notice at top: \"Note: This command is deprecated for primary retrieval. Use /cg:query first. Token search is useful when method names are unknown or for natural language fuzzy matching.\"\n\n3. **Update semantic-search.md**: Add accuracy warning: \"Note: Semantic search accuracy is limited with hash-based embeddings. For better results, re-analyze with LLM embeddings. Consider using /cg:query for deterministic structural queries.\"",
+            "status": "pending",
+            "testStrategy": "Test slash commands in Claude Code session. Verify /cg:query works as primary retrieval. Verify deprecation notes appear when using /cg:token-search and /cg:semantic-search.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Create Migration Guide Document",
+            "description": "Write docs/MIGRATION-graph-first.md explaining the shift from search to graph query as primary retrieval.",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "details": "Create new file `docs/MIGRATION-graph-first.md` with these sections:\n\n1. **Why Graph Query is Preferred**: Explain benefits - deterministic results, structural accuracy, faster execution, no embedding quality dependency.\n\n2. **When to Still Use Search**: Document valid use cases - unknown method names, natural language exploration, fuzzy matching when exact names aren't known.\n\n3. **Query Equivalents for Common Search Patterns**: Provide migration examples:\n   - Instead of `token-search \"handle error\"` → `query --method \"*Error*\"` or `query --callers \"HandleError\"`\n   - Instead of `semantic-search \"authentication\"` → `query --cluster auth` or `query --method \"*Auth*\"`\n\n4. **Recommended Workflow**: Describe the new pattern: Try query first → Fall back to search if no results → Use search for exploration.",
+            "status": "pending",
+            "testStrategy": "Review document for clarity and completeness. Verify all example commands work. Have another developer follow the migration guide to ensure instructions are accurate.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 3,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "This is primarily a documentation and messaging task. No subtask expansion needed - the work is spread across multiple files but each change is small."
+      },
+      {
+        "id": "83",
+        "title": "Add Architectural Summary to Context Command",
+        "description": "Enhance the `context` command to include architectural facts: layer assignment, protection zone status, dependency violations, and blast radius, providing a complete picture for safe code modification.",
+        "details": "Update `AiCodeGraph.Cli/Commands/ContextCommand.cs` to include:\n\n```\nMethod: MyApp.Services.UserService.CreateUser(CreateUserDto)\nFile: src/Services/UserService.cs:67\nComplexity: CC=12 LOC=45 Nesting=4\nBlast Radius: 89 transitive callers, depth=5, entry points: AuthController.Login, AdminController.CreateUser\nLayer: Application (confidence: 0.95)\nProtection: None\nCallers (5): AuthController.Login, AdminService.CreateUser, BatchProcessor.ProcessUsers (+2 more)\nCallees (3): UserRepository.Save, PasswordHasher.Hash, EmailService.SendWelcome\nCluster: \"user-management\" (12 members, cohesion: 0.78)\nDuplicates: AccountService.CreateAccount (score: 0.85)\n\nArchitectural Notes:\n  ⚠ High blast radius - changes affect 89 callers\n  ⚠ Calls deprecated method: LegacyNotificationService.Send\n  ✓ No dependency violations\n```\n\nNew fields to add:\n- **Blast Radius**: Direct callers, transitive callers, depth, entry points\n- **Layer**: Assigned architectural layer with confidence\n- **Protection**: Protection zone status if any\n- **Architectural Notes**: Warnings for high impact, violations, deprecated calls\n\nAdd `--include-arch` flag (default: true for context command) to control inclusion of architectural facts.",
+        "testStrategy": "1. Test context output includes all new fields when data exists. 2. Test graceful handling when layer/protection data missing. 3. Test warning generation logic. 4. Test compact format stays readable. 5. Integration test with full analysis including layers and protection zones.",
+        "priority": "high",
+        "dependencies": [
+          "76",
+          "78",
+          "79"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Extend ContextCommand with Blast Radius Data",
+            "description": "Add blast radius output section to ContextCommand showing direct callers count, transitive callers count, depth, and entry points.",
+            "dependencies": [],
+            "details": "Modify AiCodeGraph.Cli/Commands/ContextCommand.cs to add blast radius computation and display after the existing Complexity line. This subtask depends on Task 78's BlastRadiusAnalyzer and StorageService.GetMethodMetricsAsync returning BlastRadius/BlastDepth columns. Add a new output section formatted as: `Blast Radius: {transitiveCount} transitive callers, depth={maxDepth}, entry points: {entryPointNames}`. Implementation steps:\n\n1. After metrics retrieval (line 71-73), fetch blast radius data from storage using the method ID. The data should come from the extended Metrics table per Task 78.2.\n2. If blast radius data exists, compute/retrieve entry points. Entry points are methods with no callers that transitively call the target (reuse BFS logic from ImpactCommand.cs lines 73-113).\n3. Format entry point names as short TypeName.MethodName, showing up to 3 with '(+N more)' suffix pattern consistent with existing callers/callees display.\n4. Output the formatted blast radius line between Complexity and Callers sections.\n5. Handle gracefully when blast radius data is not computed (skip the section entirely).\n\nAdd the `--include-arch` option (bool, default true) to control whether architectural sections are included. When false, skip blast radius, layer, protection, and architectural warnings sections.",
+            "status": "pending",
+            "testStrategy": "1. Test context output includes blast radius line when data exists in database. 2. Test entry point names are correctly formatted and limited to 3 with overflow count. 3. Test graceful omission when blast radius data is missing (no errors, no output line). 4. Test --include-arch=false hides the blast radius section. 5. Integration test with a method having known transitive callers verifies correct counts.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Add Layer Assignment and Protection Zone Status to Output",
+            "description": "Extend ContextCommand output with architectural layer assignment (with confidence) and protection zone status using data from Tasks 76 and 79.",
+            "dependencies": [
+              1
+            ],
+            "details": "Modify AiCodeGraph.Cli/Commands/ContextCommand.cs to add layer and protection zone sections after the Blast Radius line. This subtask depends on Task 76's LayerDetector/StorageService.GetLayerForTypeAsync and Task 79's ProtectedZoneManager. Implementation steps:\n\n1. After blast radius output, retrieve the layer assignment for the method's containing type. Use the TypeId (extractable from the method's FullName by removing the method portion) to query StorageService.GetLayerForTypeAsync (per Task 76.2).\n2. Format layer output as: `Layer: {LayerName} (confidence: {confidence:F2})` e.g., 'Layer: Application (confidence: 0.95)'. If no layer data exists, output 'Layer: Unknown'.\n3. For protection zones, instantiate ProtectedZoneManager and call IsProtected with the method's FullName. Load configuration from .ai-code-graph/protected-zones.json per Task 79.2.\n4. Format protection output as: `Protection: {ProtectionLevel}` if protected, or `Protection: None` if not in any zone.\n5. If protected, include the zone pattern that matched, e.g., 'Protection: Critical (pattern: *.Security.*)'\n6. Respect the --include-arch flag from subtask 1 to conditionally include these sections.\n7. Handle missing dependencies gracefully (if layer or protection services unavailable, skip those sections without errors).",
+            "status": "pending",
+            "testStrategy": "1. Test layer output displays correctly when TypeLayers table has data. 2. Test 'Layer: Unknown' shown when no layer assignment exists. 3. Test protection status shows 'None' when method is not in any protected zone. 4. Test protection status shows level and pattern when method matches a protected zone. 5. Test graceful handling when protected-zones.json is missing. 6. Test --include-arch=false hides layer and protection sections.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Add Architectural Warnings Section for High Impact and Violations",
+            "description": "Implement the Architectural Notes section that displays warnings for high blast radius, dependency violations, and deprecated method calls.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Modify AiCodeGraph.Cli/Commands/ContextCommand.cs to add an 'Architectural Notes' section at the end of the output that aggregates warnings. Implementation steps:\n\n1. Create a list to collect warning strings as the context data is gathered.\n2. High blast radius warning: If transitive callers > threshold (e.g., 50), add warning: '⚠ High blast radius - changes affect {N} callers'. The threshold could be configurable but start with a reasonable default.\n3. Protection zone violation: If the method is in a protected zone, add warning: '⚠ In protected zone: {zoneName} - {message}' where message comes from the zone configuration per Task 79.\n4. Dependency violation detection: Compare method's layer vs callees' layers. If a higher layer calls a lower layer inappropriately (e.g., Infrastructure calling Presentation), add: '⚠ Layer violation: calls {calleeName} in {calleeLayer}'. Use the layer hierarchy from Task 76: Presentation < Application < Domain < Infrastructure.\n5. Deprecated call detection: Check if any callees are marked as deprecated (this requires checking if callee methods have [Obsolete] attribute stored in database or match a deprecated pattern).\n6. If no warnings exist, add: '✓ No architectural concerns'. \n7. Format the section with header 'Architectural Notes:' followed by indented warning/success lines.\n8. Respect --include-arch flag; when false, omit the entire Architectural Notes section.\n9. Use Unicode symbols (⚠ and ✓) for visual distinction in terminal output.",
+            "status": "pending",
+            "testStrategy": "1. Test high blast radius warning triggers when transitive callers exceed threshold. 2. Test protection zone warning appears for protected methods. 3. Test layer violation warning when method calls inappropriate layers. 4. Test 'No architectural concerns' message when no warnings apply. 5. Test multiple warnings can appear together in the section. 6. Test --include-arch=false hides the entire Architectural Notes section. 7. Test output formatting is readable and properly indented.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 5,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Break down into: 1) Extend ContextCommand output with blast radius data (direct/transitive callers, depth, entry points). 2) Add layer assignment and protection zone status to output. 3) Add architectural warnings section for high impact, violations, and deprecated calls."
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-01-28T14:08:36.573Z",
-      "taskCount": 63,
-      "completedCount": 63,
+      "lastModified": "2026-02-03T20:51:41.133Z",
+      "taskCount": 83,
+      "completedCount": 64,
       "tags": [
         "master"
       ]

@@ -1,21 +1,173 @@
 {
 	"meta": {
-		"generatedAt": "2026-01-28T13:48:13.943Z",
-		"tasksAnalyzed": 1,
-		"totalTasks": 63,
-		"analysisCount": 1,
+		"generatedAt": "2026-02-03T20:26:06.820Z",
+		"tasksAnalyzed": 20,
+		"totalTasks": 83,
+		"analysisCount": 20,
 		"thresholdScore": 5,
 		"projectName": "Task Master",
-		"usedResearch": false
+		"usedResearch": true
 	},
 	"complexityAnalysis": [
 		{
-			"taskId": 63,
-			"taskTitle": "Refactor CLI Program.cs - Split Monolithic File into Command Handler Classes",
+			"taskId": 64,
+			"taskTitle": "PRD: Token-Efficient Next Milestone (source of truth)",
+			"complexityScore": 2,
+			"recommendedSubtasks": 0,
+			"expansionPrompt": "This is a documentation task already with a well-defined subtask. No further expansion needed - the existing subtask covers adding the change log section.",
+			"reasoning": "Task 64 is a documentation-only task focused on maintaining a PRD file. It already has 1 subtask defined which is sufficient. The work involves editing markdown files and ensuring consistency - no code changes required. The existing subtask adequately covers the scope."
+		},
+		{
+			"taskId": 65,
+			"taskTitle": "CLI Output Contract: add --format compact|table|json|csv and make compact the default for agent commands",
 			"complexityScore": 7,
-			"recommendedSubtasks": 8,
-			"expansionPrompt": "Break down Task 63 (Refactor CLI Program.cs) into subtasks covering: 1) Create ICommandHandler interface and CommandRegistry infrastructure in Commands/ folder, 2) Extract helper functions to Helpers/ folder (ModelCountHelpers, OutputHelpers, AnalysisStageHelpers, GitHelpers, VectorIndexCache), 3) Extract analysis-related commands (analyze) with their unique workspace loading and stage processing logic, 4) Extract query commands (callgraph, hotspots, tree, dead-code, impact) that share common database access patterns, 5) Extract search and similarity commands (similar, token-search, semantic-search, duplicates, clusters), 6) Extract export and drift commands (export, drift, coupling, churn, diff), 7) Extract integration commands (context, mcp, setup-claude), 8) Reduce Program.cs to minimal entry point and verify all CLI help text and functional tests pass. Each subtask should include updating necessary using statements, testing the extracted commands independently, and ensuring no regression in CLI interface or behavior.",
-			"reasoning": "This is a significant but well-defined refactoring task with a clear pattern to follow from the completed Task 52 MCP refactoring. The complexity score of 7 reflects: (1) Large scope - 19 commands and 15+ helper functions across 2,483 lines need extraction, (2) Pattern is established - the MCP handler pattern with IMcpToolHandler interface provides a proven template, (3) No architectural decisions needed - the task description specifies exactly where files should go and how they should be structured, (4) Mechanical but careful work - each command extraction requires preserving exact option names, default values, and behavior, (5) Testing overhead - requires verification that all 303+ tests pass plus CLI help text diff testing, (6) Risk mitigation - the work can be parallelized by command category since commands are largely independent. The 8 subtasks group related commands by function while separating infrastructure setup (interface/registry) from actual command extraction. This allows incremental verification and reduces the chance of introducing regressions."
+			"recommendedSubtasks": 0,
+			"expansionPrompt": "Task already has 4 well-defined subtasks covering: 1) output contract specification, 2) shared --format option implementation, 3) compact formatter for key commands, 4) JSON stability. No further expansion needed.",
+			"reasoning": "Medium-high complexity. The codebase has 18 CLI commands defined in CommandRegistry.cs. Adding --format requires touching multiple command handlers (context, callgraph, hotspots, impact, dead-code, coupling, drift). Existing pattern in TreeCommand.cs shows how --format options work. The 4 existing subtasks cover the scope well. Main challenges: ensuring consistency across commands, designing the compact output format, and not breaking existing JSON consumers."
+		},
+		{
+			"taskId": 66,
+			"taskTitle": "Method identity: introduce stable MethodId in outputs and allow selecting methods via --id",
+			"complexityScore": 5,
+			"recommendedSubtasks": 0,
+			"expansionPrompt": "Task has 3 well-defined subtasks covering: 1) ensuring MethodId in models, 2) --id resolution path, 3) documentation updates. No further expansion needed.",
+			"reasoning": "Moderate complexity. Good news: SymbolIdGenerator.cs already generates stable method IDs used across the codebase. StorageService already stores and queries by method ID. The main work is: ensuring IDs appear in CLI output (currently some commands show FullName but not Id), adding --id option parsing alongside existing pattern matching, and implementing disambiguation logic. The 3 subtasks adequately cover this scope."
+		},
+		{
+			"taskId": 67,
+			"taskTitle": "DB Metadata + Staleness Detection (db-info/status command)",
+			"complexityScore": 6,
+			"recommendedSubtasks": 0,
+			"expansionPrompt": "Task has 3 well-defined subtasks covering: 1) AnalysisMetadata table, 2) db-info command, 3) staleness heuristic. No further expansion needed.",
+			"reasoning": "Moderate complexity. SchemaDefinition.cs shows an existing Metadata table that can store key-value pairs. Adding analyzedAt, toolVersion, gitCommit requires: extending the schema (or using existing Metadata table), modifying AnalyzeCommand to write metadata, creating a new DbInfoCommand following ICommandHandler pattern, implementing git HEAD comparison logic. The 3 subtasks cover this well."
+		},
+		{
+			"taskId": 68,
+			"taskTitle": "Pipeline slimming: introduce --stages core|full for analyze",
+			"complexityScore": 5,
+			"recommendedSubtasks": 0,
+			"expansionPrompt": "Task has 3 well-defined subtasks covering: 1) stage definitions, 2) --stages flag implementation, 3) optional feature gating. No further expansion needed.",
+			"reasoning": "Moderate complexity. AnalyzeCommand.cs shows the current pipeline: LoadWorkspace → ExtractCodeModel → BuildCallGraph → ComputeMetrics → NormalizeMethods → GenerateEmbeddings → Store → DetectDuplicates. Adding stage selection requires conditionally skipping NormalizeMethods, GenerateEmbeddings, and DetectDuplicates for 'core' mode. AnalysisStageHelpers already modularizes stages. The 3 subtasks cover this adequately."
+		},
+		{
+			"taskId": 69,
+			"taskTitle": "Docs: LLM Quickstart + Minimal Agent Workflow",
+			"complexityScore": 2,
+			"recommendedSubtasks": 0,
+			"expansionPrompt": "Task has 2 well-defined subtasks covering: 1) LLM quickstart creation, 2) README trimming. No further expansion needed - these are documentation tasks.",
+			"reasoning": "Low complexity. This is a documentation-only task. No code changes required. The 2 subtasks adequately cover writing the quickstart guide and updating README. The main effort is ensuring examples align with the --format compact defaults being added in Task 65."
+		},
+		{
+			"taskId": 70,
+			"taskTitle": "MCP: ensure compact responses + sensible defaults for agent usage",
+			"complexityScore": 4,
+			"recommendedSubtasks": 0,
+			"expansionPrompt": "Task has 2 well-defined subtasks covering: 1) auditing MCP tool outputs, 2) adding integration tests. No further expansion needed.",
+			"reasoning": "Moderate complexity. 5 MCP handlers exist in AiCodeGraph.Cli/Mcp/Handlers/. ContextHandler.cs already shows bounded output (Take(5) for callers/callees). Main work: audit all handlers for consistent bounds, ensure MethodId included, add top/depth/max-items defaults. The 2 subtasks are sufficient - this is primarily an audit and consistency task."
+		},
+		{
+			"taskId": 71,
+			"taskTitle": "Bench artifacts: gitignore benchmark/ and document local-only benchmarking",
+			"complexityScore": 1,
+			"recommendedSubtasks": 0,
+			"expansionPrompt": "Task has 1 well-defined subtask which is sufficient for this simple configuration task. No further expansion needed.",
+			"reasoning": "Very low complexity. This involves adding one line to .gitignore and a brief note in documentation. The single subtask is appropriate for this simple housekeeping task."
+		},
+		{
+			"taskId": 72,
+			"taskTitle": "Refactor CLI entrypoint to support shared options (format, db, compact) consistently",
+			"complexityScore": 6,
+			"recommendedSubtasks": 0,
+			"expansionPrompt": "Task has 2 well-defined subtasks covering: 1) shared option helpers, 2) help text organization. No further expansion needed.",
+			"reasoning": "Moderate complexity. CommandHelpers.cs exists for validation helpers. Need to create shared Option builders for --db, --format, --top, --threshold, --include-private and refactor 18 commands to use them. TreeCommand.cs and HotspotsCommand.cs show current option definitions that can be consolidated. The 2 subtasks cover the scope - refactoring and documentation."
+		},
+		{
+			"taskId": 73,
+			"taskTitle": "Regression test suite: output snapshots for key commands in compact and json modes",
+			"complexityScore": 5,
+			"recommendedSubtasks": 0,
+			"expansionPrompt": "Task has 2 well-defined subtasks covering: 1) golden snapshot tests, 2) documentation of update workflow. No further expansion needed.",
+			"reasoning": "Moderate complexity. Test infrastructure exists in AiCodeGraph.Tests/. Need to: create a test fixture database, add snapshot tests for 6 commands × 2 formats = 12 snapshots, set up CI validation. CliCommandTests.cs and QueryCommandsTests.cs show existing test patterns. The 2 subtasks adequately cover implementation and documentation."
+		},
+		{
+			"taskId": 74,
+			"taskTitle": "Implement Graph Traversal Engine with Configurable Strategies",
+			"complexityScore": 7,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Break down into: 1) Define TraversalConfig, TraversalResult, and core interfaces. 2) Implement BFS/DFS traversal logic with depth limits. 3) Implement BlastRadius ranking strategy using transitive caller count. 4) Implement Complexity and Coupling ranking strategies using existing metrics. 5) Add Combined ranking with weighted scoring and caching for performance.",
+			"reasoning": "High complexity. This is a new engine requiring: traversal algorithms (BFS/DFS), multiple ranking strategies (BlastRadius, Complexity, Coupling, Combined), filter support, and caching. StorageService has GetCallersAsync/GetCalleesAsync but not batch traversal. CallGraphBuilder shows call graph patterns. Requires careful algorithm design for performance on large graphs. The task details specify caching blast radius per traversal session."
+		},
+		{
+			"taskId": 75,
+			"taskTitle": "Implement Unified Graph Query Schema",
+			"complexityScore": 8,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Break down into: 1) Define GraphQuery, QuerySeed, QueryExpand, QueryFilter, QueryRank, QueryOutput records. 2) Implement query validation and error handling. 3) Create GraphQueryExecutor that bridges to GraphTraversalEngine. 4) Implement query plan caching for repeated similar queries. 5) Add JSON schema definition and serialization support for --query-file option.",
+			"reasoning": "High complexity. This builds on Task 74 to create a declarative query layer. Requires: multiple record types with validation, a query executor, JSON serialization, caching, and integration with the traversal engine. The schema must support multiple seed types (methodId, pattern, namespace, cluster), which requires different resolution paths. This is an architectural task that defines the query contract for both CLI and MCP."
+		},
+		{
+			"taskId": 76,
+			"taskTitle": "Add Architectural Layer Detection",
+			"complexityScore": 6,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Break down into: 1) Define ArchitecturalLayer enum and LayerAssignment record, implement pattern matching logic. 2) Add TypeLayers table to SQLite schema and storage methods. 3) Implement dependency-direction refinement to improve confidence. 4) Add 'layers' CLI command following ICommandHandler pattern.",
+			"reasoning": "Moderate-high complexity. Requires: namespace pattern matching against configurable rules, confidence scoring when patterns conflict, dependency analysis to refine assignments, schema extension, and a new CLI command. CouplingAnalyzer.cs shows similar pattern-based grouping logic that can be referenced. The task is well-scoped but involves multiple concerns."
+		},
+		{
+			"taskId": 77,
+			"taskTitle": "Implement Forbidden Dependency Detection",
+			"complexityScore": 6,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Break down into: 1) Define DependencyRule and DependencyViolation models, implement rule file loading. 2) Implement pattern matching for FromPattern/ToPattern against method calls. 3) Add built-in default rules for Clean Architecture patterns. 4) Create 'check-deps' CLI command with --rules option.",
+			"reasoning": "Moderate-high complexity. Depends on Task 76 for layer assignments. Requires: rule definition model, pattern matching engine, rule file loading (JSON), and CLI command. StorageService already has GetCallGraphForMethodsAsync that returns all call edges. The pattern matching against glob patterns is the key algorithmic challenge."
+		},
+		{
+			"taskId": 78,
+			"taskTitle": "Add Blast Radius Computation and Visualization",
+			"complexityScore": 5,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Break down into: 1) Implement BlastRadiusAnalyzer with reverse call graph traversal. 2) Extend SQLite schema with BlastRadius/BlastDepth columns in Metrics table. 3) Integrate computation into analyze pipeline via AnalysisStageHelpers. 4) Update hotspots/context commands to use blast radius for sorting and display.",
+			"reasoning": "Moderate complexity. The core algorithm (transitive caller count via BFS on reverse call graph) is straightforward. StorageService has GetCallersAsync. Main work: efficient batch computation, schema extension, pipeline integration, and updating existing commands. The combined risk formula (complexity × log(blast_radius + 1)) is simple math."
+		},
+		{
+			"taskId": 79,
+			"taskTitle": "Implement 'Do Not Touch' Zone Marking",
+			"complexityScore": 5,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Break down into: 1) Define ProtectedZone model and ProtectedZoneManager class. 2) Implement JSON config loading from .ai-code-graph/protected-zones.json. 3) Add pattern matching (glob) for method/namespace/type identification. 4) Integrate protection warnings into context, impact, and callgraph commands.",
+			"reasoning": "Moderate complexity. This is primarily a configuration-driven feature. Requires: config file schema and loading, glob pattern matching, and integration with existing commands. The pattern matching is similar to Task 77. No schema changes needed - this operates at display time, not storage time."
+		},
+		{
+			"taskId": 80,
+			"taskTitle": "Add Graph-First Query CLI Command",
+			"complexityScore": 6,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Break down into: 1) Define QueryCommand implementing ICommandHandler with quick options (--seed, --depth, --direction, --rank). 2) Add --json and --file options for complex query input. 3) Implement argument-to-GraphQuery translation logic. 4) Implement compact/json/table output formatters for query results.",
+			"reasoning": "Moderate complexity. Depends on Tasks 74-75 for the underlying engine. The CLI command itself follows established patterns in the codebase. Main work: option parsing, GraphQuery construction from multiple input sources, and output formatting. ContextCommand.cs and CallgraphCommand.cs show similar patterns."
+		},
+		{
+			"taskId": 81,
+			"taskTitle": "Add MCP Graph Query Tool",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down into: 1) Define cg_query tool schema in MCP format following IMcpToolHandler pattern. 2) Implement QueryHandler with argument parsing and GraphQueryExecutor integration. 3) Implement token-budget-aware response formatting with protection zone warnings.",
+			"reasoning": "Moderate complexity. Depends on Task 80 for the underlying query infrastructure. MCP handler pattern is well-established (see ContextHandler.cs). Main work: tool schema definition, argument mapping, and response formatting within token budget. The response format needs to be compact - targeting < 2000 chars."
+		},
+		{
+			"taskId": 82,
+			"taskTitle": "Deprecate Token Search as Primary Retrieval",
+			"complexityScore": 3,
+			"recommendedSubtasks": 0,
+			"expansionPrompt": "This is primarily a documentation and messaging task. No subtask expansion needed - the work is spread across multiple files but each change is small.",
+			"reasoning": "Low complexity. This is a documentation and help-text update task. No new code logic required. Changes: update CLI help strings, MCP tool descriptions, documentation files, and slash command files. TokenSearchCommand.cs and SemanticSearchCommand.cs need deprecation notices. The 5 areas listed in task details are sufficient guidance."
+		},
+		{
+			"taskId": 83,
+			"taskTitle": "Add Architectural Summary to Context Command",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down into: 1) Extend ContextCommand output with blast radius data (direct/transitive callers, depth, entry points). 2) Add layer assignment and protection zone status to output. 3) Add architectural warnings section for high impact, violations, and deprecated calls.",
+			"reasoning": "Moderate complexity. Depends on Tasks 76, 78, 79 for underlying data. ContextCommand.cs is 262 lines and already outputs complexity, callers, callees, cluster, duplicates. Main work: adding calls to get layer/protection/blast-radius data and formatting additional output sections. The --include-arch flag adds a small conditional."
 		}
 	]
 }

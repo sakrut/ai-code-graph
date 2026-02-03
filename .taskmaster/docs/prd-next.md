@@ -5,6 +5,18 @@ Refocus AI Code Graph into a **high-signal / low-token** code navigation layer f
 
 Primary value proposition: **fast, semantically correct context reconstruction** (call graph + complexity + coupling + dead-code) with minimal output.
 
+## What Changed vs v1
+
+This milestone prioritizes **token economy** over feature breadth. Key shifts:
+
+1. **Compact-first outputs** — Default CLI output is now optimized for LLM consumption: one-line-per-item, bounded lists, no ASCII art tables. Verbose/table formats remain available via `--format`.
+
+2. **Pipeline slimming** — The default `analyze` pipeline (`--stages core`) focuses on high-signal stages (extract, callgraph, metrics). Optional stages (semantic search, advanced clustering) are gated behind `--stages full`.
+
+3. **DB staleness awareness** — New metadata tracks when analysis was run, against which commit, and tool version. A `status` command surfaces staleness so agents avoid stale data.
+
+**Why?** LLM agents pay per token. Every extra line of output is cost and latency. v1 optimized for human readability; v2 optimizes for agent efficiency.
+
 ## 1) Problem
 LLMs are slow and token-expensive when they have to discover:
 - where code lives (structure),
