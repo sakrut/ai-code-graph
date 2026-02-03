@@ -4275,7 +4275,7 @@
         "testStrategy": "1. Test pattern matching with known namespaces. 2. Test confidence scoring when patterns conflict. 3. Test dependency-based refinement (Service calling Repository is valid, vice versa is suspect). 4. Integration test with TestSolution fixture (add layered namespaces). 5. Manual test with real-world Clean Architecture projects.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -4283,9 +4283,10 @@
             "description": "Create the core domain models (ArchitecturalLayer enum and LayerAssignment record) and implement the pattern-based layer detection logic in LayerDetector class.",
             "dependencies": [],
             "details": "Create `AiCodeGraph.Core/Architecture/LayerDetector.cs` with:\n\n1. **ArchitecturalLayer enum** (following TypeKind.cs pattern):\n   - Presentation (Controllers, ViewModels, Views, Api)\n   - Application (Services, Handlers, Commands, Queries)\n   - Domain (Entities, ValueObjects, DomainServices, Core)\n   - Infrastructure (Repositories, DbContexts, Persistence, Data)\n   - Shared (cross-cutting concerns)\n   - Unknown (fallback)\n\n2. **LayerAssignment record** (following MethodModel.cs pattern):\n   - TypeId (string) - references Types table\n   - Layer (ArchitecturalLayer)\n   - Confidence (float 0.0-1.0)\n   - Reason (string explaining the assignment)\n\n3. **LayerDetector class** with:\n   - `DefaultPatterns` dictionary mapping layers to namespace glob patterns (*.Controllers.*, *.Api.*, etc.)\n   - `MatchPatternAsync()` method that loads types from storage via `GetTreeAsync()` and matches namespace patterns\n   - Pattern matching using simple string Contains/EndsWith logic on FullName (reference CouplingAnalyzer.GetGroup method at lines 72-95)\n   - Confidence scoring: 1.0 for direct match, 0.8 for partial match, 0.5 for attribute-based hints\n   - Support for [ApiController] and similar attribute detection via type metadata\n\nUse async/await with CancellationToken and ConfigureAwait(false) per codebase conventions.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "1. Unit test pattern matching with known namespaces (MyApp.Controllers.UserController → Presentation with 1.0 confidence). 2. Test partial matches (MyApp.Web.Home → Presentation with 0.8 confidence). 3. Test Unknown assignment for unmatched namespaces. 4. Test confidence scoring when multiple patterns could apply.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-02-03T21:24:15.702Z"
           },
           {
             "id": 2,
@@ -4329,7 +4330,8 @@
         ],
         "complexity": 6,
         "recommendedSubtasks": 4,
-        "expansionPrompt": "Break down into: 1) Define ArchitecturalLayer enum and LayerAssignment record, implement pattern matching logic. 2) Add TypeLayers table to SQLite schema and storage methods. 3) Implement dependency-direction refinement to improve confidence. 4) Add 'layers' CLI command following ICommandHandler pattern."
+        "expansionPrompt": "Break down into: 1) Define ArchitecturalLayer enum and LayerAssignment record, implement pattern matching logic. 2) Add TypeLayers table to SQLite schema and storage methods. 3) Implement dependency-direction refinement to improve confidence. 4) Add 'layers' CLI command following ICommandHandler pattern.",
+        "updatedAt": "2026-02-03T21:24:15.702Z"
       },
       {
         "id": "77",
@@ -4769,7 +4771,7 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-02-03T21:21:02.697Z",
+      "lastModified": "2026-02-03T21:24:15.702Z",
       "taskCount": 83,
       "completedCount": 73,
       "tags": [
