@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using AiCodeGraph.Core.Query;
 using AiCodeGraph.Core.Storage;
 
 namespace AiCodeGraph.Cli.Mcp.Handlers;
@@ -11,11 +12,27 @@ public class QueryHandler : IMcpToolHandler
 
     public IReadOnlyList<string> SupportedTools { get; } = new[]
     {
-        "cg_get_hotspots", "cg_get_callgraph", "cg_get_tree", "cg_dead_code", "cg_get_impact"
+        "cg_query", "cg_get_hotspots", "cg_get_callgraph", "cg_get_tree", "cg_dead_code", "cg_get_impact"
     };
 
     public JsonArray GetToolDefinitions() => new()
     {
+        McpProtocolHelpers.CreateToolDef("cg_query",
+            "Execute a graph query for method retrieval (recommended over search)",
+            new JsonObject
+            {
+                ["type"] = "object",
+                ["properties"] = new JsonObject
+                {
+                    ["seed"] = new JsonObject { ["type"] = "string", ["description"] = "Method pattern, exact ID, namespace, or cluster name (supports wildcards: *Service*, MyApp.* )" },
+                    ["expand"] = new JsonObject { ["type"] = "string", ["description"] = "Expansion direction: none|callers|callees|both", ["default"] = "both" },
+                    ["depth"] = new JsonObject { ["type"] = "integer", ["description"] = "Max traversal depth (1-10)", ["default"] = 3 },
+                    ["rank"] = new JsonObject { ["type"] = "string", ["description"] = "Ranking strategy: blast-radius|complexity|coupling|combined", ["default"] = "blast-radius" },
+                    ["top"] = new JsonObject { ["type"] = "integer", ["description"] = "Max results to return", ["default"] = 20 },
+                    ["exclude_tests"] = new JsonObject { ["type"] = "boolean", ["description"] = "Exclude test methods", ["default"] = true }
+                },
+                ["required"] = new JsonArray { "seed" }
+            }),
         McpProtocolHelpers.CreateToolDef("cg_get_hotspots",
             "Get top complexity hotspots",
             new JsonObject
@@ -81,6 +98,7 @@ public class QueryHandler : IMcpToolHandler
     {
         return toolName switch
         {
+            "cg_query" => ExecuteGraphQuery(args, ct),
             "cg_get_hotspots" => GetHotspots(args, ct),
             "cg_get_callgraph" => GetCallgraph(args, ct),
             "cg_get_tree" => GetTree(args, ct),
@@ -88,6 +106,104 @@ public class QueryHandler : IMcpToolHandler
             "cg_get_impact" => GetImpact(args, ct),
             _ => Task.FromResult($"Unknown tool: {toolName}")
         };
+    }
+
+    private async Task<string> ExecuteGraphQuery(JsonNode? args, CancellationToken ct)
+    {
+        var seed = args?["seed"]?.GetValue<string>();
+        if (string.IsNullOrEmpty(seed))
+            return "Error: 'seed' parameter required";
+
+        var expand = args?["expand"]?.GetValue<string>() ?? "both";
+        var depth = args?["depth"]?.GetValue<int>() ?? 3;
+        var rank = args?["rank"]?.GetValue<string>() ?? "blast-radius";
+        var top = args?["top"]?.GetValue<int>() ?? 20;
+        var excludeTests = args?["exclude_tests"]?.GetValue<bool>() ?? true;
+
+        // Determine if seed is a pattern (contains wildcards) or exact ID
+        var isPattern = seed.Contains('*') || seed.Contains('?');
+
+        var querySeed = isPattern
+            ? new QuerySeed { MethodPattern = seed }
+            : new QuerySeed { MethodId = seed };
+
+        var expandDirection = expand.ToLower() switch
+        {
+            "none" => ExpandDirection.None,
+            "callers" => ExpandDirection.Callers,
+            "callees" => ExpandDirection.Callees,
+            "both" => ExpandDirection.Both,
+            _ => ExpandDirection.Both
+        };
+
+        var rankStrategy = rank.ToLower().Replace("-", "") switch
+        {
+            "blastradius" => RankStrategy.BlastRadius,
+            "complexity" => RankStrategy.Complexity,
+            "coupling" => RankStrategy.Coupling,
+            "combined" => RankStrategy.Combined,
+            _ => RankStrategy.BlastRadius
+        };
+
+        var query = new GraphQuery
+        {
+            Seed = querySeed,
+            Expand = new QueryExpand
+            {
+                Direction = expandDirection,
+                MaxDepth = Math.Max(1, Math.Min(10, depth)),
+                IncludeTransitive = expandDirection != ExpandDirection.None
+            },
+            Filter = excludeTests ? new QueryFilter { ExcludeNamespaces = new List<string> { "*.Tests.*", "*.Test.*", "*Tests", "*Test" } } : null,
+            Rank = new QueryRank
+            {
+                Strategy = rankStrategy,
+                Descending = true
+            },
+            Output = new QueryOutput
+            {
+                MaxResults = top,
+                IncludeMetrics = true,
+                IncludeLocation = true
+            }
+        };
+
+        var traversalEngine = new GraphTraversalEngine(_storage);
+        var executor = new GraphQueryExecutor(_storage, traversalEngine);
+        var result = await executor.ExecuteAsync(query, useCache: true, ct: ct);
+
+        if (!result.Success)
+            return $"Error: {result.Error}";
+
+        return FormatQueryResult(result, seed, expand, depth, rank);
+    }
+
+    private static string FormatQueryResult(QueryResult result, string seed, string direction, int depth, string rank)
+    {
+        var lines = new List<string>();
+
+        // Summary line
+        lines.Add($"Query: seed={seed}, direction={direction}, depth={depth}, rank={rank}");
+        lines.Add($"{result.Nodes.Count} results (of {result.TotalMatches} total), ranked by {rank}:");
+        lines.Add("");
+
+        // Compact results: [rank] metrics method location
+        var index = 1;
+        foreach (var node in result.Nodes)
+        {
+            var br = node.RankScore.HasValue ? $"BR={node.RankScore:F0}" : "";
+            var cc = node.Complexity.HasValue ? $"CC={node.Complexity}" : "";
+            var metrics = string.Join(" ", new[] { br, cc }.Where(s => !string.IsNullOrEmpty(s)));
+
+            var location = node.FilePath != null
+                ? $" {Path.GetFileName(node.FilePath)}:{node.Line}"
+                : "";
+
+            lines.Add($"[{index}] {metrics} {node.FullName}{location}");
+            index++;
+        }
+
+        return string.Join("\n", lines);
     }
 
     private async Task<string> GetHotspots(JsonNode? args, CancellationToken ct)
