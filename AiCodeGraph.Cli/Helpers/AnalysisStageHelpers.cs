@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using AiCodeGraph.Core;
+using AiCodeGraph.Core.Analysis;
 using AiCodeGraph.Core.CallGraph;
 using AiCodeGraph.Core.Duplicates;
 using AiCodeGraph.Core.Embeddings;
@@ -158,6 +159,32 @@ public static class AnalysisStageHelpers
             normalized.Select(n => (n.MethodId, n.StructuralSignature, n.SemanticPayload)).ToList(), ct);
         await storage.SaveEmbeddingsAsync(embeddings, ct);
         Console.WriteLine($" done ({timer.Elapsed.TotalSeconds:F1}s)");
+    }
+
+    public static async Task<Dictionary<string, BlastRadiusInfo>> ComputeBlastRadiusStage(
+        IStorageService storage,
+        bool verbose,
+        CancellationToken ct)
+    {
+        Console.Write("Computing blast radius...");
+        var timer = Stopwatch.StartNew();
+
+        var analyzer = new BlastRadiusAnalyzer();
+        var results = await analyzer.ComputeBlastRadiusAsync(storage, ct: ct);
+        await storage.SaveBlastRadiusAsync(results, ct);
+
+        Console.WriteLine($" done ({timer.Elapsed.TotalSeconds:F1}s)");
+
+        if (verbose && results.Count > 0)
+        {
+            var maxBlast = results.Values.Max(r => r.TransitiveCallers);
+            var highImpact = results.Values.Count(r => r.TransitiveCallers > 10);
+            Console.WriteLine($"  Methods analyzed: {results.Count:N0}");
+            Console.WriteLine($"  Max blast radius: {maxBlast:N0}");
+            Console.WriteLine($"  High-impact (>10 callers): {highImpact:N0}");
+        }
+
+        return results;
     }
 
     public static async Task<(List<ClonePair> ClonePairs, List<IntentCluster> Clusters)> DetectDuplicatesStage(

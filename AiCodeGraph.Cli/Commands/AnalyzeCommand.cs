@@ -107,6 +107,7 @@ public class AnalyzeCommand : ICommandHandler
 
                 await using var storage = new StorageService(dbPath);
                 await AnalysisStageHelpers.StoreResultsStage(storage, extractionResults, edges, metrics, normalized, embeddingResults, cancellationToken);
+                var blastRadius = await AnalysisStageHelpers.ComputeBlastRadiusStage(storage, verbose, cancellationToken);
                 var (clonePairs, clusters) = await AnalysisStageHelpers.DetectDuplicatesStage(storage, normalized, embeddingResults, cancellationToken, includeClusters: isFull);
 
                 await storage.SaveMetadataAsync("embedding_engine", embeddingEngine, cancellationToken);
