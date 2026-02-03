@@ -4275,7 +4275,7 @@
         "testStrategy": "1. Test pattern matching with known namespaces. 2. Test confidence scoring when patterns conflict. 3. Test dependency-based refinement (Service calling Repository is valid, vice versa is suspect). 4. Integration test with TestSolution fixture (add layered namespaces). 5. Manual test with real-world Clean Architecture projects.",
         "priority": "high",
         "dependencies": [],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -4310,9 +4310,10 @@
               2
             ],
             "details": "Add `RefineBydependencyDirectionAsync()` method to LayerDetector:\n\n1. **Define valid dependency rules** (Clean Architecture):\n   - Presentation → Application → Domain ← Infrastructure\n   - Presentation can depend on Application (valid)\n   - Application can depend on Domain (valid)\n   - Infrastructure can depend on Domain (valid)\n   - Domain should NOT depend on Application/Infrastructure/Presentation (violation)\n   - Infrastructure should NOT depend on Application/Presentation (violation)\n\n2. **Load call graph data** from storage:\n   - Use `GetCallGraphForMethodsAsync()` to get caller→callee relationships\n   - Group by type to get type-level dependencies\n\n3. **Analyze dependency violations**:\n   - For each type, check if its dependencies follow valid patterns\n   - If Domain type calls Infrastructure type → suspicious, lower confidence\n   - If Infrastructure type calls Presentation → suspicious, lower confidence\n   - Track violation counts and adjust confidence: `newConfidence = originalConfidence * (1 - 0.1 * violationCount)`\n\n4. **Re-classify ambiguous types**:\n   - Types with low pattern-match confidence but consistent dependency behavior → increase confidence\n   - Types with high pattern-match but dependency violations → flag with warning in Reason\n\nReference CouplingAnalyzer.cs (lines 44-70) for dependency traversal pattern using groupMembers and call relationships.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "1. Test valid dependency: Service→Repository doesn't lower confidence. 2. Test violation: Repository→Controller lowers confidence. 3. Test Domain type calling Infrastructure is flagged. 4. Test confidence never goes below 0.1. 5. Test Reason field includes violation details.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-02-03T21:41:26.701Z"
           },
           {
             "id": 4,
@@ -4324,15 +4325,16 @@
               3
             ],
             "details": "1. **Create `AiCodeGraph.Cli/Commands/LayersCommand.cs`** following DeadCodeCommand.cs pattern:\n   - Implement `ICommandHandler.BuildCommand()`\n   - Command name: `\"layers\"`, description: `\"Display architectural layer assignments for types\"`\n\n2. **Define options**:\n   - `--db, -d` (string): Database path, default `\"./ai-code-graph/graph.db\"`\n   - `--layer, -l` (string?): Filter by specific layer (optional)\n   - `--min-confidence` (float): Minimum confidence threshold, default 0.0\n   - `--format, -f` (string): Output format (\"table\" | \"json\"), default \"table\"\n   - `--top, -t` (int): Limit results, default 50\n\n3. **SetAction implementation**:\n   - Validate database exists using `CommandHelpers.ValidateDatabase()`\n   - Open StorageService with `OpenAsync()`\n   - Call `GetLayerAssignmentsAsync()` to retrieve data\n   - Apply filters (layer, min-confidence)\n   - Sort by Layer then by Confidence descending\n   - Format output (table: columns for TypeId, Layer, Confidence, Reason; JSON: serialize list)\n\n4. **Register in CommandRegistry.cs**:\n   - Add `new LayersCommand()` to handlers array\n\n5. **Table format example**:\n   ```\n   Layer          | Type                           | Confidence | Reason\n   ---------------|--------------------------------|------------|------------------\n   Presentation   | MyApp.Controllers.UserController | 0.95      | Namespace pattern: *.Controllers.*\n   Application    | MyApp.Services.UserService       | 0.90      | Namespace pattern: *.Services.*\n   ```",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "1. Test command runs without error on valid database. 2. Test --layer filter shows only matching layer. 3. Test --min-confidence filters low-confidence results. 4. Test JSON output is valid JSON array. 5. Test missing database shows appropriate error. 6. Integration test with TestSolution fixture.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-02-03T21:43:41.056Z"
           }
         ],
         "complexity": 6,
         "recommendedSubtasks": 4,
         "expansionPrompt": "Break down into: 1) Define ArchitecturalLayer enum and LayerAssignment record, implement pattern matching logic. 2) Add TypeLayers table to SQLite schema and storage methods. 3) Implement dependency-direction refinement to improve confidence. 4) Add 'layers' CLI command following ICommandHandler pattern.",
-        "updatedAt": "2026-02-03T21:26:30.028Z"
+        "updatedAt": "2026-02-03T21:43:41.056Z"
       },
       {
         "id": "77",
@@ -4408,7 +4410,7 @@
         "testStrategy": "1. Unit tests for blast radius computation with known graphs. 2. Test entry point detection. 3. Test depth calculation (max distance from roots). 4. Test combined risk score formula. 5. Performance test with 5000+ methods (should complete in < 5s).",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -4416,9 +4418,10 @@
             "description": "Create the BlastRadiusAnalyzer class in AiCodeGraph.Core/Analysis/ that computes transitive caller counts using BFS on the reverse call graph, leveraging the existing StorageService.GetCallersAsync pattern from ImpactCommand.",
             "dependencies": [],
             "details": "Create AiCodeGraph.Core/Analysis/BlastRadiusAnalyzer.cs:\n\n1. Define BlastRadiusInfo record: (DirectCallers, TransitiveCallers, Depth, EntryPoints)\n2. Implement ComputeBlastRadiusAsync method that:\n   - Fetches all method IDs from storage.GetMethodsForExportAsync()\n   - Builds complete reverse call graph in-memory using storage.GetCallGraphForMethodsAsync()\n   - For each method, performs BFS on reverse graph to count unique transitive callers\n   - Tracks entry points (methods with zero callers in full graph)\n   - Computes depth as max distance from any entry point\n3. Use Dictionary<string, HashSet<string>> for reverse adjacency list\n4. Return Dictionary<string, BlastRadiusInfo> with results for all methods\n5. Ensure O(V+E) complexity per method with visited set tracking\n6. Follow existing analyzer patterns from CouplingAnalyzer.cs and ChurnAnalyzer.cs",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests with in-memory SQLite: 1) Simple linear chain (A→B→C) verifies depth=2, transitive=2 for C. 2) Diamond pattern (A→B, A→C, B→D, C→D) verifies D has transitive=3. 3) Entry point detection test. 4) Isolated method (no callers) has blast radius 0. 5) Performance test with 1000+ methods completes in <2s.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-02-03T21:46:30.446Z"
           },
           {
             "id": 2,
@@ -4428,9 +4431,10 @@
               1
             ],
             "details": "1. Update SchemaDefinition.cs Metrics table definition (line ~82):\n   - Add 'BlastRadius INTEGER DEFAULT 0'\n   - Add 'BlastDepth INTEGER DEFAULT 0'\n   - Consider adding index: 'CREATE INDEX IX_Metrics_BlastRadius ON Metrics(BlastRadius DESC)'\n\n2. Extend IStorageService interface with:\n   - SaveBlastRadiusAsync(Dictionary<string, BlastRadiusInfo> results, CancellationToken ct)\n   - GetBlastRadiusAsync(string methodId) returning BlastRadiusInfo?\n\n3. Implement in StorageService.cs:\n   - SaveBlastRadiusAsync: Use UPDATE statement to set BlastRadius/BlastDepth on existing Metrics rows\n   - Handle case where Metrics row doesn't exist (INSERT with defaults for other columns)\n   - Batch updates to avoid N queries\n\n4. Update GetMethodMetricsAsync to include BlastRadius/BlastDepth in returned data\n5. Update GetHotspotsWithThresholdAsync to optionally sort by blast radius",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "1) Test schema migration creates columns with correct defaults. 2) Test SaveBlastRadiusAsync correctly updates existing metrics rows. 3) Test GetMethodMetricsAsync returns blast radius data. 4) Test null/default handling for methods without blast radius computed. 5) Verify index is created for efficient sorting.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-02-03T21:49:26.635Z"
           },
           {
             "id": 3,
@@ -4441,9 +4445,10 @@
               2
             ],
             "details": "1. Create new stage method in AnalysisStageHelpers.cs:\n   - ComputeBlastRadiusStage(IStorageService storage, bool verbose, CancellationToken ct)\n   - Instantiate BlastRadiusAnalyzer and call ComputeBlastRadiusAsync\n   - Call storage.SaveBlastRadiusAsync with results\n   - Include timing diagnostics like other stages\n\n2. Update AnalyzeCommand handler to call the new stage:\n   - Insert after StoreResultsStage (needs call graph data in DB)\n   - Before DetectDuplicatesStage (independent of duplicates)\n\n3. Add verbose output showing:\n   - Number of methods processed\n   - Max blast radius found\n   - Count of high-impact methods (blast radius > threshold)\n   - Execution time\n\n4. Implement combined risk score calculation:\n   - risk = complexity * log(blast_radius + 1)\n   - Store in a computed field or calculate on-demand in commands",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "1) Integration test running full analyze command produces blast radius data in DB. 2) Test stage executes in correct order (after call graph stored). 3) Verify timing/diagnostic output in verbose mode. 4) Test with TestSolution fixture produces expected blast radius values.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-02-03T21:51:32.117Z"
           },
           {
             "id": 4,
@@ -4454,14 +4459,16 @@
               3
             ],
             "details": "1. Update HotspotsCommand.cs:\n   - Add new option: --sort <complexity|blast-radius|risk>\n   - Implement blast-radius sorting using storage query with ORDER BY BlastRadius DESC\n   - Implement risk sorting using: complexity * log(blast_radius + 1)\n   - Update table output to include BlastRadius column when sorted by it\n   - Update JSON output to include blast radius data\n\n2. Update ContextCommand.cs:\n   - Add blast radius section after Metrics display (around line 75)\n   - Show: Blast Radius, Blast Depth, Entry Points (first 3-5)\n   - Calculate and display combined risk score\n   - Format: 'Blast Radius: 45 callers (depth: 3, risk: 12.4)'\n\n3. Update ImpactCommand.cs (already exists):\n   - Include pre-computed blast radius in summary output\n   - Compare computed transitive callers with stored blast radius\n\n4. Ensure consistent formatting with existing command outputs",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "1) Test hotspots --sort blast-radius returns methods ordered by blast radius DESC. 2) Test hotspots --sort risk returns methods ordered by combined risk score. 3) Test context command includes blast radius section in output. 4) Test JSON output includes blast radius fields. 5) Test commands gracefully handle methods without blast radius data (show 0 or N/A).",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-02-03T21:56:28.280Z"
           }
         ],
         "complexity": 5,
         "recommendedSubtasks": 4,
-        "expansionPrompt": "Break down into: 1) Implement BlastRadiusAnalyzer with reverse call graph traversal. 2) Extend SQLite schema with BlastRadius/BlastDepth columns in Metrics table. 3) Integrate computation into analyze pipeline via AnalysisStageHelpers. 4) Update hotspots/context commands to use blast radius for sorting and display."
+        "expansionPrompt": "Break down into: 1) Implement BlastRadiusAnalyzer with reverse call graph traversal. 2) Extend SQLite schema with BlastRadius/BlastDepth columns in Metrics table. 3) Integrate computation into analyze pipeline via AnalysisStageHelpers. 4) Update hotspots/context commands to use blast radius for sorting and display.",
+        "updatedAt": "2026-02-03T21:56:28.280Z"
       },
       {
         "id": "79",
@@ -4772,9 +4779,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-02-03T21:26:30.028Z",
+      "lastModified": "2026-02-03T21:56:28.281Z",
       "taskCount": 83,
-      "completedCount": 73,
+      "completedCount": 75,
       "tags": [
         "master"
       ]

@@ -5,6 +5,9 @@
       "complexity": 25,
       "loc": 50,
       "maxNesting": 5,
+      "blastRadius": 0,
+      "blastDepth": 0,
+      "risk": 25,
       "location": "/test/OrderService.cs:10"
     },
     {
@@ -12,6 +15,9 @@
       "complexity": 8,
       "loc": 20,
       "maxNesting": 2,
+      "blastRadius": 0,
+      "blastDepth": 0,
+      "risk": 8,
       "location": "/test/OrderService.cs:70"
     },
     {
@@ -19,6 +25,9 @@
       "complexity": 5,
       "loc": 20,
       "maxNesting": 2,
+      "blastRadius": 0,
+      "blastDepth": 0,
+      "risk": 5,
       "location": "/test/UserService.cs:10"
     },
     {
@@ -26,6 +35,9 @@
       "complexity": 3,
       "loc": 20,
       "maxNesting": 1,
+      "blastRadius": 0,
+      "blastDepth": 0,
+      "risk": 3,
       "location": "/test/OrderService.cs:100"
     },
     {
@@ -33,6 +45,9 @@
       "complexity": 2,
       "loc": 10,
       "maxNesting": 1,
+      "blastRadius": 0,
+      "blastDepth": 0,
+      "risk": 2,
       "location": "/test/UserService.cs:40"
     }
   ],
@@ -40,6 +55,7 @@
     "total": 5,
     "returned": 5,
     "threshold": null,
-    "top": 5
+    "top": 5,
+    "sortBy": "complexity"
   }
 }

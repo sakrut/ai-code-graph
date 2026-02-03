@@ -417,23 +417,31 @@ public class StorageService : IStorageService
         return null;
     }
 
-    public async Task<List<(string Id, string Name, string FullName, int Complexity, int Loc, int Nesting, string? FilePath, int StartLine)>> GetHotspotsWithThresholdAsync(int top = 20, int? threshold = null, CancellationToken cancellationToken = default)
+    public async Task<List<(string Id, string Name, string FullName, int Complexity, int Loc, int Nesting, string? FilePath, int StartLine, int BlastRadius, int BlastDepth)>> GetHotspotsWithThresholdAsync(int top = 20, int? threshold = null, string sortBy = "complexity", CancellationToken cancellationToken = default)
     {
         EnsureConnection();
         using var cmd = _connection!.CreateCommand();
         var where = threshold.HasValue ? "WHERE met.CognitiveComplexity >= @threshold" : "";
+
+        var orderBy = sortBy?.ToLowerInvariant() switch
+        {
+            "blast-radius" or "blast" => "met.BlastRadius DESC",
+            "risk" => "(met.CognitiveComplexity * (1 + log(met.BlastRadius + 1))) DESC",
+            _ => "met.CognitiveComplexity DESC"
+        };
+
         cmd.CommandText = $"""
-            SELECT m.Id, m.Name, m.FullName, met.CognitiveComplexity, met.LinesOfCode, met.NestingDepth, m.FilePath, m.StartLine
+            SELECT m.Id, m.Name, m.FullName, met.CognitiveComplexity, met.LinesOfCode, met.NestingDepth, m.FilePath, m.StartLine, met.BlastRadius, met.BlastDepth
             FROM Methods m JOIN Metrics met ON m.Id = met.MethodId
             {where}
-            ORDER BY met.CognitiveComplexity DESC
+            ORDER BY {orderBy}
             LIMIT @top
             """;
         cmd.Parameters.AddWithValue("@top", top);
         if (threshold.HasValue)
             cmd.Parameters.AddWithValue("@threshold", threshold.Value);
 
-        var results = new List<(string, string, string, int, int, int, string?, int)>();
+        var results = new List<(string, string, string, int, int, int, string?, int, int, int)>();
         using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
         while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
@@ -445,7 +453,9 @@ public class StorageService : IStorageService
                 reader.GetInt32(4),
                 reader.GetInt32(5),
                 reader.IsDBNull(6) ? null : reader.GetString(6),
-                reader.GetInt32(7)
+                reader.GetInt32(7),
+                reader.GetInt32(8),
+                reader.GetInt32(9)
             ));
         }
         return results;

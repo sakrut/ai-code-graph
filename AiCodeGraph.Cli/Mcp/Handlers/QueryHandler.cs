@@ -94,16 +94,19 @@ public class QueryHandler : IMcpToolHandler
     {
         var top = args?["top"]?.GetValue<int>() ?? 10;
         var threshold = args?["threshold"]?.GetValue<int>();
+        var sortBy = args?["sort"]?.GetValue<string>() ?? "complexity";
 
-        var hotspots = await _storage.GetHotspotsWithThresholdAsync(top, threshold, ct);
+        var hotspots = await _storage.GetHotspotsWithThresholdAsync(top, threshold, sortBy, ct);
         if (hotspots.Count == 0) return "No hotspots found.";
 
         // Compact output: one line per item with MethodId
         var lines = new List<string>();
+        var showBlast = sortBy is "blast-radius" or "blast" or "risk";
         foreach (var h in hotspots)
         {
             var location = h.FilePath != null ? $" {Path.GetFileName(h.FilePath)}:{h.StartLine}" : "";
-            lines.Add($"{h.FullName} CC:{h.Complexity} LOC:{h.Loc} Nest:{h.Nesting}{location}");
+            var blastInfo = showBlast && h.BlastRadius > 0 ? $" Blast:{h.BlastRadius}" : "";
+            lines.Add($"{h.FullName} CC:{h.Complexity} LOC:{h.Loc} Nest:{h.Nesting}{blastInfo}{location}");
         }
         return string.Join("\n", lines);
     }

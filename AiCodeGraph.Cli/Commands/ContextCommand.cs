@@ -52,7 +52,16 @@ public class ContextCommand : ICommandHandler
             // Metrics
             var metrics = await storage.GetMethodMetricsAsync(targetId, cancellationToken);
             if (metrics != null)
+            {
                 Console.WriteLine($"Complexity: CC={metrics.Value.CognitiveComplexity} LOC={metrics.Value.LinesOfCode} Nesting={metrics.Value.NestingDepth}");
+
+                // Blast radius
+                if (metrics.Value.BlastRadius > 0)
+                {
+                    var risk = metrics.Value.CognitiveComplexity * (1 + Math.Log(metrics.Value.BlastRadius + 1));
+                    Console.WriteLine($"Blast Radius: {metrics.Value.BlastRadius} callers (depth: {metrics.Value.BlastDepth}, risk: {risk:F1})");
+                }
+            }
 
             // Callers
             var callers = await storage.GetCallersAsync(targetId, cancellationToken);

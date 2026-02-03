@@ -16,10 +16,15 @@ public class HotspotsCommand : ICommandHandler
         };
         var formatOption = OutputOptions.CreateFormatOption(OutputFormat.Compact);
         var dbOption = OutputOptions.CreateDbOption();
+        var sortOption = new Option<string>("--sort")
+        {
+            Description = "Sort by: complexity|blast-radius|risk",
+            DefaultValueFactory = _ => "complexity"
+        };
 
         var command = new Command("hotspots", "Show complexity hotspots")
         {
-            topOption, thresholdOption, formatOption, dbOption
+            topOption, thresholdOption, formatOption, dbOption, sortOption
         };
 
         command.SetAction(async (parseResult, cancellationToken) =>
@@ -28,19 +33,22 @@ public class HotspotsCommand : ICommandHandler
             var threshold = parseResult.GetValue(thresholdOption);
             var format = parseResult.GetValue(formatOption) ?? "compact";
             var dbPath = parseResult.GetValue(dbOption) ?? "./ai-code-graph/graph.db";
+            var sortBy = parseResult.GetValue(sortOption) ?? "complexity";
 
             if (!CommandHelpers.ValidateDatabase(dbPath)) return;
 
             await using var storage = new StorageService(dbPath);
             await storage.OpenAsync(cancellationToken);
 
-            var hotspots = await storage.GetHotspotsWithThresholdAsync(top, threshold, cancellationToken);
+            var hotspots = await storage.GetHotspotsWithThresholdAsync(top, threshold, sortBy, cancellationToken);
 
             if (hotspots.Count == 0)
             {
                 Console.WriteLine("No hotspots found.");
                 return;
             }
+
+            var showBlastRadius = sortBy == "blast-radius" || sortBy == "blast" || sortBy == "risk";
 
             if (OutputOptions.IsJson(format))
             {
@@ -52,9 +60,12 @@ public class HotspotsCommand : ICommandHandler
                         complexity = h.Complexity,
                         loc = h.Loc,
                         maxNesting = h.Nesting,
+                        blastRadius = h.BlastRadius,
+                        blastDepth = h.BlastDepth,
+                        risk = ComputeRisk(h.Complexity, h.BlastRadius),
                         location = h.FilePath != null ? $"{h.FilePath}:{h.StartLine}" : null
                     }),
-                    metadata = new { total = hotspots.Count, returned = hotspots.Count, threshold, top }
+                    metadata = new { total = hotspots.Count, returned = hotspots.Count, threshold, top, sortBy }
                 }, new System.Text.Json.JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
                 Console.WriteLine(json);
             }
@@ -63,32 +74,54 @@ public class HotspotsCommand : ICommandHandler
                 foreach (var h in hotspots)
                 {
                     var location = h.FilePath != null ? $" {Path.GetFileName(h.FilePath)}:{h.StartLine}" : "";
-                    Console.WriteLine($"{h.FullName} CC:{h.Complexity} LOC:{h.Loc} Nest:{h.Nesting}{location}");
+                    var blastInfo = showBlastRadius ? $" Blast:{h.BlastRadius}" : "";
+                    Console.WriteLine($"{h.FullName} CC:{h.Complexity} LOC:{h.Loc} Nest:{h.Nesting}{blastInfo}{location}");
                 }
             }
             else if (OutputOptions.IsCsv(format))
             {
-                Console.WriteLine("method,complexity,loc,nesting,location");
+                Console.WriteLine("method,complexity,loc,nesting,blastRadius,blastDepth,risk,location");
                 foreach (var h in hotspots)
                 {
                     var location = h.FilePath != null ? $"{h.FilePath}:{h.StartLine}" : "";
-                    Console.WriteLine($"{OutputHelpers.CsvEscape(h.FullName)},{h.Complexity},{h.Loc},{h.Nesting},{OutputHelpers.CsvEscape(location)}");
+                    var risk = ComputeRisk(h.Complexity, h.BlastRadius);
+                    Console.WriteLine($"{OutputHelpers.CsvEscape(h.FullName)},{h.Complexity},{h.Loc},{h.Nesting},{h.BlastRadius},{h.BlastDepth},{risk:F1},{OutputHelpers.CsvEscape(location)}");
                 }
             }
             else // table
             {
-                var nameWidth = Math.Min(60, hotspots.Max(h => h.FullName.Length));
-                Console.WriteLine($"{"Method".PadRight(nameWidth)}  {"CC",4}  {"LOC",4}  {"Nest",4}  Location");
-                Console.WriteLine(new string('-', nameWidth + 30));
-                foreach (var h in hotspots)
+                var nameWidth = Math.Min(55, hotspots.Max(h => h.FullName.Length));
+                if (showBlastRadius)
                 {
-                    var name = h.FullName.Length > nameWidth ? h.FullName[..(nameWidth - 3)] + "..." : h.FullName;
-                    var location = h.FilePath != null ? $"{Path.GetFileName(h.FilePath)}:{h.StartLine}" : "";
-                    Console.WriteLine($"{name.PadRight(nameWidth)}  {h.Complexity,4}  {h.Loc,4}  {h.Nesting,4}  {location}");
+                    Console.WriteLine($"{"Method".PadRight(nameWidth)}  {"CC",4}  {"Blast",5}  {"Risk",5}  Location");
+                    Console.WriteLine(new string('-', nameWidth + 28));
+                    foreach (var h in hotspots)
+                    {
+                        var name = h.FullName.Length > nameWidth ? h.FullName[..(nameWidth - 3)] + "..." : h.FullName;
+                        var location = h.FilePath != null ? $"{Path.GetFileName(h.FilePath)}:{h.StartLine}" : "";
+                        var risk = ComputeRisk(h.Complexity, h.BlastRadius);
+                        Console.WriteLine($"{name.PadRight(nameWidth)}  {h.Complexity,4}  {h.BlastRadius,5}  {risk,5:F1}  {location}");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"{"Method".PadRight(nameWidth)}  {"CC",4}  {"LOC",4}  {"Nest",4}  Location");
+                    Console.WriteLine(new string('-', nameWidth + 28));
+                    foreach (var h in hotspots)
+                    {
+                        var name = h.FullName.Length > nameWidth ? h.FullName[..(nameWidth - 3)] + "..." : h.FullName;
+                        var location = h.FilePath != null ? $"{Path.GetFileName(h.FilePath)}:{h.StartLine}" : "";
+                        Console.WriteLine($"{name.PadRight(nameWidth)}  {h.Complexity,4}  {h.Loc,4}  {h.Nesting,4}  {location}");
+                    }
                 }
             }
         });
 
         return command;
+    }
+
+    private static double ComputeRisk(int complexity, int blastRadius)
+    {
+        return complexity * (1 + Math.Log(blastRadius + 1));
     }
 }

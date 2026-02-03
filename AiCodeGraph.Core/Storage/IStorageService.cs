@@ -27,7 +27,7 @@ public interface IStorageService : IAsyncDisposable, IDisposable
 
     // Read operations
     Task<List<(string Id, string Name, string FullName, string ReturnType, string? FilePath, int StartLine)>> GetHotspotsAsync(int top = 20, CancellationToken cancellationToken = default);
-    Task<List<(string Id, string Name, string FullName, int Complexity, int Loc, int Nesting, string? FilePath, int StartLine)>> GetHotspotsWithThresholdAsync(int top = 20, int? threshold = null, CancellationToken cancellationToken = default);
+    Task<List<(string Id, string Name, string FullName, int Complexity, int Loc, int Nesting, string? FilePath, int StartLine, int BlastRadius, int BlastDepth)>> GetHotspotsWithThresholdAsync(int top = 20, int? threshold = null, string sortBy = "complexity", CancellationToken cancellationToken = default);
     Task<List<string>> GetCalleesAsync(string methodId, CancellationToken cancellationToken = default);
     Task<List<string>> GetCallersAsync(string methodId, CancellationToken cancellationToken = default);
     Task<List<(string Id, string FullName)>> SearchMethodsAsync(string pattern, CancellationToken cancellationToken = default);
