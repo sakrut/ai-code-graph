@@ -203,4 +203,146 @@ public class LayerDetector
 
         return ValidDependencies.TryGetValue(from, out var allowed) && allowed.Contains(to);
     }
+
+    /// <summary>
+    /// Refines layer assignments by analyzing dependency directions.
+    /// Types with architectural violations get reduced confidence and warnings in Reason.
+    /// </summary>
+    public async Task<List<LayerAssignment>> RefineByDependencyDirectionAsync(
+        List<LayerAssignment> assignments,
+        IStorageService storage,
+        CancellationToken ct = default)
+    {
+        if (assignments.Count == 0)
+            return assignments;
+
+        // Build lookup from TypeId to LayerAssignment
+        var assignmentByType = assignments.ToDictionary(a => a.TypeId, a => a);
+
+        // Get all methods and their call relationships
+        var methods = await storage.GetMethodsForExportAsync(null, ct).ConfigureAwait(false);
+        if (methods.Count == 0)
+            return assignments;
+
+        var allMethodIds = methods.Select(m => m.Id).ToHashSet();
+        var allCalls = await storage.GetCallGraphForMethodsAsync(allMethodIds, ct).ConfigureAwait(false);
+
+        // Map each method to its containing type (Namespace.TypeName)
+        var methodToType = new Dictionary<string, string>();
+        foreach (var m in methods)
+        {
+            var typeId = GetTypeFromMethodFullName(m.FullName);
+            if (!string.IsNullOrEmpty(typeId))
+                methodToType[m.Id] = typeId;
+        }
+
+        // Build type-level dependency graph from call graph
+        var typeDependencies = new Dictionary<string, HashSet<string>>();
+        foreach (var (callerId, calleeId) in allCalls)
+        {
+            if (!methodToType.TryGetValue(callerId, out var callerType) ||
+                !methodToType.TryGetValue(calleeId, out var calleeType))
+                continue;
+
+            if (callerType == calleeType)
+                continue; // Skip same-type calls
+
+            if (!typeDependencies.ContainsKey(callerType))
+                typeDependencies[callerType] = new HashSet<string>();
+            typeDependencies[callerType].Add(calleeType);
+        }
+
+        // Analyze violations for each type
+        var violationCounts = new Dictionary<string, int>();
+        var violationDetails = new Dictionary<string, List<string>>();
+
+        foreach (var (sourceType, targetTypes) in typeDependencies)
+        {
+            if (!assignmentByType.TryGetValue(sourceType, out var sourceAssignment))
+                continue;
+
+            foreach (var targetType in targetTypes)
+            {
+                if (!assignmentByType.TryGetValue(targetType, out var targetAssignment))
+                    continue;
+
+                if (!IsDependencyValid(sourceAssignment.Layer, targetAssignment.Layer))
+                {
+                    if (!violationCounts.ContainsKey(sourceType))
+                    {
+                        violationCounts[sourceType] = 0;
+                        violationDetails[sourceType] = new List<string>();
+                    }
+                    violationCounts[sourceType]++;
+                    violationDetails[sourceType].Add(
+                        $"{sourceAssignment.Layer}→{targetAssignment.Layer}");
+                }
+            }
+        }
+
+        // Compute consistent dependency behavior for confidence boosting
+        var consistentBehavior = new Dictionary<string, int>();
+        foreach (var (sourceType, targetTypes) in typeDependencies)
+        {
+            if (!assignmentByType.TryGetValue(sourceType, out var sourceAssignment))
+                continue;
+
+            var validCount = 0;
+            foreach (var targetType in targetTypes)
+            {
+                if (!assignmentByType.TryGetValue(targetType, out var targetAssignment))
+                    continue;
+
+                if (IsDependencyValid(sourceAssignment.Layer, targetAssignment.Layer))
+                    validCount++;
+            }
+            consistentBehavior[sourceType] = validCount;
+        }
+
+        // Create refined assignments
+        var refined = new List<LayerAssignment>();
+        foreach (var assignment in assignments)
+        {
+            var newConfidence = assignment.Confidence;
+            var newReason = assignment.Reason;
+
+            // Reduce confidence based on violations
+            if (violationCounts.TryGetValue(assignment.TypeId, out var vCount) && vCount > 0)
+            {
+                // Reduce confidence by 10% per violation, but never below 0.1
+                newConfidence = MathF.Max(0.1f, assignment.Confidence * (1f - 0.1f * vCount));
+                var uniqueViolations = violationDetails[assignment.TypeId].Distinct().ToList();
+                newReason = $"{assignment.Reason}; WARNING: {vCount} dependency violation(s): {string.Join(", ", uniqueViolations)}";
+            }
+            // Boost confidence for low-confidence types with consistent valid dependencies
+            else if (assignment.Confidence < 0.8f &&
+                     consistentBehavior.TryGetValue(assignment.TypeId, out var validDeps) &&
+                     validDeps >= 2)
+            {
+                // Boost by 10% for consistent behavior, capped at 0.9
+                newConfidence = MathF.Min(0.9f, assignment.Confidence + 0.1f);
+                newReason = $"{assignment.Reason}; consistent dependencies support classification";
+            }
+
+            refined.Add(new LayerAssignment(assignment.TypeId, assignment.Layer, newConfidence, newReason));
+        }
+
+        return refined;
+    }
+
+    private static string GetTypeFromMethodFullName(string fullName)
+    {
+        // FullName format: "ReturnType Namespace.SubNamespace.Type.Method(params)"
+        var parenIdx = fullName.IndexOf('(');
+        var nameOnly = parenIdx >= 0 ? fullName[..parenIdx] : fullName;
+
+        // Strip return type prefix (everything before the last space)
+        var spaceIdx = nameOnly.LastIndexOf(' ');
+        if (spaceIdx >= 0)
+            nameOnly = nameOnly[(spaceIdx + 1)..];
+
+        // Return Namespace.Type (everything except last part which is the method)
+        var parts = nameOnly.Split('.');
+        return parts.Length >= 2 ? string.Join(".", parts[..^1]) : string.Empty;
+    }
 }
