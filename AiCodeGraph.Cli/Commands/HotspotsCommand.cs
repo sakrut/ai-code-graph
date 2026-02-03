@@ -9,28 +9,13 @@ public class HotspotsCommand : ICommandHandler
 {
     public Command BuildCommand()
     {
-        var topOption = new Option<int>("--top", "-t")
-        {
-            Description = "Number of results",
-            DefaultValueFactory = _ => 20
-        };
-
+        var topOption = OutputOptions.CreateTopOption(20);
         var thresholdOption = new Option<int?>("--threshold")
         {
             Description = "Minimum complexity score"
         };
-
-        var formatOption = new Option<string>("--format", "-f")
-        {
-            Description = "table|json",
-            DefaultValueFactory = _ => "table"
-        };
-
-        var dbOption = new Option<string>("--db")
-        {
-            Description = "Path to graph.db",
-            DefaultValueFactory = _ => "./ai-code-graph/graph.db"
-        };
+        var formatOption = OutputOptions.CreateFormatOption(OutputFormat.Compact);
+        var dbOption = OutputOptions.CreateDbOption();
 
         var command = new Command("hotspots", "Show complexity hotspots")
         {
@@ -41,7 +26,7 @@ public class HotspotsCommand : ICommandHandler
         {
             var top = parseResult.GetValue(topOption);
             var threshold = parseResult.GetValue(thresholdOption);
-            var format = parseResult.GetValue(formatOption) ?? "table";
+            var format = parseResult.GetValue(formatOption) ?? "compact";
             var dbPath = parseResult.GetValue(dbOption) ?? "./ai-code-graph/graph.db";
 
             if (!CommandHelpers.ValidateDatabase(dbPath)) return;
@@ -57,23 +42,40 @@ public class HotspotsCommand : ICommandHandler
                 return;
             }
 
-            if (format == "json")
+            if (OutputOptions.IsJson(format))
             {
                 var json = System.Text.Json.JsonSerializer.Serialize(new
                 {
-                    hotspots = hotspots.Select(h => new
+                    items = hotspots.Select(h => new
                     {
-                        method = h.FullName,
+                        methodId = h.FullName,
                         complexity = h.Complexity,
                         loc = h.Loc,
                         maxNesting = h.Nesting,
                         location = h.FilePath != null ? $"{h.FilePath}:{h.StartLine}" : null
                     }),
-                    metadata = new { total = hotspots.Count, threshold, top }
+                    metadata = new { total = hotspots.Count, returned = hotspots.Count, threshold, top }
                 }, new System.Text.Json.JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
                 Console.WriteLine(json);
             }
-            else
+            else if (OutputOptions.IsCompact(format))
+            {
+                foreach (var h in hotspots)
+                {
+                    var location = h.FilePath != null ? $" {Path.GetFileName(h.FilePath)}:{h.StartLine}" : "";
+                    Console.WriteLine($"{h.FullName} CC:{h.Complexity} LOC:{h.Loc} Nest:{h.Nesting}{location}");
+                }
+            }
+            else if (OutputOptions.IsCsv(format))
+            {
+                Console.WriteLine("method,complexity,loc,nesting,location");
+                foreach (var h in hotspots)
+                {
+                    var location = h.FilePath != null ? $"{h.FilePath}:{h.StartLine}" : "";
+                    Console.WriteLine($"{OutputHelpers.CsvEscape(h.FullName)},{h.Complexity},{h.Loc},{h.Nesting},{OutputHelpers.CsvEscape(location)}");
+                }
+            }
+            else // table
             {
                 var nameWidth = Math.Min(60, hotspots.Max(h => h.FullName.Length));
                 Console.WriteLine($"{"Method".PadRight(nameWidth)}  {"CC",4}  {"LOC",4}  {"Nest",4}  Location");

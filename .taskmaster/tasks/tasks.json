@@ -3705,7 +3705,7 @@
         "testStrategy": "Add/extend unit tests for formatter(s). Snapshot-test a few commands. Verify help text includes --format.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -3713,10 +3713,10 @@
             "description": "Write a short spec for compact output and bounds.",
             "dependencies": [],
             "details": "Add a `docs/output-contract.md` (or in README/docs) defining: one line per item, bounded lists, stable ids, no ascii tables; define defaults for top/depth/max-items.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Spec exists and is referenced from relevant commands/docs.",
             "parentId": "undefined",
-            "updatedAt": "2026-02-02T10:05:40Z"
+            "updatedAt": "2026-02-03T20:53:03.664Z"
           },
           {
             "id": 2,
@@ -3726,10 +3726,10 @@
               1
             ],
             "details": "Add shared option builder in CLI (e.g., OutputOptions) and wire `--format` to affected commands without changing default behavior yet.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "CLI help shows --format on target commands; unit test option parsing.",
             "parentId": "undefined",
-            "updatedAt": "2026-02-02T10:05:40Z"
+            "updatedAt": "2026-02-03T20:56:16.751Z"
           },
           {
             "id": 3,
@@ -3739,10 +3739,10 @@
               2
             ],
             "details": "Implement format switch; keep existing table output behind `table`. Ensure compact prints stable identifiers and bounded sections.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Snapshot tests for compact outputs (golden files).",
             "parentId": "undefined",
-            "updatedAt": "2026-02-02T10:05:40Z"
+            "updatedAt": "2026-02-03T20:57:01.601Z"
           },
           {
             "id": 4,
@@ -3752,13 +3752,13 @@
               2
             ],
             "details": "Add/update serialization DTOs if needed; avoid breaking field names; document versioning strategy.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test JSON outputs; consumers can parse outputs across versions.",
             "parentId": "undefined",
-            "updatedAt": "2026-02-02T10:05:40Z"
+            "updatedAt": "2026-02-03T20:57:01.705Z"
           }
         ],
-        "updatedAt": "2026-02-02T10:05:40Z",
+        "updatedAt": "2026-02-03T20:57:01.705Z",
         "complexity": 7,
         "recommendedSubtasks": 0,
         "expansionPrompt": "Task already has 4 well-defined subtasks covering: 1) output contract specification, 2) shared --format option implementation, 3) compact formatter for key commands, 4) JSON stability. No further expansion needed."
@@ -4763,9 +4763,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-02-03T20:51:41.133Z",
+      "lastModified": "2026-02-03T20:57:01.705Z",
       "taskCount": 83,
-      "completedCount": 64,
+      "completedCount": 65,
       "tags": [
         "master"
       ]

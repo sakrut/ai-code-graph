@@ -17,8 +17,8 @@ public class DriftCommand : ICommandHandler
 
         var formatOption = new Option<string>("--format", "-f")
         {
-            Description = "summary|detail|json",
-            DefaultValueFactory = _ => "summary"
+            Description = "compact|table|json (compact=summary, table=detail)",
+            DefaultValueFactory = _ => "table"
         };
 
         var complexityPctOption = new Option<double>("--complexity-pct")
@@ -82,20 +82,23 @@ public class DriftCommand : ICommandHandler
             {
                 var json = System.Text.Json.JsonSerializer.Serialize(new
                 {
-                    newMethods = report.NewMethods.Select(m => new { m.MethodId, m.FullName, m.Namespace, m.FilePath }),
-                    removedMethods = report.RemovedMethods.Select(m => new { m.MethodId, m.FullName, m.Namespace, m.FilePath }),
-                    regressions = report.Regressions.Select(r => new { r.MethodId, r.FullName, r.BaselineComplexity, r.CurrentComplexity, r.PercentageIncrease, r.CrossedAbsoluteThreshold }),
-                    newDuplicates = report.NewDuplicates.Select(d => new { d.MethodIdA, d.MethodIdB, d.HybridScore, type = d.Type.ToString() }),
-                    intentScattering = report.IntentScattering.Select(s => new { s.ClusterLabel, s.BaselineNamespaces, s.NewNamespaces, s.NewMemberMethods, s.TotalMemberCount }),
-                    hasDrift
+                    items = new
+                    {
+                        newMethods = report.NewMethods.Select(m => new { methodId = m.MethodId, name = m.FullName, ns = m.Namespace, location = m.FilePath }),
+                        removedMethods = report.RemovedMethods.Select(m => new { methodId = m.MethodId, name = m.FullName, ns = m.Namespace, location = m.FilePath }),
+                        regressions = report.Regressions.Select(r => new { methodId = r.MethodId, name = r.FullName, baseline = r.BaselineComplexity, current = r.CurrentComplexity, pctIncrease = r.PercentageIncrease, crossedThreshold = r.CrossedAbsoluteThreshold }),
+                        newDuplicates = report.NewDuplicates.Select(d => new { methodIdA = d.MethodIdA, methodIdB = d.MethodIdB, score = d.HybridScore, type = d.Type.ToString() }),
+                        intentScattering = report.IntentScattering.Select(s => new { cluster = s.ClusterLabel, baselineNamespaces = s.BaselineNamespaces, newNamespaces = s.NewNamespaces, newMembers = s.NewMemberMethods, totalMembers = s.TotalMemberCount })
+                    },
+                    metadata = new { hasDrift }
                 }, new System.Text.Json.JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
                 Console.WriteLine(json);
             }
-            else if (format == "detail")
+            else if (format is "detail" or "table")
             {
                 PrintDetailedReport(report, hasDrift);
             }
-            else // summary
+            else // compact or summary
             {
                 PrintSummaryReport(report, hasDrift);
             }

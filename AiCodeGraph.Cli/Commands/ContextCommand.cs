@@ -15,20 +15,18 @@ public class ContextCommand : ICommandHandler
             Description = "Method name or pattern"
         };
 
-        var dbOption = new Option<string>("--db")
-        {
-            Description = "Path to graph.db",
-            DefaultValueFactory = _ => "./ai-code-graph/graph.db"
-        };
+        var formatOption = OutputOptions.CreateFormatOption(OutputFormat.Compact);
+        var dbOption = OutputOptions.CreateDbOption();
 
         var command = new Command("context", "Get compact method context (complexity, callers, callees, cluster, duplicates)")
         {
-            methodArgument, dbOption
+            methodArgument, formatOption, dbOption
         };
 
         command.SetAction(async (parseResult, cancellationToken) =>
         {
             var method = parseResult.GetValue(methodArgument)!;
+            var format = parseResult.GetValue(formatOption) ?? "compact";
             var dbPath = parseResult.GetValue(dbOption) ?? "./ai-code-graph/graph.db";
 
             if (!CommandHelpers.ValidateDatabase(dbPath)) return;

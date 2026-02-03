@@ -26,17 +26,8 @@ public class CallgraphCommand : ICommandHandler
             DefaultValueFactory = _ => "both"
         };
 
-        var formatOption = new Option<string>("--format", "-f")
-        {
-            Description = "tree|json",
-            DefaultValueFactory = _ => "tree"
-        };
-
-        var dbOption = new Option<string>("--db")
-        {
-            Description = "Path to graph.db",
-            DefaultValueFactory = _ => "./ai-code-graph/graph.db"
-        };
+        var formatOption = OutputOptions.CreateFormatOption(OutputFormat.Compact);
+        var dbOption = OutputOptions.CreateDbOption();
 
         var command = new Command("callgraph", "Explore method call graph")
         {
@@ -48,7 +39,7 @@ public class CallgraphCommand : ICommandHandler
             var method = parseResult.GetValue(methodArgument)!;
             var depth = parseResult.GetValue(depthOption);
             var direction = parseResult.GetValue(directionOption) ?? "both";
-            var format = parseResult.GetValue(formatOption) ?? "tree";
+            var format = parseResult.GetValue(formatOption) ?? "compact";
             var dbPath = parseResult.GetValue(dbOption) ?? "./ai-code-graph/graph.db";
 
             if (!CommandHelpers.ValidateDatabase(dbPath)) return;
@@ -116,18 +107,36 @@ public class CallgraphCommand : ICommandHandler
                 }
             }
 
-            if (format == "json")
+            if (OutputOptions.IsJson(format))
             {
                 var json = System.Text.Json.JsonSerializer.Serialize(new
                 {
-                    root = new { id = rootId, name = rootInfo?.FullName },
-                    nodes = nodes.OrderBy(n => n.FullName).Select(n => new { n.Id, name = n.FullName, n.Depth }),
+                    root = new { methodId = rootId, name = rootInfo?.FullName },
+                    nodes = nodes.OrderBy(n => n.FullName).Select(n => new { methodId = n.Id, name = n.FullName, n.Depth }),
                     edges = edges.OrderBy(e => e.From).ThenBy(e => e.To).Select(e => new { from = e.From, to = e.To }),
                     metadata = new { depth, direction }
                 }, new System.Text.Json.JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
                 Console.WriteLine(json);
             }
-            else
+            else if (OutputOptions.IsCompact(format))
+            {
+                Console.WriteLine(rootInfo?.FullName ?? rootId);
+                // Flat compact output: callers first, then callees
+                var callers = edges.Where(e => e.To == rootId).Select(e => e.From).ToList();
+                var callees = edges.Where(e => e.From == rootId).Select(e => e.To).ToList();
+
+                foreach (var callerId in callers)
+                {
+                    var node = nodes.FirstOrDefault(n => n.Id == callerId);
+                    Console.WriteLine($"← {node.FullName}");
+                }
+                foreach (var calleeId in callees)
+                {
+                    var node = nodes.FirstOrDefault(n => n.Id == calleeId);
+                    Console.WriteLine($"→ {node.FullName}");
+                }
+            }
+            else // table/tree
             {
                 Console.WriteLine($"{rootInfo?.FullName ?? rootId}");
                 OutputHelpers.PrintCallTree(rootId, edges, nodes, 1, depth, new HashSet<string> { rootId });

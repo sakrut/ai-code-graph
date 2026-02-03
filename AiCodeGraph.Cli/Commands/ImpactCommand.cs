@@ -19,28 +19,21 @@ public class ImpactCommand : ICommandHandler
             Description = "Max traversal depth (unlimited if omitted)"
         };
 
-        var formatOption = new Option<string>("--format", "-f")
-        {
-            Description = "tree|json",
-            DefaultValueFactory = _ => "tree"
-        };
-
-        var dbOption = new Option<string>("--db")
-        {
-            Description = "Path to graph.db",
-            DefaultValueFactory = _ => "./ai-code-graph/graph.db"
-        };
+        var formatOption = OutputOptions.CreateFormatOption(OutputFormat.Compact);
+        var topOption = OutputOptions.CreateTopOption(20);
+        var dbOption = OutputOptions.CreateDbOption();
 
         var command = new Command("impact", "Show transitive impact of changing a method (all callers)")
         {
-            methodArgument, depthOption, formatOption, dbOption
+            methodArgument, depthOption, formatOption, topOption, dbOption
         };
 
         command.SetAction(async (parseResult, cancellationToken) =>
         {
             var method = parseResult.GetValue(methodArgument)!;
             var maxDepth = parseResult.GetValue(depthOption);
-            var format = parseResult.GetValue(formatOption) ?? "tree";
+            var format = parseResult.GetValue(formatOption) ?? "compact";
+            var top = parseResult.GetValue(topOption);
             var dbPath = parseResult.GetValue(dbOption) ?? "./ai-code-graph/graph.db";
 
             if (!CommandHelpers.ValidateDatabase(dbPath)) return;
@@ -112,18 +105,18 @@ public class ImpactCommand : ICommandHandler
                     entryPoints.Add(id);
             }
 
-            if (format == "json")
+            if (OutputOptions.IsJson(format))
             {
                 var nodeList = new List<object>();
                 foreach (var id in visited)
                 {
                     var info = await storage.GetMethodInfoAsync(id, cancellationToken);
-                    nodeList.Add(new { id, name = info?.FullName ?? id, depth = depthMap.GetValueOrDefault(id), isEntryPoint = entryPoints.Contains(id) });
+                    nodeList.Add(new { methodId = id, name = info?.FullName ?? id, depth = depthMap.GetValueOrDefault(id), isEntryPoint = entryPoints.Contains(id) });
                 }
 
                 var json = System.Text.Json.JsonSerializer.Serialize(new
                 {
-                    target = new { id = targetId, name = targetInfo?.FullName ?? targetId },
+                    target = new { methodId = targetId, name = targetInfo?.FullName ?? targetId },
                     affectedMethods = visited.Count,
                     entryPointCount = entryPoints.Count,
                     maxDepthReached = depthMap.Values.DefaultIfEmpty(0).Max(),
@@ -132,7 +125,28 @@ public class ImpactCommand : ICommandHandler
                 }, new System.Text.Json.JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
                 Console.WriteLine(json);
             }
-            else
+            else if (OutputOptions.IsCompact(format))
+            {
+                Console.WriteLine($"Impact: {targetInfo?.FullName ?? targetId}");
+                Console.WriteLine($"Affected: {visited.Count} methods, {entryPoints.Count} entry points");
+
+                // Flat list of affected methods by depth
+                var affected = visited.Where(id => id != targetId)
+                    .OrderBy(id => depthMap.GetValueOrDefault(id))
+                    .Take(top)
+                    .ToList();
+
+                foreach (var id in affected)
+                {
+                    var info = await storage.GetMethodInfoAsync(id, cancellationToken);
+                    var ep = entryPoints.Contains(id) ? " [entry]" : "";
+                    var d = depthMap.GetValueOrDefault(id);
+                    Console.WriteLine($"← d{d} {info?.FullName ?? id}{ep}");
+                }
+                if (visited.Count - 1 > top)
+                    Console.WriteLine($"(+{visited.Count - 1 - top} more)");
+            }
+            else // table
             {
                 Console.WriteLine($"Impact analysis for: {targetInfo?.FullName ?? targetId}");
                 Console.WriteLine(new string('-', 60));
