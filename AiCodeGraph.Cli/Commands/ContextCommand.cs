@@ -10,22 +10,25 @@ public class ContextCommand : ICommandHandler
 {
     public Command BuildCommand()
     {
-        var methodArgument = new Argument<string>("method")
+        var methodArgument = new Argument<string?>("method")
         {
-            Description = "Method name or pattern"
+            Description = "Method name or pattern",
+            Arity = ArgumentArity.ZeroOrOne
         };
 
+        var idOption = OutputOptions.CreateMethodIdOption();
         var formatOption = OutputOptions.CreateFormatOption(OutputFormat.Compact);
         var dbOption = OutputOptions.CreateDbOption();
 
         var command = new Command("context", "Get compact method context (complexity, callers, callees, cluster, duplicates)")
         {
-            methodArgument, formatOption, dbOption
+            methodArgument, idOption, formatOption, dbOption
         };
 
         command.SetAction(async (parseResult, cancellationToken) =>
         {
-            var method = parseResult.GetValue(methodArgument)!;
+            var method = parseResult.GetValue(methodArgument);
+            var methodId = parseResult.GetValue(idOption);
             var format = parseResult.GetValue(formatOption) ?? "compact";
             var dbPath = parseResult.GetValue(dbOption) ?? "./ai-code-graph/graph.db";
 
@@ -34,34 +37,15 @@ public class ContextCommand : ICommandHandler
             await using var storage = new StorageService(dbPath);
             await storage.OpenAsync(cancellationToken);
 
-            var matches = await storage.SearchMethodsAsync(method, cancellationToken);
-            if (matches.Count == 0)
-            {
-                Console.Error.WriteLine($"Method not found: '{method}'");
-                Environment.ExitCode = 1;
-                return;
-            }
-
-            // If multiple matches and none exact, list them
-            if (matches.Count > 1 && !matches.Any(m => m.FullName.Contains(method, StringComparison.OrdinalIgnoreCase) && m.FullName.Split('.').Last().Split('(').First() == method.Split('.').Last().Split('(').First()))
-            {
-                Console.WriteLine($"Multiple matches for '{method}':");
-                foreach (var m in matches.Take(5))
-                    Console.WriteLine($"  {m.FullName}");
-                if (matches.Count > 5)
-                    Console.WriteLine($"  ... and {matches.Count - 5} more");
-                return;
-            }
-
-            var targetId = matches.Count == 1
-                ? matches[0].Id
-                : matches.First(m => m.FullName.Contains(method, StringComparison.OrdinalIgnoreCase)).Id;
+            var targetId = await MethodResolver.ResolveAsync(storage, methodId, method, cancellationToken);
+            if (targetId == null) return;
 
             var info = await storage.GetMethodInfoAsync(targetId, cancellationToken);
             if (info == null) return;
 
-            // Method identity
+            // Method identity (include ID for agent copy-paste)
             Console.WriteLine($"Method: {info.Value.FullName}");
+            Console.WriteLine($"Id: {targetId}");
             if (info.Value.FilePath != null)
                 Console.WriteLine($"File: {info.Value.FilePath}:{info.Value.StartLine}");
 

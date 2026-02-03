@@ -3771,7 +3771,7 @@
         "testStrategy": "Tests: method overloads produce different ids; `--id` resolves correctly; ambiguous patterns return a clear error + suggestions.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -3779,10 +3779,10 @@
             "description": "Ensure a stable MethodId is present and printed.",
             "dependencies": [],
             "details": "Audit current MethodModel id generation; ensure it is stable and included in all relevant outputs.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Overloads generate different ids; ids stable across runs.",
             "parentId": "undefined",
-            "updatedAt": "2026-02-02T10:05:40Z"
+            "updatedAt": "2026-02-03T20:59:58.307Z"
           },
           {
             "id": 2,
@@ -3792,10 +3792,10 @@
               1
             ],
             "details": "Add `--id <MethodId>` to commands that accept method patterns; implement resolution precedence and disambiguation.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Ambiguous match returns clear error; --id works.",
             "parentId": "undefined",
-            "updatedAt": "2026-02-02T10:05:40Z"
+            "updatedAt": "2026-02-03T20:59:58.335Z"
           },
           {
             "id": 3,
@@ -3805,13 +3805,13 @@
               2
             ],
             "details": "Update quickstart/examples to show id usage when available.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Docs consistent with CLI behavior.",
             "parentId": "undefined",
-            "updatedAt": "2026-02-02T10:05:40Z"
+            "updatedAt": "2026-02-03T21:00:27.997Z"
           }
         ],
-        "updatedAt": "2026-02-02T10:05:40Z",
+        "updatedAt": "2026-02-03T21:00:27.997Z",
         "complexity": 5,
         "recommendedSubtasks": 0,
         "expansionPrompt": "Task has 3 well-defined subtasks covering: 1) ensuring MethodId in models, 2) --id resolution path, 3) documentation updates. No further expansion needed."
@@ -4763,9 +4763,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-02-03T20:57:01.705Z",
+      "lastModified": "2026-02-03T21:00:27.997Z",
       "taskCount": 83,
-      "completedCount": 65,
+      "completedCount": 66,
       "tags": [
         "master"
       ]

@@ -72,6 +72,17 @@ public static class OutputOptions
     }
 
     /// <summary>
+    /// Creates a --id option for explicit method ID selection.
+    /// </summary>
+    public static Option<string?> CreateMethodIdOption()
+    {
+        return new Option<string?>("--id")
+        {
+            Description = "Explicit method ID (takes precedence over pattern)"
+        };
+    }
+
+    /// <summary>
     /// Parses a format string to OutputFormat enum.
     /// </summary>
     public static OutputFormat ParseFormat(string? format)

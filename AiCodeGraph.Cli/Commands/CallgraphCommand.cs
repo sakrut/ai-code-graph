@@ -9,10 +9,13 @@ public class CallgraphCommand : ICommandHandler
 {
     public Command BuildCommand()
     {
-        var methodArgument = new Argument<string>("method")
+        var methodArgument = new Argument<string?>("method")
         {
-            Description = "Method name or pattern to search for"
+            Description = "Method name or pattern to search for",
+            Arity = ArgumentArity.ZeroOrOne
         };
+
+        var idOption = OutputOptions.CreateMethodIdOption();
 
         var depthOption = new Option<int>("--depth", "-d")
         {
@@ -31,12 +34,13 @@ public class CallgraphCommand : ICommandHandler
 
         var command = new Command("callgraph", "Explore method call graph")
         {
-            methodArgument, depthOption, directionOption, formatOption, dbOption
+            methodArgument, idOption, depthOption, directionOption, formatOption, dbOption
         };
 
         command.SetAction(async (parseResult, cancellationToken) =>
         {
-            var method = parseResult.GetValue(methodArgument)!;
+            var method = parseResult.GetValue(methodArgument);
+            var methodId = parseResult.GetValue(idOption);
             var depth = parseResult.GetValue(depthOption);
             var direction = parseResult.GetValue(directionOption) ?? "both";
             var format = parseResult.GetValue(formatOption) ?? "compact";
@@ -47,26 +51,8 @@ public class CallgraphCommand : ICommandHandler
             await using var storage = new StorageService(dbPath);
             await storage.OpenAsync(cancellationToken);
 
-            var matches = await storage.SearchMethodsAsync(method, cancellationToken);
-            if (matches.Count == 0)
-            {
-                Console.Error.WriteLine($"No methods found matching '{method}'.");
-                Environment.ExitCode = 1;
-                return;
-            }
-
-            if (matches.Count > 1 && !matches.Any(m => m.FullName == method))
-            {
-                Console.WriteLine($"Multiple methods match '{method}':");
-                foreach (var m in matches.Take(10))
-                    Console.WriteLine($"  {m.FullName}");
-                if (matches.Count > 10)
-                    Console.WriteLine($"  ... and {matches.Count - 10} more");
-                Console.WriteLine("Please use a more specific name.");
-                return;
-            }
-
-            var rootId = matches.First(m => m.FullName == method || matches.Count == 1).Id;
+            var rootId = await MethodResolver.ResolveAsync(storage, methodId, method, cancellationToken);
+            if (rootId == null) return;
             var rootInfo = await storage.GetMethodInfoAsync(rootId, cancellationToken);
 
             // BFS traversal

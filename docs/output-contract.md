@@ -2,6 +2,29 @@
 
 This document defines the CLI output formats for AI Code Graph, optimized for LLM token economy.
 
+## Method Selection
+
+Commands that operate on methods support two selection modes:
+
+### By Pattern (default)
+```bash
+ai-code-graph context "ValidateUser"
+ai-code-graph callgraph "MyService.Process"
+```
+
+### By ID (recommended for agents)
+```bash
+ai-code-graph context --id "MyApp.Services.UserService.ValidateUser(String)"
+ai-code-graph callgraph --id "global::MyApp.Data.Repository.Query(Int32)"
+```
+
+**Resolution Precedence:**
+1. `--id` — Exact method ID match (fastest, unambiguous)
+2. Exact signature — Full qualified name matches exactly
+3. Substring match — Pattern found in method name (may be ambiguous)
+
+**Tip:** The `context` command prints the method's ID. Use it once to discover IDs, then use `--id` for subsequent calls to avoid ambiguity.
+
 ## Format Options
 
 All query commands support `--format <format>` with these options:

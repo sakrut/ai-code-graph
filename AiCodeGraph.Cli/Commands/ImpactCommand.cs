@@ -9,10 +9,13 @@ public class ImpactCommand : ICommandHandler
 {
     public Command BuildCommand()
     {
-        var methodArgument = new Argument<string>("method")
+        var methodArgument = new Argument<string?>("method")
         {
-            Description = "Method name or pattern to search for"
+            Description = "Method name or pattern to search for",
+            Arity = ArgumentArity.ZeroOrOne
         };
+
+        var idOption = OutputOptions.CreateMethodIdOption();
 
         var depthOption = new Option<int?>("--depth", "-d")
         {
@@ -25,12 +28,13 @@ public class ImpactCommand : ICommandHandler
 
         var command = new Command("impact", "Show transitive impact of changing a method (all callers)")
         {
-            methodArgument, depthOption, formatOption, topOption, dbOption
+            methodArgument, idOption, depthOption, formatOption, topOption, dbOption
         };
 
         command.SetAction(async (parseResult, cancellationToken) =>
         {
-            var method = parseResult.GetValue(methodArgument)!;
+            var method = parseResult.GetValue(methodArgument);
+            var methodId = parseResult.GetValue(idOption);
             var maxDepth = parseResult.GetValue(depthOption);
             var format = parseResult.GetValue(formatOption) ?? "compact";
             var top = parseResult.GetValue(topOption);
@@ -41,26 +45,8 @@ public class ImpactCommand : ICommandHandler
             await using var storage = new StorageService(dbPath);
             await storage.OpenAsync(cancellationToken);
 
-            var matches = await storage.SearchMethodsAsync(method, cancellationToken);
-            if (matches.Count == 0)
-            {
-                Console.Error.WriteLine($"No methods found matching '{method}'.");
-                Environment.ExitCode = 1;
-                return;
-            }
-
-            if (matches.Count > 1 && !matches.Any(m => m.FullName == method))
-            {
-                Console.WriteLine($"Multiple methods match '{method}':");
-                foreach (var m in matches.Take(10))
-                    Console.WriteLine($"  {m.FullName}");
-                if (matches.Count > 10)
-                    Console.WriteLine($"  ... and {matches.Count - 10} more");
-                Console.WriteLine("Please use a more specific name.");
-                return;
-            }
-
-            var targetId = matches.First(m => m.FullName == method || matches.Count == 1).Id;
+            var targetId = await MethodResolver.ResolveAsync(storage, methodId, method, cancellationToken);
+            if (targetId == null) return;
             var targetInfo = await storage.GetMethodInfoAsync(targetId, cancellationToken);
 
             // BFS traversal for transitive callers

@@ -19,20 +19,26 @@ Tip: run this after major changes or in CI.
 
 ## 2) Before editing a method: get compact context
 ```bash
-ai-code-graph context "Namespace.Type.Method" --db ./ai-code-graph/graph.db
+# First call: use pattern to find the method
+ai-code-graph context "ValidateUser"
+
+# Output includes the method ID - use it for subsequent calls
+ai-code-graph context --id "MyApp.Services.UserService.ValidateUser(String)"
 ```
-Use this as the default pre-edit ritual.
+Use this as the default pre-edit ritual. The `--id` form is preferred for follow-up calls (faster, unambiguous).
 
 What you want to see:
 - CC/LOC/Nesting
 - direct callers + direct callees
 - duplicates / cluster membership (if enabled)
+- **the method's stable ID** (copy it for future use)
 
 ## 3) If change may have blast radius: impact + callgraph
 ```bash
-ai-code-graph impact "Namespace.Type.Method" --depth 3
-ai-code-graph callgraph "Namespace.Type.Method" --direction both --depth 2
+ai-code-graph impact --id "MyApp.Services.UserService.ValidateUser(String)" --depth 3
+ai-code-graph callgraph --id "MyApp.Services.UserService.ValidateUser(String)" --direction both --depth 2
 ```
+Using `--id` avoids ambiguity when multiple methods share a name.
 
 ## 4) If refactoring: find the highest-leverage places
 ```bash
