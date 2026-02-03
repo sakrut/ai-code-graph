@@ -4037,7 +4037,7 @@
         "testStrategy": "Unit tests for option parsing. Run `ai-code-graph --help` and spot-check command helps.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -4045,10 +4045,10 @@
             "description": "Centralize common options to reduce drift.",
             "dependencies": [],
             "details": "Introduce helpers for: --db, --format, --top, --threshold, --depth, --include-private; refactor a few commands.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "No behavior regressions; help is consistent.",
             "parentId": "undefined",
-            "updatedAt": "2026-02-02T10:05:40Z"
+            "updatedAt": "2026-02-03T21:07:22.120Z"
           },
           {
             "id": 2,
@@ -4058,13 +4058,13 @@
               1
             ],
             "details": "Group options, ensure defaults documented, keep concise.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Spot-check help output; consistent across commands.",
             "parentId": "undefined",
-            "updatedAt": "2026-02-02T10:05:40Z"
+            "updatedAt": "2026-02-03T21:07:22.153Z"
           }
         ],
-        "updatedAt": "2026-02-02T10:05:40Z",
+        "updatedAt": "2026-02-03T21:07:22.153Z",
         "complexity": 6,
         "recommendedSubtasks": 0,
         "expansionPrompt": "Task has 2 well-defined subtasks covering: 1) shared option helpers, 2) help text organization. No further expansion needed."
@@ -4077,7 +4077,7 @@
         "testStrategy": "CI green; snapshot update workflow documented.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -4085,10 +4085,10 @@
             "description": "Add snapshot tests for compact + json outputs.",
             "dependencies": [],
             "details": "Create golden files and a harness; cover context/hotspots/callgraph/impact/dead-code/coupling.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "CI fails on unintended output changes.",
             "parentId": "undefined",
-            "updatedAt": "2026-02-02T10:05:40Z"
+            "updatedAt": "2026-02-03T21:13:13.347Z"
           },
           {
             "id": 2,
@@ -4098,13 +4098,13 @@
               1
             ],
             "details": "Add a short doc for regenerating snapshots and reviewing diffs.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Contributor can update snapshots confidently.",
             "parentId": "undefined",
-            "updatedAt": "2026-02-02T10:05:40Z"
+            "updatedAt": "2026-02-03T21:13:13.372Z"
           }
         ],
-        "updatedAt": "2026-02-02T10:05:40Z",
+        "updatedAt": "2026-02-03T21:13:13.372Z",
         "complexity": 5,
         "recommendedSubtasks": 0,
         "expansionPrompt": "Task has 2 well-defined subtasks covering: 1) golden snapshot tests, 2) documentation of update workflow. No further expansion needed."
@@ -4763,9 +4763,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-02-03T21:06:55.594Z",
+      "lastModified": "2026-02-03T21:13:13.373Z",
       "taskCount": 83,
-      "completedCount": 70,
+      "completedCount": 72,
       "tags": [
         "master"
       ]

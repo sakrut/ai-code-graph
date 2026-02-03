@@ -1,0 +1,2 @@
+TestNs.OrderService.ProcessOrder(String) — 0 callers OrderService.cs:10
+TestNs.UserService.DeadMethod() — 0 callers UserService.cs:40

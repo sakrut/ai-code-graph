@@ -179,7 +179,7 @@ public class CliCommandTests : TempDirectoryFixture
         var dbPath = await CreateTestDbAsync();
         var (exitCode, output, _) = await RunCliAsync($"hotspots --db {dbPath} --format json");
         Assert.Equal(0, exitCode);
-        Assert.Contains("\"hotspots\"", output);
+        Assert.Contains("\"items\"", output);
         Assert.Contains("\"complexity\"", output);
     }
 

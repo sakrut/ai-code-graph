@@ -1,0 +1,5 @@
+TestNs.OrderService.ProcessOrder(String) CC:25 LOC:50 Nest:5 OrderService.cs:10
+TestNs.OrderService.ValidateOrder(Int32) CC:8 LOC:20 Nest:2 OrderService.cs:70
+TestNs.UserService.GetUser(Int32) CC:5 LOC:20 Nest:2 UserService.cs:10
+TestNs.OrderService.SaveOrder() CC:3 LOC:20 Nest:1 OrderService.cs:100
+TestNs.UserService.DeadMethod() CC:2 LOC:10 Nest:1 UserService.cs:40

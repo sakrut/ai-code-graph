@@ -1,0 +1,45 @@
+{
+  "items": [
+    {
+      "methodId": "TestNs.OrderService.ProcessOrder(String)",
+      "complexity": 25,
+      "loc": 50,
+      "maxNesting": 5,
+      "location": "/test/OrderService.cs:10"
+    },
+    {
+      "methodId": "TestNs.OrderService.ValidateOrder(Int32)",
+      "complexity": 8,
+      "loc": 20,
+      "maxNesting": 2,
+      "location": "/test/OrderService.cs:70"
+    },
+    {
+      "methodId": "TestNs.UserService.GetUser(Int32)",
+      "complexity": 5,
+      "loc": 20,
+      "maxNesting": 2,
+      "location": "/test/UserService.cs:10"
+    },
+    {
+      "methodId": "TestNs.OrderService.SaveOrder()",
+      "complexity": 3,
+      "loc": 20,
+      "maxNesting": 1,
+      "location": "/test/OrderService.cs:100"
+    },
+    {
+      "methodId": "TestNs.UserService.DeadMethod()",
+      "complexity": 2,
+      "loc": 10,
+      "maxNesting": 1,
+      "location": "/test/UserService.cs:40"
+    }
+  ],
+  "metadata": {
+    "total": 5,
+    "returned": 5,
+    "threshold": null,
+    "top": 5
+  }
+}

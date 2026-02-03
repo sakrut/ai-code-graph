@@ -1,0 +1,66 @@
+{
+  "root": {
+    "methodId": "TestNs.OrderService.ProcessOrder(String)",
+    "name": "TestNs.OrderService.ProcessOrder(String)"
+  },
+  "nodes": [
+    {
+      "methodId": "TestNs.OrderService.ProcessOrder(String)",
+      "name": "TestNs.OrderService.ProcessOrder(String)",
+      "depth": 0
+    },
+    {
+      "methodId": "TestNs.OrderService.SaveOrder()",
+      "name": "TestNs.OrderService.SaveOrder()",
+      "depth": 1
+    },
+    {
+      "methodId": "TestNs.OrderService.ValidateOrder(Int32)",
+      "name": "TestNs.OrderService.ValidateOrder(Int32)",
+      "depth": 1
+    },
+    {
+      "methodId": "TestNs.UserService.GetUser(Int32)",
+      "name": "TestNs.UserService.GetUser(Int32)",
+      "depth": 1
+    }
+  ],
+  "edges": [
+    {
+      "from": "TestNs.OrderService.ProcessOrder(String)",
+      "to": "TestNs.OrderService.SaveOrder()"
+    },
+    {
+      "from": "TestNs.OrderService.ProcessOrder(String)",
+      "to": "TestNs.OrderService.SaveOrder()"
+    },
+    {
+      "from": "TestNs.OrderService.ProcessOrder(String)",
+      "to": "TestNs.OrderService.ValidateOrder(Int32)"
+    },
+    {
+      "from": "TestNs.OrderService.ProcessOrder(String)",
+      "to": "TestNs.OrderService.ValidateOrder(Int32)"
+    },
+    {
+      "from": "TestNs.OrderService.ProcessOrder(String)",
+      "to": "TestNs.UserService.GetUser(Int32)"
+    },
+    {
+      "from": "TestNs.OrderService.ProcessOrder(String)",
+      "to": "TestNs.UserService.GetUser(Int32)"
+    },
+    {
+      "from": "TestNs.OrderService.ValidateOrder(Int32)",
+      "to": "TestNs.UserService.GetUser(Int32)"
+    },
+    {
+      "from": "TestNs.OrderService.ValidateOrder(Int32)",
+      "to": "TestNs.UserService.GetUser(Int32)"
+    }
+  ],
+  "metadata": {
+    "depth": 2,
+    "direction": "both"
+  }
+}

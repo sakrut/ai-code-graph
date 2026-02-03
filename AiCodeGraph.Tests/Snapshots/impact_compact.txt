@@ -1,0 +1,4 @@
+Impact: TestNs.UserService.GetUser(Int32)
+Affected: 3 methods, 1 entry points
+← d1 TestNs.OrderService.ProcessOrder(String) [entry]
+← d1 TestNs.OrderService.ValidateOrder(Int32)

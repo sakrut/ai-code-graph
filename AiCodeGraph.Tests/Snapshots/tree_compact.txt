@@ -1,0 +1,8 @@
+TestProject
+  TestNs
+    [C] OrderService
+        bool ProcessOrder()
+        bool ValidateOrder()
+    [C] UserService
+        void DeadMethod()
+        User GetUser()

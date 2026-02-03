@@ -1,0 +1,32 @@
+{
+  "target": {
+    "methodId": "TestNs.UserService.GetUser(Int32)",
+    "name": "TestNs.UserService.GetUser(Int32)"
+  },
+  "affectedMethods": 3,
+  "entryPointCount": 1,
+  "maxDepthReached": 1,
+  "nodes": [
+    {
+      "methodId": "TestNs.UserService.GetUser(Int32)",
+      "name": "TestNs.UserService.GetUser(Int32)",
+      "depth": 0,
+      "isEntryPoint": false
+    },
+    {
+      "methodId": "TestNs.OrderService.ProcessOrder(String)",
+      "name": "TestNs.OrderService.ProcessOrder(String)",
+      "depth": 1,
+      "isEntryPoint": true
+    },
+    {
+      "methodId": "TestNs.OrderService.ValidateOrder(Int32)",
+      "name": "TestNs.OrderService.ValidateOrder(Int32)",
+      "depth": 1,
+      "isEntryPoint": false
+    }
+  ],
+  "entryPoints": [
+    "TestNs.OrderService.ProcessOrder(String)"
+  ]
+}
