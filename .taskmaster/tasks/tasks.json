@@ -4117,7 +4117,7 @@
         "testStrategy": "1. Unit tests for each ranking strategy with known graphs. 2. Test BFS vs DFS produce different traversal orders. 3. Test depth limits are respected. 4. Test filters correctly exclude nodes. 5. Integration test with TestSolution fixture. 6. Benchmark with 1000+ node graphs to ensure sub-second traversal.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -4125,9 +4125,10 @@
             "description": "Create the foundational data structures and interfaces for the GraphTraversalEngine including configuration records, result types, enums for traversal direction/strategy/ranking, and filter configuration.",
             "dependencies": [],
             "details": "Create `AiCodeGraph.Core/Query/` directory with the following files:\n\n1. **TraversalTypes.cs** - Define core enums:\n   - `TraversalDirection { Callers, Callees, Both }`\n   - `TraversalStrategy { BFS, DFS }`\n   - `RankingStrategy { BlastRadius, Complexity, Coupling, Combined }`\n\n2. **FilterConfig.cs** - Define filtering options:\n   - `NamespacePatterns` (include/exclude patterns)\n   - `TypePatterns` (include/exclude patterns)\n   - `AccessibilityFilter` (Public, Internal, Private, etc.)\n   - `ExcludeGeneratedCode` boolean\n\n3. **TraversalConfig.cs** - Main configuration record:\n   - `SeedMethodId` (required string)\n   - `Direction` (TraversalDirection)\n   - `MaxDepth` (int, default 3)\n   - `Strategy` (TraversalStrategy, default BFS)\n   - `Ranking` (RankingStrategy, default BlastRadius)\n   - `MaxResults` (int?, for early termination)\n   - `Filter` (FilterConfig?)\n\n4. **TraversalResult.cs** - Result structures:\n   - `TraversalNode` record: MethodId, FullName, Depth, Direction, RankingScore, Metrics (complexity, coupling)\n   - `TraversalEdge` record: FromMethodId, ToMethodId, EdgeDirection\n   - `TraversalResult` record: SeedMethodId, Nodes (list), Edges (list), TotalNodesVisited, TraversalTimeMs\n\n5. **IGraphTraversalEngine.cs** - Interface:\n   - `Task<TraversalResult> TraverseAsync(TraversalConfig config, CancellationToken ct)`\n\nFollow existing patterns from `MethodModel.cs` and `ClonePair.cs` for record definitions.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests for record initialization and default values. Test FilterConfig pattern matching logic with various namespace/type patterns. Test TraversalConfig validation (e.g., MaxDepth > 0, SeedMethodId not empty). Verify all enums serialize/deserialize correctly for future JSON query support.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-02-03T21:15:18.348Z"
           },
           {
             "id": 2,
@@ -4137,9 +4138,10 @@
               1
             ],
             "details": "Create `AiCodeGraph.Core/Query/GraphTraversalEngine.cs` with traversal implementation:\n\n1. **Constructor dependencies**:\n   - `IStorageService _storage` (inject existing storage service)\n   - Private caches: `Dictionary<string, int> _blastRadiusCache`, `HashSet<string> _visited`\n\n2. **TraverseAsync main method**:\n   - Validate seed method exists via `_storage.GetMethodInfoAsync()`\n   - Initialize visited set, nodes list, edges list\n   - Call `TraverseBfsAsync()` or `TraverseDfsAsync()` based on config.Strategy\n   - Apply filters post-traversal\n   - Rank nodes using configured strategy\n   - Return `TraversalResult` with timing info\n\n3. **TraverseBfsAsync implementation** (follow pattern from CallgraphCommand.cs:46-90):\n   - Use `Queue<(string Id, int Depth)>` for level-order traversal\n   - Track visited nodes to prevent cycles\n   - For each node at current depth < MaxDepth:\n     - If Direction is Callers or Both: call `_storage.GetCallersAsync()`, add edges\n     - If Direction is Callees or Both: call `_storage.GetCalleesAsync()`, add edges\n   - Support MaxResults early termination\n\n4. **TraverseDfsAsync implementation**:\n   - Use `Stack<(string Id, int Depth)>` instead of Queue\n   - Same logic but explores depth-first\n   - Track path to detect back-edges vs cross-edges\n\n5. **ApplyFilters helper method**:\n   - Filter nodes by namespace patterns using regex or glob matching\n   - Filter by accessibility level\n   - Remove filtered nodes from edges list\n\nUse `Stopwatch` for timing. Support `CancellationToken` throughout with `ct.ThrowIfCancellationRequested()`.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: 1) BFS produces level-order traversal (test with known graph, verify depth ordering). 2) DFS explores branches before siblings (verify stack-based ordering). 3) Depth limit stops at MaxDepth (no nodes beyond limit). 4) Direction=Callers only follows incoming edges. 5) Direction=Both follows both directions. 6) MaxResults causes early termination. 7) Cycle detection prevents infinite loops. 8) CancellationToken properly aborts. Use mocked IStorageService for deterministic graph structure.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-02-03T21:18:23.210Z"
           },
           {
             "id": 3,
@@ -4149,9 +4151,10 @@
               2
             ],
             "details": "Add BlastRadius computation to `GraphTraversalEngine.cs`:\n\n1. **ComputeBlastRadiusAsync method**:\n   ```csharp\n   private async Task<int> ComputeBlastRadiusAsync(string methodId, CancellationToken ct)\n   {\n       if (_blastRadiusCache.TryGetValue(methodId, out var cached))\n           return cached;\n       \n       // BFS to count all transitive callers (methods affected by change)\n       var affected = new HashSet<string>();\n       var queue = new Queue<string>();\n       queue.Enqueue(methodId);\n       \n       while (queue.Count > 0)\n       {\n           var current = queue.Dequeue();\n           var callers = await _storage.GetCallersAsync(current, ct);\n           foreach (var caller in callers)\n           {\n               if (affected.Add(caller))\n                   queue.Enqueue(caller);\n           }\n       }\n       \n       var radius = affected.Count;\n       _blastRadiusCache[methodId] = radius;\n       return radius;\n   }\n   ```\n\n2. **RankByBlastRadiusAsync method**:\n   - For each node in traversal result, compute blast radius\n   - Sort nodes descending by blast radius (higher = more impactful)\n   - Set `node.RankingScore` to the blast radius value\n\n3. **Caching strategy**:\n   - Cache is per-traversal session (cleared when TraverseAsync starts)\n   - Optional: Consider batch computation using `GetCallGraphForMethodsAsync()` for large node sets to reduce DB round-trips\n\n4. **Performance consideration**:\n   - For nodes already in the traversal (if Direction=Callers), reuse the visited set\n   - Early termination: if blast radius exceeds a threshold and we only need top N, skip remaining computations\n\nFollow the pattern from ImpactCommand.cs which already computes transitive callers for impact analysis.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: 1) Leaf method (no callers) has blast radius 0. 2) Method with one direct caller has blast radius 1. 3) Method with transitive chain A->B->C: C has radius 2 (both A and B affected). 4) Diamond dependency (A->C, B->C, D->A, D->B): C has radius 3. 5) Cache hit returns same value without DB call. 6) Cycle handling: A->B->A doesn't cause infinite loop. Integration test with TestSolution fixture verifying real graph blast radii.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-02-03T21:21:02.624Z"
           },
           {
             "id": 4,
@@ -4161,9 +4164,10 @@
               2
             ],
             "details": "Add Complexity and Coupling ranking to `GraphTraversalEngine.cs`:\n\n1. **RankByComplexityAsync method**:\n   ```csharp\n   private async Task RankByComplexityAsync(List<TraversalNode> nodes, CancellationToken ct)\n   {\n       foreach (var node in nodes)\n       {\n           var metrics = await _storage.GetMethodMetricsAsync(node.MethodId, ct);\n           node.RankingScore = metrics?.CognitiveComplexity ?? 0;\n       }\n       nodes.Sort((a, b) => b.RankingScore.CompareTo(a.RankingScore)); // Descending\n   }\n   ```\n\n2. **RankByCouplingAsync method** (adapt CouplingAnalyzer pattern):\n   - For each node, compute method-level coupling:\n     - Afferent (Ca): count of unique methods calling this method\n     - Efferent (Ce): count of unique methods this method calls\n   - Score = Ca + Ce (total coupling) or use instability I = Ce / (Ca + Ce)\n   - Higher coupling = higher ranking score (more interconnected)\n   ```csharp\n   private async Task RankByCouplingAsync(List<TraversalNode> nodes, CancellationToken ct)\n   {\n       foreach (var node in nodes)\n       {\n           var callers = await _storage.GetCallersAsync(node.MethodId, ct);\n           var callees = await _storage.GetCalleesAsync(node.MethodId, ct);\n           var ca = callers.Count;\n           var ce = callees.Count;\n           // Use total coupling as score; high coupling = high impact\n           node.RankingScore = ca + ce;\n           // Optionally store instability for Combined strategy\n           node.Metrics = node.Metrics with { AfferentCoupling = ca, EfferentCoupling = ce };\n       }\n       nodes.Sort((a, b) => b.RankingScore.CompareTo(a.RankingScore));\n   }\n   ```\n\n3. **Extend TraversalNode.Metrics**:\n   - Add `CognitiveComplexity`, `AfferentCoupling`, `EfferentCoupling` fields\n   - Populate during ranking for transparency in results\n\n4. **Fallback handling**:\n   - If metrics not found for a method (external/unanalyzed), use score 0\n   - Log warning but don't fail traversal",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: 1) Complexity ranking orders by CognitiveComplexity descending. 2) Method with no metrics defaults to score 0. 3) Coupling ranking computes Ca+Ce correctly. 4) Method with no callers/callees has coupling 0. 5) Hub method (many callers and callees) ranks highest. 6) Verify Metrics fields are populated on nodes. Integration test: analyze TestSolution, traverse from known method, verify complexity values match stored metrics.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-02-03T21:21:02.654Z"
           },
           {
             "id": 5,
@@ -4174,14 +4178,16 @@
               4
             ],
             "details": "Complete the ranking system in `GraphTraversalEngine.cs`:\n\n1. **CombinedRankingWeights record**:\n   ```csharp\n   public record CombinedRankingWeights(\n       float BlastRadiusWeight = 0.4f,\n       float ComplexityWeight = 0.35f,\n       float CouplingWeight = 0.25f\n   );\n   ```\n\n2. **RankByCombinedAsync method**:\n   - Compute all three metrics for each node\n   - Normalize each metric to 0-1 range using min-max scaling within the result set\n   - Combined score = (BR_norm * BR_weight) + (CC_norm * CC_weight) + (Coup_norm * Coup_weight)\n   ```csharp\n   private async Task RankByCombinedAsync(List<TraversalNode> nodes, CombinedRankingWeights weights, CancellationToken ct)\n   {\n       // Compute raw scores\n       var blastRadii = new Dictionary<string, int>();\n       var complexities = new Dictionary<string, int>();\n       var couplings = new Dictionary<string, int>();\n       \n       foreach (var node in nodes)\n       {\n           blastRadii[node.MethodId] = await ComputeBlastRadiusAsync(node.MethodId, ct);\n           var metrics = await _storage.GetMethodMetricsAsync(node.MethodId, ct);\n           complexities[node.MethodId] = metrics?.CognitiveComplexity ?? 0;\n           var callers = await _storage.GetCallersAsync(node.MethodId, ct);\n           var callees = await _storage.GetCalleesAsync(node.MethodId, ct);\n           couplings[node.MethodId] = callers.Count + callees.Count;\n       }\n       \n       // Normalize and combine\n       var maxBR = blastRadii.Values.Max();\n       var maxCC = complexities.Values.Max();\n       var maxCoup = couplings.Values.Max();\n       \n       foreach (var node in nodes)\n       {\n           var brNorm = maxBR > 0 ? (float)blastRadii[node.MethodId] / maxBR : 0;\n           var ccNorm = maxCC > 0 ? (float)complexities[node.MethodId] / maxCC : 0;\n           var coupNorm = maxCoup > 0 ? (float)couplings[node.MethodId] / maxCoup : 0;\n           node.RankingScore = brNorm * weights.BlastRadiusWeight + ccNorm * weights.ComplexityWeight + coupNorm * weights.CouplingWeight;\n       }\n       nodes.Sort((a, b) => b.RankingScore.CompareTo(a.RankingScore));\n   }\n   ```\n\n3. **Session-level caching**:\n   - Add `_metricsCache` dictionary for complexity lookups\n   - Add `_callersCache` and `_calleesCache` for coupling lookups\n   - Clear all caches at start of `TraverseAsync()`\n   - Consider using `GetCallGraphForMethodsAsync()` for batch loading when traversal has >50 nodes\n\n4. **Batch optimization** (optional but recommended):\n   ```csharp\n   private async Task PrefetchCallGraphAsync(HashSet<string> methodIds, CancellationToken ct)\n   {\n       var edges = await _storage.GetCallGraphForMethodsAsync(methodIds, ct);\n       foreach (var (callerId, calleeId) in edges)\n       {\n           // Populate caches\n           if (!_callersCache.TryGetValue(calleeId, out var callers))\n               _callersCache[calleeId] = callers = new List<string>();\n           callers.Add(callerId);\n           // Same for callees...\n       }\n   }\n   ```\n\n5. **Main dispatcher** in TraverseAsync:\n   ```csharp\n   switch (config.Ranking)\n   {\n       case RankingStrategy.BlastRadius: await RankByBlastRadiusAsync(nodes, ct); break;\n       case RankingStrategy.Complexity: await RankByComplexityAsync(nodes, ct); break;\n       case RankingStrategy.Coupling: await RankByCouplingAsync(nodes, ct); break;\n       case RankingStrategy.Combined: await RankByCombinedAsync(nodes, DefaultWeights, ct); break;\n   }\n   ```",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: 1) Combined ranking with equal weights produces expected order. 2) Normalization handles edge cases (all zeros, single node). 3) Cache reduces DB calls (mock storage, count invocations). 4) Batch prefetch populates caches correctly. 5) Weights sum validation (warn if not ~1.0). Integration test: traverse TestSolution with Combined strategy, verify nodes have all three metric components. Performance test: traverse 500+ node graph, verify sub-second completion with caching. Benchmark comparison: with vs without batch prefetch.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-02-03T21:21:02.697Z"
           }
         ],
         "complexity": 7,
         "recommendedSubtasks": 5,
-        "expansionPrompt": "Break down into: 1) Define TraversalConfig, TraversalResult, and core interfaces. 2) Implement BFS/DFS traversal logic with depth limits. 3) Implement BlastRadius ranking strategy using transitive caller count. 4) Implement Complexity and Coupling ranking strategies using existing metrics. 5) Add Combined ranking with weighted scoring and caching for performance."
+        "expansionPrompt": "Break down into: 1) Define TraversalConfig, TraversalResult, and core interfaces. 2) Implement BFS/DFS traversal logic with depth limits. 3) Implement BlastRadius ranking strategy using transitive caller count. 4) Implement Complexity and Coupling ranking strategies using existing metrics. 5) Add Combined ranking with weighted scoring and caching for performance.",
+        "updatedAt": "2026-02-03T21:21:02.697Z"
       },
       {
         "id": "75",
@@ -4763,9 +4769,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-02-03T21:13:13.373Z",
+      "lastModified": "2026-02-03T21:21:02.697Z",
       "taskCount": 83,
-      "completedCount": 72,
+      "completedCount": 73,
       "tags": [
         "master"
       ]
