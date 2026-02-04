@@ -93,7 +93,6 @@ Configure in `.mcp.json`:
 
 - [LLM Quickstart](docs/LLM-QUICKSTART.md) - Minimal-token agent workflow
 - [Output Contract](docs/output-contract.md) - Format specifications
-- [AI Tool Comparison](docs/ai-perspective-tool-comparison.md) - When to use which tool
 
 ## Building from Source
 
