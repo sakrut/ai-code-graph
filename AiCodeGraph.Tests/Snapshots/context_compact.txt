@@ -7,4 +7,4 @@ Callees (3): SaveOrder, ValidateOrder, GetUser
 Tests (1): OrderService.ProcessOrder
 
 Architectural Notes:
-  ⚠ High complexity (CC=25) - consider refactoring
+  ! High complexity (CC=25) - consider refactoring

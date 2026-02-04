@@ -226,7 +226,7 @@ public class QueryHandler : IMcpToolHandler
                 ? $" {Path.GetFileName(node.FilePath)}:{node.Line}"
                 : "";
 
-            var protectionMarker = protectedSet.ContainsKey(node.FullName) ? " ⚠️" : "";
+            var protectionMarker = protectedSet.ContainsKey(node.FullName) ? " [!]" : "";
 
             lines.Add($"[{index}] {metrics} {node.FullName}{location}{protectionMarker}");
             index++;
@@ -236,7 +236,7 @@ public class QueryHandler : IMcpToolHandler
         if (protectedMethods != null && protectedMethods.Count > 0)
         {
             lines.Add("");
-            lines.Add($"⚠️ Protected zones affected ({protectedMethods.Count}):");
+            lines.Add($"[!] Protected zones affected ({protectedMethods.Count}):");
             var byLevel = protectedMethods.GroupBy(p => p.Zone.Level).OrderBy(g => g.Key);
             foreach (var group in byLevel)
             {
@@ -393,7 +393,7 @@ public class QueryHandler : IMcpToolHandler
         foreach (var m in deadCode.Take(top))
         {
             var location = m.FilePath != null ? $" {Path.GetFileName(m.FilePath)}:{m.StartLine}" : "";
-            lines.Add($"{m.FullName} — 0 callers{location}");
+            lines.Add($"{m.FullName} - 0 callers{location}");
         }
         if (total > top)
             lines.Add($"(+{total - top} more)");

@@ -128,7 +128,7 @@ public class StatusCommand : ICommandHandler
         if (!string.IsNullOrEmpty(storedCommit) && !string.IsNullOrEmpty(currentCommit))
         {
             if (storedCommit != currentCommit)
-                return (true, $"Git HEAD changed ({storedCommit[..7]} → {currentCommit[..7]})", "high");
+                return (true, $"Git HEAD changed ({storedCommit[..7]} -> {currentCommit[..7]})", "high");
         }
 
         // Check last modified time of .cs files

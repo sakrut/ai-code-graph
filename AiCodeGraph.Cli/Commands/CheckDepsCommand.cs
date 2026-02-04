@@ -146,7 +146,7 @@ public class CheckDepsCommand : ICommandHandler
 
             if (!grouped.Any())
             {
-                Console.WriteLine("✓ No dependency violations found.");
+                Console.WriteLine("OK - No dependency violations found.");
                 Console.WriteLine();
                 Console.WriteLine($"Checked {result.TotalCallsChecked} method calls against {result.RulesApplied} rules in {result.ElapsedTime.TotalMilliseconds:F0}ms");
                 return;
@@ -155,7 +155,7 @@ public class CheckDepsCommand : ICommandHandler
             var errorCount = result.Violations.Count(v => v.Rule.Severity == ViolationSeverity.Error);
             var warningCount = result.Violations.Count(v => v.Rule.Severity == ViolationSeverity.Warning);
 
-            Console.WriteLine($"✗ Found {result.Violations.Count} dependency violations:");
+            Console.WriteLine($"FAIL - Found {result.Violations.Count} dependency violations:");
             if (errorCount > 0)
                 Console.WriteLine($"  {errorCount} error(s)");
             if (warningCount > 0)
@@ -177,7 +177,7 @@ public class CheckDepsCommand : ICommandHandler
                         ? $" ({Path.GetFileName(violation.FromFilePath)}:{violation.FromLine})"
                         : "";
                     Console.WriteLine($"    {violation.FromFullName}{location}");
-                    Console.WriteLine($"      → {violation.ToFullName}");
+                    Console.WriteLine($"      -> {violation.ToFullName}");
                 }
 
                 if (group.Count() > 10)

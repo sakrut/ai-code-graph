@@ -64,7 +64,7 @@ public class DeadCodeCommand : ICommandHandler
                 foreach (var m in deadCode)
                 {
                     var location = m.FilePath != null ? $" {Path.GetFileName(m.FilePath)}:{m.StartLine}" : "";
-                    Console.WriteLine($"{m.FullName} — 0 callers{location}");
+                    Console.WriteLine($"{m.FullName} - 0 callers{location}");
                 }
                 if (total > deadCode.Count)
                     Console.WriteLine($"(+{total - deadCode.Count} more)");

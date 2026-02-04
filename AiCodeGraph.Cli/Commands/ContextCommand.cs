@@ -250,17 +250,17 @@ public class ContextCommand : ICommandHandler
 
             // High blast radius warning
             if (metrics?.BlastRadius > 50)
-                archNotes.Add($"⚠ High blast radius - changes affect {metrics.Value.BlastRadius} callers");
+                archNotes.Add($"! High blast radius - changes affect {metrics.Value.BlastRadius} callers");
             else if (metrics?.BlastRadius > 20)
-                archNotes.Add($"⚠ Moderate blast radius - changes affect {metrics.Value.BlastRadius} callers");
+                archNotes.Add($"! Moderate blast radius - changes affect {metrics.Value.BlastRadius} callers");
 
             // High complexity warning
             if (metrics?.CognitiveComplexity > 15)
-                archNotes.Add($"⚠ High complexity (CC={metrics.Value.CognitiveComplexity}) - consider refactoring");
+                archNotes.Add($"! High complexity (CC={metrics.Value.CognitiveComplexity}) - consider refactoring");
 
             // Protection zone
             if (protection.IsProtected && protection.Zone != null)
-                archNotes.Add($"⚠ {protection.WarningMessage}");
+                archNotes.Add($"! {protection.WarningMessage}");
 
             // Check for deprecated callees
             if (zoneManager.Zones.Count > 0)
@@ -273,7 +273,7 @@ public class ContextCommand : ICommandHandler
                         var calleeProtection = zoneManager.CheckProtection(calleeInfo.Value.FullName);
                         if (calleeProtection.IsProtected && calleeProtection.Zone?.Level == ProtectionLevel.Deprecated)
                         {
-                            archNotes.Add($"⚠ Calls deprecated method: {calleeInfo.Value.Name}");
+                            archNotes.Add($"! Calls deprecated method: {calleeInfo.Value.Name}");
                         }
                     }
                 }
@@ -299,13 +299,13 @@ public class ContextCommand : ICommandHandler
                             var calleeLayer = await storage.GetLayerForTypeAsync(calleeTypeId, cancellationToken);
                             if (calleeLayer != null && !detector.IsDependencyValid(layerAssignment.Layer, calleeLayer.Layer))
                             {
-                                violations.Add($"{layerAssignment.Layer}→{calleeLayer.Layer}");
+                                violations.Add($"{layerAssignment.Layer}->{calleeLayer.Layer}");
                             }
                         }
                     }
                 }
                 if (violations.Count > 0)
-                    archNotes.Add($"⚠ Layer violations: {string.Join(", ", violations.Distinct())}");
+                    archNotes.Add($"! Layer violations: {string.Join(", ", violations.Distinct())}");
             }
 
             if (archNotes.Count > 0)
@@ -318,7 +318,7 @@ public class ContextCommand : ICommandHandler
             else
             {
                 Console.WriteLine();
-                Console.WriteLine("Architectural Notes: ✓ No issues detected");
+                Console.WriteLine("Architectural Notes: OK - No issues detected");
             }
 
             // Source snippet

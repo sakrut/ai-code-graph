@@ -128,7 +128,7 @@ public class ImpactCommand : ICommandHandler
                     var info = await storage.GetMethodInfoAsync(id, cancellationToken);
                     var ep = entryPoints.Contains(id) ? " [entry]" : "";
                     var d = depthMap.GetValueOrDefault(id);
-                    Console.WriteLine($"← d{d} {info?.FullName ?? id}{ep}");
+                    Console.WriteLine($"<- d{d} {info?.FullName ?? id}{ep}");
                 }
                 if (visited.Count - 1 > top)
                     Console.WriteLine($"(+{visited.Count - 1 - top} more)");
@@ -167,7 +167,7 @@ public class ImpactCommand : ICommandHandler
                 if (protectedInBlast.Count > 0)
                 {
                     Console.WriteLine();
-                    Console.WriteLine($"⚠️ Protected zones affected ({protectedInBlast.Count}):");
+                    Console.WriteLine($"[!] Protected zones affected ({protectedInBlast.Count}):");
                     foreach (var (protectedId, fullName, zone) in protectedInBlast.Take(10))
                     {
                         var levelText = zone.Level switch

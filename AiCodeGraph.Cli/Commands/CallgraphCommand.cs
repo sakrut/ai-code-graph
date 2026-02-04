@@ -115,12 +115,12 @@ public class CallgraphCommand : ICommandHandler
                 foreach (var callerId in callers)
                 {
                     var node = nodes.FirstOrDefault(n => n.Id == callerId);
-                    Console.WriteLine($"← {node.FullName}");
+                    Console.WriteLine($"<- {node.FullName}");
                 }
                 foreach (var calleeId in callees)
                 {
                     var node = nodes.FirstOrDefault(n => n.Id == calleeId);
-                    Console.WriteLine($"→ {node.FullName}");
+                    Console.WriteLine($"-> {node.FullName}");
                 }
             }
             else // table/tree
@@ -140,7 +140,7 @@ public class CallgraphCommand : ICommandHandler
                     if (protectedInGraph.Count > 0)
                     {
                         Console.WriteLine();
-                        Console.WriteLine($"⚠️ Protected zones in graph ({protectedInGraph.Count}):");
+                        Console.WriteLine($"[!] Protected zones in graph ({protectedInGraph.Count}):");
                         foreach (var (protectedId, fullName, zone) in protectedInGraph.Take(5))
                         {
                             var levelText = zone.Level switch
