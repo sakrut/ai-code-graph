@@ -1,5 +1,6 @@
 using System.CommandLine;
 using System.CommandLine.Parsing;
+using AiCodeGraph.Core.Architecture;
 using AiCodeGraph.Core.Storage;
 using AiCodeGraph.Cli.Helpers;
 
@@ -9,10 +10,13 @@ public class CallgraphCommand : ICommandHandler
 {
     public Command BuildCommand()
     {
-        var methodArgument = new Argument<string>("method")
+        var methodArgument = new Argument<string?>("method")
         {
-            Description = "Method name or pattern to search for"
+            Description = "Method name or pattern to search for",
+            Arity = ArgumentArity.ZeroOrOne
         };
+
+        var idOption = OutputOptions.CreateMethodIdOption();
 
         var depthOption = new Option<int>("--depth", "-d")
         {
@@ -26,29 +30,21 @@ public class CallgraphCommand : ICommandHandler
             DefaultValueFactory = _ => "both"
         };
 
-        var formatOption = new Option<string>("--format", "-f")
-        {
-            Description = "tree|json",
-            DefaultValueFactory = _ => "tree"
-        };
-
-        var dbOption = new Option<string>("--db")
-        {
-            Description = "Path to graph.db",
-            DefaultValueFactory = _ => "./ai-code-graph/graph.db"
-        };
+        var formatOption = OutputOptions.CreateFormatOption(OutputFormat.Compact);
+        var dbOption = OutputOptions.CreateDbOption();
 
         var command = new Command("callgraph", "Explore method call graph")
         {
-            methodArgument, depthOption, directionOption, formatOption, dbOption
+            methodArgument, idOption, depthOption, directionOption, formatOption, dbOption
         };
 
         command.SetAction(async (parseResult, cancellationToken) =>
         {
-            var method = parseResult.GetValue(methodArgument)!;
+            var method = parseResult.GetValue(methodArgument);
+            var methodId = parseResult.GetValue(idOption);
             var depth = parseResult.GetValue(depthOption);
             var direction = parseResult.GetValue(directionOption) ?? "both";
-            var format = parseResult.GetValue(formatOption) ?? "tree";
+            var format = parseResult.GetValue(formatOption) ?? "compact";
             var dbPath = parseResult.GetValue(dbOption) ?? "./ai-code-graph/graph.db";
 
             if (!CommandHelpers.ValidateDatabase(dbPath)) return;
@@ -56,26 +52,8 @@ public class CallgraphCommand : ICommandHandler
             await using var storage = new StorageService(dbPath);
             await storage.OpenAsync(cancellationToken);
 
-            var matches = await storage.SearchMethodsAsync(method, cancellationToken);
-            if (matches.Count == 0)
-            {
-                Console.Error.WriteLine($"No methods found matching '{method}'.");
-                Environment.ExitCode = 1;
-                return;
-            }
-
-            if (matches.Count > 1 && !matches.Any(m => m.FullName == method))
-            {
-                Console.WriteLine($"Multiple methods match '{method}':");
-                foreach (var m in matches.Take(10))
-                    Console.WriteLine($"  {m.FullName}");
-                if (matches.Count > 10)
-                    Console.WriteLine($"  ... and {matches.Count - 10} more");
-                Console.WriteLine("Please use a more specific name.");
-                return;
-            }
-
-            var rootId = matches.First(m => m.FullName == method || matches.Count == 1).Id;
+            var rootId = await MethodResolver.ResolveAsync(storage, methodId, method, cancellationToken);
+            if (rootId == null) return;
             var rootInfo = await storage.GetMethodInfoAsync(rootId, cancellationToken);
 
             // BFS traversal
@@ -116,21 +94,68 @@ public class CallgraphCommand : ICommandHandler
                 }
             }
 
-            if (format == "json")
+            if (OutputOptions.IsJson(format))
             {
                 var json = System.Text.Json.JsonSerializer.Serialize(new
                 {
-                    root = new { id = rootId, name = rootInfo?.FullName },
-                    nodes = nodes.OrderBy(n => n.FullName).Select(n => new { n.Id, name = n.FullName, n.Depth }),
+                    root = new { methodId = rootId, name = rootInfo?.FullName },
+                    nodes = nodes.OrderBy(n => n.FullName).Select(n => new { methodId = n.Id, name = n.FullName, n.Depth }),
                     edges = edges.OrderBy(e => e.From).ThenBy(e => e.To).Select(e => new { from = e.From, to = e.To }),
                     metadata = new { depth, direction }
                 }, new System.Text.Json.JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
                 Console.WriteLine(json);
             }
-            else
+            else if (OutputOptions.IsCompact(format))
+            {
+                Console.WriteLine(rootInfo?.FullName ?? rootId);
+                // Flat compact output: callers first, then callees
+                var callers = edges.Where(e => e.To == rootId).Select(e => e.From).ToList();
+                var callees = edges.Where(e => e.From == rootId).Select(e => e.To).ToList();
+
+                foreach (var callerId in callers)
+                {
+                    var node = nodes.FirstOrDefault(n => n.Id == callerId);
+                    Console.WriteLine($"<- {node.FullName}");
+                }
+                foreach (var calleeId in callees)
+                {
+                    var node = nodes.FirstOrDefault(n => n.Id == calleeId);
+                    Console.WriteLine($"-> {node.FullName}");
+                }
+            }
+            else // table/tree
             {
                 Console.WriteLine($"{rootInfo?.FullName ?? rootId}");
                 OutputHelpers.PrintCallTree(rootId, edges, nodes, 1, depth, new HashSet<string> { rootId });
+            }
+
+            // Check for protected zones in the call graph
+            if (!OutputOptions.IsJson(format))
+            {
+                var projectRoot = Path.GetDirectoryName(Path.GetDirectoryName(dbPath)) ?? ".";
+                var zoneManager = ProtectedZoneManager.TryLoadFromProject(projectRoot);
+                if (zoneManager.Zones.Count > 0)
+                {
+                    var protectedInGraph = await zoneManager.FilterProtectedAsync(visited, storage, cancellationToken);
+                    if (protectedInGraph.Count > 0)
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine($"[!] Protected zones in graph ({protectedInGraph.Count}):");
+                        foreach (var (protectedId, fullName, zone) in protectedInGraph.Take(5))
+                        {
+                            var levelText = zone.Level switch
+                            {
+                                ProtectionLevel.DoNotModify => "[DO NOT MODIFY]",
+                                ProtectionLevel.RequireApproval => "[REQUIRES APPROVAL]",
+                                ProtectionLevel.Deprecated => "[DEPRECATED]",
+                                _ => $"[{zone.Level}]"
+                            };
+                            Console.WriteLine($"  {levelText} {fullName}");
+                        }
+                        if (protectedInGraph.Count > 5)
+                            Console.WriteLine($"  (+{protectedInGraph.Count - 5} more)");
+                    }
+                }
             }
         });
 

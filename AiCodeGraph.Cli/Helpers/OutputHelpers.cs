@@ -29,7 +29,7 @@ public static class OutputHelpers
             var node = nodes.FirstOrDefault(n => n.Id == edge.To);
             if (node == default) continue;
             var marker = printed.Add(edge.To) ? "" : " (*)";
-            Console.WriteLine($"{indent}\u2192 {node.FullName}{marker}");
+            Console.WriteLine($"{indent}-> {node.FullName}{marker}");
             if (marker == "")
                 PrintCallTree(edge.To, edges, nodes, currentDepth + 1, maxDepth, printed);
         }
@@ -40,7 +40,7 @@ public static class OutputHelpers
             var node = nodes.FirstOrDefault(n => n.Id == edge.From);
             if (node == default) continue;
             var marker = printed.Add(edge.From) ? "" : " (*)";
-            Console.WriteLine($"{indent}\u2190 {node.FullName}{marker}");
+            Console.WriteLine($"{indent}<- {node.FullName}{marker}");
             if (marker == "")
                 PrintCallTree(edge.From, edges, nodes, currentDepth + 1, maxDepth, printed);
         }

@@ -25,7 +25,7 @@ public class SearchHandler : IMcpToolHandler
     public JsonArray GetToolDefinitions() => new()
     {
         McpProtocolHelpers.CreateToolDef("cg_token_search",
-            "Search code by token overlap",
+            "Fallback search by token overlap (use cg_query first for graph-based retrieval)",
             new JsonObject
             {
                 ["type"] = "object",
@@ -37,7 +37,7 @@ public class SearchHandler : IMcpToolHandler
                 ["required"] = new JsonArray { "query" }
             }),
         McpProtocolHelpers.CreateToolDef("cg_semantic_search",
-            "Search code by semantic meaning using LLM embeddings",
+            "Fallback search by semantic meaning (use cg_query first for deterministic results)",
             new JsonObject
             {
                 ["type"] = "object",
@@ -49,7 +49,7 @@ public class SearchHandler : IMcpToolHandler
                 ["required"] = new JsonArray { "query" }
             }),
         McpProtocolHelpers.CreateToolDef("cg_get_similar",
-            "Find methods with similar semantic intent",
+            "Find methods with similar semantic intent (for discovering related code)",
             new JsonObject
             {
                 ["type"] = "object",

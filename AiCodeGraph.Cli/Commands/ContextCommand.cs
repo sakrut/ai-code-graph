@@ -1,6 +1,7 @@
 using System.CommandLine;
 using System.CommandLine.Parsing;
 using System.Diagnostics;
+using AiCodeGraph.Core.Architecture;
 using AiCodeGraph.Core.Storage;
 using AiCodeGraph.Cli.Helpers;
 
@@ -10,25 +11,26 @@ public class ContextCommand : ICommandHandler
 {
     public Command BuildCommand()
     {
-        var methodArgument = new Argument<string>("method")
+        var methodArgument = new Argument<string?>("method")
         {
-            Description = "Method name or pattern"
+            Description = "Method name or pattern",
+            Arity = ArgumentArity.ZeroOrOne
         };
 
-        var dbOption = new Option<string>("--db")
-        {
-            Description = "Path to graph.db",
-            DefaultValueFactory = _ => "./ai-code-graph/graph.db"
-        };
+        var idOption = OutputOptions.CreateMethodIdOption();
+        var formatOption = OutputOptions.CreateFormatOption(OutputFormat.Compact);
+        var dbOption = OutputOptions.CreateDbOption();
 
         var command = new Command("context", "Get compact method context (complexity, callers, callees, cluster, duplicates)")
         {
-            methodArgument, dbOption
+            methodArgument, idOption, formatOption, dbOption
         };
 
         command.SetAction(async (parseResult, cancellationToken) =>
         {
-            var method = parseResult.GetValue(methodArgument)!;
+            var method = parseResult.GetValue(methodArgument);
+            var methodId = parseResult.GetValue(idOption);
+            var format = parseResult.GetValue(formatOption) ?? "compact";
             var dbPath = parseResult.GetValue(dbOption) ?? "./ai-code-graph/graph.db";
 
             if (!CommandHelpers.ValidateDatabase(dbPath)) return;
@@ -36,41 +38,92 @@ public class ContextCommand : ICommandHandler
             await using var storage = new StorageService(dbPath);
             await storage.OpenAsync(cancellationToken);
 
-            var matches = await storage.SearchMethodsAsync(method, cancellationToken);
-            if (matches.Count == 0)
-            {
-                Console.Error.WriteLine($"Method not found: '{method}'");
-                Environment.ExitCode = 1;
-                return;
-            }
-
-            // If multiple matches and none exact, list them
-            if (matches.Count > 1 && !matches.Any(m => m.FullName.Contains(method, StringComparison.OrdinalIgnoreCase) && m.FullName.Split('.').Last().Split('(').First() == method.Split('.').Last().Split('(').First()))
-            {
-                Console.WriteLine($"Multiple matches for '{method}':");
-                foreach (var m in matches.Take(5))
-                    Console.WriteLine($"  {m.FullName}");
-                if (matches.Count > 5)
-                    Console.WriteLine($"  ... and {matches.Count - 5} more");
-                return;
-            }
-
-            var targetId = matches.Count == 1
-                ? matches[0].Id
-                : matches.First(m => m.FullName.Contains(method, StringComparison.OrdinalIgnoreCase)).Id;
+            var targetId = await MethodResolver.ResolveAsync(storage, methodId, method, cancellationToken);
+            if (targetId == null) return;
 
             var info = await storage.GetMethodInfoAsync(targetId, cancellationToken);
             if (info == null) return;
 
-            // Method identity
+            // Method identity (include ID for agent copy-paste)
             Console.WriteLine($"Method: {info.Value.FullName}");
+            Console.WriteLine($"Id: {targetId}");
             if (info.Value.FilePath != null)
                 Console.WriteLine($"File: {info.Value.FilePath}:{info.Value.StartLine}");
+
+            // Extract type ID from method full name
+            var parenIdx = info.Value.FullName.IndexOf('(');
+            var nameWithoutParams = parenIdx >= 0 ? info.Value.FullName[..parenIdx] : info.Value.FullName;
+            var parts = nameWithoutParams.Split('.');
+            var typeId = parts.Length >= 2 ? string.Join(".", parts[..^1]) : null;
+
+            // Layer assignment
+            LayerAssignment? layerAssignment = null;
+            if (typeId != null)
+            {
+                layerAssignment = await storage.GetLayerForTypeAsync(typeId, cancellationToken);
+                if (layerAssignment != null)
+                {
+                    Console.WriteLine($"Layer: {layerAssignment.Layer} (confidence: {layerAssignment.Confidence:F2})");
+                }
+            }
+
+            // Check protected zone
+            var projectRoot = Path.GetDirectoryName(Path.GetDirectoryName(dbPath)) ?? ".";
+            var zoneManager = ProtectedZoneManager.TryLoadFromProject(projectRoot);
+            var protection = zoneManager.CheckProtection(info.Value.FullName);
+            if (protection.IsProtected)
+                Console.WriteLine($"Protection: {protection.Zone?.Level} - {protection.Zone?.Reason}");
+            else
+                Console.WriteLine("Protection: None");
 
             // Metrics
             var metrics = await storage.GetMethodMetricsAsync(targetId, cancellationToken);
             if (metrics != null)
+            {
                 Console.WriteLine($"Complexity: CC={metrics.Value.CognitiveComplexity} LOC={metrics.Value.LinesOfCode} Nesting={metrics.Value.NestingDepth}");
+
+                // Blast radius with entry points
+                if (metrics.Value.BlastRadius > 0)
+                {
+                    var risk = metrics.Value.CognitiveComplexity * (1 + Math.Log(metrics.Value.BlastRadius + 1));
+                    var blastInfo = $"Blast Radius: {metrics.Value.BlastRadius} callers (depth: {metrics.Value.BlastDepth}, risk: {risk:F1})";
+
+                    // Find entry points (callers with no callers)
+                    var entryPoints = new List<string>();
+                    var visited = new HashSet<string> { targetId };
+                    var queue = new Queue<string>();
+                    queue.Enqueue(targetId);
+
+                    while (queue.Count > 0 && visited.Count < 200) // Limit traversal
+                    {
+                        var current = queue.Dequeue();
+                        var currentCallers = await storage.GetCallersAsync(current, cancellationToken);
+
+                        if (currentCallers.Count == 0 && current != targetId)
+                            entryPoints.Add(current);
+
+                        foreach (var callerId in currentCallers)
+                        {
+                            if (visited.Add(callerId))
+                                queue.Enqueue(callerId);
+                        }
+                    }
+
+                    if (entryPoints.Count > 0)
+                    {
+                        var epNames = new List<string>();
+                        foreach (var ep in entryPoints.Take(3))
+                        {
+                            var epInfo = await storage.GetMethodInfoAsync(ep, cancellationToken);
+                            epNames.Add(epInfo?.Name ?? ep);
+                        }
+                        var epSuffix = entryPoints.Count > 3 ? $" (+{entryPoints.Count - 3} more)" : "";
+                        blastInfo += $"\n  Entry points: {string.Join(", ", epNames)}{epSuffix}";
+                    }
+
+                    Console.WriteLine(blastInfo);
+                }
+            }
 
             // Callers
             var callers = await storage.GetCallersAsync(targetId, cancellationToken);
@@ -190,6 +243,82 @@ public class ContextCommand : ICommandHandler
             else
             {
                 Console.WriteLine("Tests: none found");
+            }
+
+            // Architectural Notes
+            var archNotes = new List<string>();
+
+            // High blast radius warning
+            if (metrics?.BlastRadius > 50)
+                archNotes.Add($"! High blast radius - changes affect {metrics.Value.BlastRadius} callers");
+            else if (metrics?.BlastRadius > 20)
+                archNotes.Add($"! Moderate blast radius - changes affect {metrics.Value.BlastRadius} callers");
+
+            // High complexity warning
+            if (metrics?.CognitiveComplexity > 15)
+                archNotes.Add($"! High complexity (CC={metrics.Value.CognitiveComplexity}) - consider refactoring");
+
+            // Protection zone
+            if (protection.IsProtected && protection.Zone != null)
+                archNotes.Add($"! {protection.WarningMessage}");
+
+            // Check for deprecated callees
+            if (zoneManager.Zones.Count > 0)
+            {
+                foreach (var calleeId in callees.Take(20))
+                {
+                    var calleeInfo = await storage.GetMethodInfoAsync(calleeId, cancellationToken);
+                    if (calleeInfo != null)
+                    {
+                        var calleeProtection = zoneManager.CheckProtection(calleeInfo.Value.FullName);
+                        if (calleeProtection.IsProtected && calleeProtection.Zone?.Level == ProtectionLevel.Deprecated)
+                        {
+                            archNotes.Add($"! Calls deprecated method: {calleeInfo.Value.Name}");
+                        }
+                    }
+                }
+            }
+
+            // Check dependency violations (if layer data exists)
+            if (layerAssignment != null)
+            {
+                var violations = new List<string>();
+                var detector = new LayerDetector();
+                foreach (var calleeId in callees.Take(20))
+                {
+                    var calleeInfo = await storage.GetMethodInfoAsync(calleeId, cancellationToken);
+                    if (calleeInfo != null)
+                    {
+                        var calleeParenIdx = calleeInfo.Value.FullName.IndexOf('(');
+                        var calleeNameOnly = calleeParenIdx >= 0 ? calleeInfo.Value.FullName[..calleeParenIdx] : calleeInfo.Value.FullName;
+                        var calleeTypeParts = calleeNameOnly.Split('.');
+                        var calleeTypeId = calleeTypeParts.Length >= 2 ? string.Join(".", calleeTypeParts[..^1]) : null;
+
+                        if (calleeTypeId != null)
+                        {
+                            var calleeLayer = await storage.GetLayerForTypeAsync(calleeTypeId, cancellationToken);
+                            if (calleeLayer != null && !detector.IsDependencyValid(layerAssignment.Layer, calleeLayer.Layer))
+                            {
+                                violations.Add($"{layerAssignment.Layer}->{calleeLayer.Layer}");
+                            }
+                        }
+                    }
+                }
+                if (violations.Count > 0)
+                    archNotes.Add($"! Layer violations: {string.Join(", ", violations.Distinct())}");
+            }
+
+            if (archNotes.Count > 0)
+            {
+                Console.WriteLine();
+                Console.WriteLine("Architectural Notes:");
+                foreach (var note in archNotes)
+                    Console.WriteLine($"  {note}");
+            }
+            else
+            {
+                Console.WriteLine();
+                Console.WriteLine("Architectural Notes: OK - No issues detected");
             }
 
             // Source snippet

@@ -31,7 +31,11 @@ public static class CommandRegistry
             new CouplingCommand(),
             new DiffCommand(),
             new McpCommand(),
-            new SetupClaudeCommand()
+            new SetupClaudeCommand(),
+            new StatusCommand(),
+            new LayersCommand(),
+            new QueryCommand(),
+            new CheckDepsCommand()
         };
 
         foreach (var handler in handlers)

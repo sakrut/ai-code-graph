@@ -74,7 +74,11 @@ public class OpenAiEmbeddingEngine : IEmbeddingEngine
                     continue;
                 }
 
-                response.EnsureSuccessStatusCode();
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    throw new HttpRequestException($"OpenAI API error {response.StatusCode}: {errorBody}");
+                }
                 var result = await response.Content.ReadFromJsonAsync<EmbeddingResponse>().ConfigureAwait(false);
                 return result!.Data.OrderBy(d => d.Index).Select(d => d.Embedding).ToList();
             }

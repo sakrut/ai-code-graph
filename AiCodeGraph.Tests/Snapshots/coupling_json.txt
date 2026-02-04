@@ -1,0 +1,17 @@
+{
+  "items": [
+    {
+      "name": "TestNs",
+      "afferentCoupling": 0,
+      "efferentCoupling": 0,
+      "instability": 0,
+      "abstractness": 0,
+      "distanceFromMain": 1
+    }
+  ],
+  "metadata": {
+    "level": "namespace",
+    "total": 1,
+    "returned": 1
+  }
+}

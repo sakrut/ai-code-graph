@@ -40,6 +40,15 @@ public class SetupClaudeCommand : ICommandHandler
             CreateCommandFile(commandsDir, "export.md", GetExportCommandContent(dbPath), created);
             CreateCommandFile(commandsDir, "analyze.md", GetAnalyzeCommandContent(), created);
             CreateCommandFile(commandsDir, "churn.md", GetChurnCommandContent(dbPath), created);
+            CreateCommandFile(commandsDir, "impact.md", GetImpactCommandContent(dbPath), created);
+            CreateCommandFile(commandsDir, "dead-code.md", GetDeadCodeCommandContent(dbPath), created);
+            CreateCommandFile(commandsDir, "coupling.md", GetCouplingCommandContent(dbPath), created);
+            CreateCommandFile(commandsDir, "diff.md", GetDiffCommandContent(dbPath), created);
+            CreateCommandFile(commandsDir, "semantic-search.md", GetSemanticSearchCommandContent(dbPath), created);
+            CreateCommandFile(commandsDir, "query.md", GetQueryCommandContent(dbPath), created);
+            CreateCommandFile(commandsDir, "status.md", GetStatusCommandContent(dbPath), created);
+            CreateCommandFile(commandsDir, "layers.md", GetLayersCommandContent(dbPath), created);
+            CreateCommandFile(commandsDir, "check-deps.md", GetCheckDepsCommandContent(dbPath), created);
 
             // 3. Create .mcp.json for MCP server integration
             var mcpJson = Path.Combine(Directory.GetCurrentDirectory(), ".mcp.json");
@@ -233,6 +242,116 @@ Steps:
 5. Suggest which methods would benefit most from refactoring to reduce complexity
 ";
 
+    private static string GetImpactCommandContent(string dbPath) => $@"Show transitive impact of changing a method: $ARGUMENTS
+
+Steps:
+1. Run `ai-code-graph impact ""$ARGUMENTS"" --db {dbPath}`
+2. If the database doesn't exist, inform the user to run `ai-code-graph analyze` first
+3. Present the full chain of methods that would be affected by changes to this method
+4. Highlight entry points (methods with no further callers) as they represent top-level impact boundaries
+5. Use `--depth N` to limit traversal if the impact tree is too large
+";
+
+    private static string GetDeadCodeCommandContent(string dbPath) => $@"Find methods with no callers (potential dead code).
+
+Steps:
+1. Run `ai-code-graph dead-code --db {dbPath}`
+2. If the database doesn't exist, inform the user to run `ai-code-graph analyze` first
+3. Present the list of potentially unreachable methods, sorted by complexity
+4. Highlight high-complexity dead code as priority candidates for removal
+5. Note that test methods, constructors, and override methods are excluded by default
+6. Use `--include-overrides` to also show override/abstract methods
+";
+
+    private static string GetCouplingCommandContent(string dbPath) => $@"Show afferent/efferent coupling and instability metrics: $ARGUMENTS
+
+Steps:
+1. Run `ai-code-graph coupling --level namespace --top 20 --db {dbPath}` (use ""type"" level if $ARGUMENTS contains ""type"")
+2. If the database doesn't exist, inform the user to run `ai-code-graph analyze` first
+3. Present the results showing Ca (afferent), Ce (efferent), I (instability), A (abstractness), D (distance from main sequence)
+4. Highlight components with high instability (I > 0.8) as fragile - lots of outgoing dependencies
+5. Highlight components with high distance (D > 0.5) as violating the main sequence principle
+6. Suggest which namespaces/types might benefit from refactoring to reduce coupling
+";
+
+    private static string GetDiffCommandContent(string dbPath) => $@"Show methods affected by changes between git refs: $ARGUMENTS
+
+Steps:
+1. Run `ai-code-graph diff --from HEAD~1 --to HEAD --format detail --db {dbPath}` (adjust refs if $ARGUMENTS specifies them)
+2. If the database doesn't exist, inform the user to run `ai-code-graph analyze` first
+3. Present the results showing changed files and affected methods with their complexity
+4. Highlight high-complexity methods (CC > 10) that were touched - these are risky changes
+5. Suggest reviewing methods with high complexity that appear in the diff
+";
+
+    private static string GetSemanticSearchCommandContent(string dbPath) => $@"Search code by semantic meaning: $ARGUMENTS
+
+Note: For most use cases, use `/cg:query` instead for graph-based retrieval (faster, deterministic).
+Use semantic-search as a fallback when you need natural language matching or when query returns no results.
+
+Steps:
+1. Run `ai-code-graph semantic-search ""$ARGUMENTS"" --top 10 --db {dbPath}`
+2. If the database doesn't exist, inform the user to run `ai-code-graph analyze` first
+3. If a warning about hash-based embeddings appears, inform the user they can re-analyze with `--embedding-engine openai` for better results
+4. Present the results ranked by similarity score
+5. For the top results, briefly describe what the method does based on its name and location
+6. Suggest which method(s) are most relevant to the user's query
+";
+
+    private static string GetQueryCommandContent(string dbPath) => $@"Graph-based method retrieval: $ARGUMENTS
+
+Steps:
+1. Parse $ARGUMENTS for quick options or JSON query:
+   - `--callers MethodName` -> find all callers of a method
+   - `--callees MethodName` -> find all callees of a method
+   - `--impact MethodName` -> transitive impact analysis
+   - `--cluster ClusterLabel` -> methods in a cluster
+   - JSON query for advanced use
+2. Run `ai-code-graph query $ARGUMENTS --db {dbPath}`
+3. If the database doesn't exist, inform the user to run `ai-code-graph analyze` first
+4. Present the results with method IDs for stable references
+5. Use `--format json` for structured output if needed
+";
+
+    private static string GetStatusCommandContent(string dbPath) => $@"Show database status and staleness detection.
+
+Steps:
+1. Run `ai-code-graph status --db {dbPath}`
+2. If the database doesn't exist, inform the user to run `ai-code-graph analyze` first
+3. Present the status information:
+   - Database path and size
+   - Last analysis timestamp
+   - Method/type/namespace counts
+   - Staleness indicator (files changed since last analysis)
+4. If database is stale, suggest re-running `ai-code-graph analyze`
+";
+
+    private static string GetLayersCommandContent(string dbPath) => $@"Show architectural layer assignments: $ARGUMENTS
+
+Steps:
+1. Run `ai-code-graph layers --db {dbPath}` (filter by $ARGUMENTS if provided)
+2. If the database doesn't exist, inform the user to run `ai-code-graph analyze` first
+3. Present the layer assignments showing which namespaces/types belong to which architectural layers:
+   - Presentation (Controllers, Views, Pages)
+   - Application (Services, Handlers, UseCases)
+   - Domain (Entities, ValueObjects, Aggregates)
+   - Infrastructure (Repositories, DbContexts, External)
+4. Highlight any layer violations (e.g., Domain depending on Infrastructure)
+";
+
+    private static string GetCheckDepsCommandContent(string dbPath) => $@"Check for forbidden dependencies: $ARGUMENTS
+
+Steps:
+1. Run `ai-code-graph check-deps --db {dbPath}` (use $ARGUMENTS for custom rules if provided)
+2. If the database doesn't exist, inform the user to run `ai-code-graph analyze` first
+3. Present any violations of dependency rules:
+   - Layer violations (e.g., Domain -> Infrastructure)
+   - Circular dependencies
+   - Forbidden namespace dependencies
+4. For each violation, show the dependency chain and suggest how to fix it
+5. If no violations found, confirm the architecture is clean
+";
+
     private static string GetClaudeMdSnippet(string dbPath) => $@"
 ## Auto-Context: Code Graph Integration
 
@@ -248,19 +367,30 @@ This returns complexity, callers, callees, cluster membership, and duplicates in
 - Apply the same fix to duplicates when fixing bugs
 - Understand which intent cluster a method belongs to before refactoring
 
-Available slash commands:
+Available slash commands (primary):
 - `/cg:analyze [solution]` - Analyze solution and build the graph
-- `/cg:context <method>` - Full method context before editing
+- `/cg:context <method>` - Full method context before editing (recommended first step)
+- `/cg:query <pattern>` - Graph-based method retrieval (recommended for code lookup)
 - `/cg:hotspots` - Top complexity hotspots
 - `/cg:callgraph <method>` - Explore call relationships
+- `/cg:impact <method>` - Transitive impact analysis
+
+Available slash commands (secondary):
 - `/cg:similar <method>` - Find methods with similar intent
-- `/cg:token-search <query>` - Token-based code search
+- `/cg:token-search <query>` - Fallback: token-based search
+- `/cg:semantic-search <query>` - Fallback: semantic search
 - `/cg:duplicates` - Detected code clones
 - `/cg:clusters` - Intent clusters
 - `/cg:tree` - Code structure tree
 - `/cg:export` - Export graph data
 - `/cg:drift` - Architectural drift from baseline
 - `/cg:churn` - Change-frequency x complexity hotspots
+- `/cg:dead-code` - Find methods with no callers
+- `/cg:coupling <method>` - Coupling metrics
+- `/cg:diff <refs>` - Methods affected by git changes
+- `/cg:layers` - Architectural layer assignments
+- `/cg:check-deps` - Forbidden dependency detection
+- `/cg:status` - Database status and staleness
 
 To rebuild the graph after significant changes: `ai-code-graph analyze YourSolution.sln`
 ";

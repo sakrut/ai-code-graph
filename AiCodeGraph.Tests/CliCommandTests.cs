@@ -179,7 +179,7 @@ public class CliCommandTests : TempDirectoryFixture
         var dbPath = await CreateTestDbAsync();
         var (exitCode, output, _) = await RunCliAsync($"hotspots --db {dbPath} --format json");
         Assert.Equal(0, exitCode);
-        Assert.Contains("\"hotspots\"", output);
+        Assert.Contains("\"items\"", output);
         Assert.Contains("\"complexity\"", output);
     }
 
@@ -200,8 +200,8 @@ public class CliCommandTests : TempDirectoryFixture
         var (exitCode, output, _) = await RunCliAsync($"hotspots --db {dbPath} --top 1 --format json");
         Assert.Equal(0, exitCode);
         Assert.Contains("\"complexity\": 25", output);
-        // JSON format with top 1 should only have 1 entry
-        var occurrences = output.Split("\"complexity\"").Length - 1;
+        // JSON format with top 1 should only have 1 item (count methodId occurrences, not complexity which appears in metadata too)
+        var occurrences = output.Split("\"methodId\"").Length - 1;
         Assert.Equal(1, occurrences);
     }
 

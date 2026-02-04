@@ -1,0 +1,10 @@
+Method: TestNs.OrderService.ProcessOrder(String)
+Id: TestNs.OrderService.ProcessOrder(String)
+File: /test/OrderService.cs:10
+Protection: None
+Complexity: CC=25 LOC=50 Nesting=5
+Callees (3): SaveOrder, ValidateOrder, GetUser
+Tests (1): OrderService.ProcessOrder
+
+Architectural Notes:
+  ! High complexity (CC=25) - consider refactoring

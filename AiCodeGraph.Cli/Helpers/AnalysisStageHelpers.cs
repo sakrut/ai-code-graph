@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using AiCodeGraph.Core;
+using AiCodeGraph.Core.Analysis;
 using AiCodeGraph.Core.CallGraph;
 using AiCodeGraph.Core.Duplicates;
 using AiCodeGraph.Core.Embeddings;
@@ -120,7 +121,8 @@ public static class AnalysisStageHelpers
                     Console.Error.WriteLine("Warning: OPENAI_API_KEY not set, falling back to hash engine.");
                     return new HashEmbeddingEngine();
                 }
-                return new OpenAiEmbeddingEngine(apiKey, model ?? "text-embedding-3-small", dimensions);
+                var modelName = string.IsNullOrEmpty(model) ? "text-embedding-3-small" : model;
+                return new OpenAiEmbeddingEngine(apiKey, modelName, dimensions);
 
             case "onnx":
                 var modelPath = model ?? "./models/all-MiniLM-L6-v2.onnx";
@@ -159,11 +161,38 @@ public static class AnalysisStageHelpers
         Console.WriteLine($" done ({timer.Elapsed.TotalSeconds:F1}s)");
     }
 
+    public static async Task<Dictionary<string, BlastRadiusInfo>> ComputeBlastRadiusStage(
+        IStorageService storage,
+        bool verbose,
+        CancellationToken ct)
+    {
+        Console.Write("Computing blast radius...");
+        var timer = Stopwatch.StartNew();
+
+        var analyzer = new BlastRadiusAnalyzer();
+        var results = await analyzer.ComputeBlastRadiusAsync(storage, ct: ct);
+        await storage.SaveBlastRadiusAsync(results, ct);
+
+        Console.WriteLine($" done ({timer.Elapsed.TotalSeconds:F1}s)");
+
+        if (verbose && results.Count > 0)
+        {
+            var maxBlast = results.Values.Max(r => r.TransitiveCallers);
+            var highImpact = results.Values.Count(r => r.TransitiveCallers > 10);
+            Console.WriteLine($"  Methods analyzed: {results.Count:N0}");
+            Console.WriteLine($"  Max blast radius: {maxBlast:N0}");
+            Console.WriteLine($"  High-impact (>10 callers): {highImpact:N0}");
+        }
+
+        return results;
+    }
+
     public static async Task<(List<ClonePair> ClonePairs, List<IntentCluster> Clusters)> DetectDuplicatesStage(
         StorageService storage,
         List<NormalizedMethod> normalized,
         List<(string MethodId, float[] Vector, string Model)> embeddings,
-        CancellationToken ct)
+        CancellationToken ct,
+        bool includeClusters = true)
     {
         Console.Write("Detecting duplicates...");
         var timer = Stopwatch.StartNew();
@@ -177,9 +206,14 @@ public static class AnalysisStageHelpers
         var clonePairs = hybridScorer.Merge(structuralClones, semanticClones);
         await storage.SaveClonePairsAsync(clonePairs, ct);
 
-        var clusterer = new IntentClusterer();
-        var clusters = clusterer.ClusterMethods(normalized, embeddingPairs);
-        await storage.SaveClustersAsync(clusters, ct);
+        var clusters = new List<IntentCluster>();
+        if (includeClusters)
+        {
+            Console.Write(" clustering...");
+            var clusterer = new IntentClusterer();
+            clusters = clusterer.ClusterMethods(normalized, embeddingPairs);
+            await storage.SaveClustersAsync(clusters, ct);
+        }
         Console.WriteLine($" done ({timer.Elapsed.TotalSeconds:F1}s)");
         return (clonePairs, clusters);
     }

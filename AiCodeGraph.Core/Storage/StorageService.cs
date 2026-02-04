@@ -1,3 +1,5 @@
+using AiCodeGraph.Core.Analysis;
+using AiCodeGraph.Core.Architecture;
 using AiCodeGraph.Core.Duplicates;
 using AiCodeGraph.Core.Models.CodeGraph;
 using Microsoft.Data.Sqlite;
@@ -415,23 +417,31 @@ public class StorageService : IStorageService
         return null;
     }
 
-    public async Task<List<(string Id, string Name, string FullName, int Complexity, int Loc, int Nesting, string? FilePath, int StartLine)>> GetHotspotsWithThresholdAsync(int top = 20, int? threshold = null, CancellationToken cancellationToken = default)
+    public async Task<List<(string Id, string Name, string FullName, int Complexity, int Loc, int Nesting, string? FilePath, int StartLine, int BlastRadius, int BlastDepth)>> GetHotspotsWithThresholdAsync(int top = 20, int? threshold = null, string sortBy = "complexity", CancellationToken cancellationToken = default)
     {
         EnsureConnection();
         using var cmd = _connection!.CreateCommand();
         var where = threshold.HasValue ? "WHERE met.CognitiveComplexity >= @threshold" : "";
+
+        var orderBy = sortBy?.ToLowerInvariant() switch
+        {
+            "blast-radius" or "blast" => "met.BlastRadius DESC",
+            "risk" => "(met.CognitiveComplexity * (1 + log(met.BlastRadius + 1))) DESC",
+            _ => "met.CognitiveComplexity DESC"
+        };
+
         cmd.CommandText = $"""
-            SELECT m.Id, m.Name, m.FullName, met.CognitiveComplexity, met.LinesOfCode, met.NestingDepth, m.FilePath, m.StartLine
+            SELECT m.Id, m.Name, m.FullName, met.CognitiveComplexity, met.LinesOfCode, met.NestingDepth, m.FilePath, m.StartLine, met.BlastRadius, met.BlastDepth
             FROM Methods m JOIN Metrics met ON m.Id = met.MethodId
             {where}
-            ORDER BY met.CognitiveComplexity DESC
+            ORDER BY {orderBy}
             LIMIT @top
             """;
         cmd.Parameters.AddWithValue("@top", top);
         if (threshold.HasValue)
             cmd.Parameters.AddWithValue("@threshold", threshold.Value);
 
-        var results = new List<(string, string, string, int, int, int, string?, int)>();
+        var results = new List<(string, string, string, int, int, int, string?, int, int, int)>();
         using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
         while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
@@ -443,7 +453,9 @@ public class StorageService : IStorageService
                 reader.GetInt32(4),
                 reader.GetInt32(5),
                 reader.IsDBNull(6) ? null : reader.GetString(6),
-                reader.GetInt32(7)
+                reader.GetInt32(7),
+                reader.GetInt32(8),
+                reader.GetInt32(9)
             ));
         }
         return results;
@@ -712,6 +724,140 @@ public class StorageService : IStorageService
         return result as string;
     }
 
+    public async Task SaveLayerAssignmentsAsync(List<LayerAssignment> assignments, CancellationToken cancellationToken = default)
+    {
+        EnsureConnection();
+        using var transaction = _connection!.BeginTransaction();
+        try
+        {
+            // Clear existing assignments
+            using (var clearCmd = _connection.CreateCommand())
+            {
+                clearCmd.Transaction = transaction;
+                clearCmd.CommandText = "DELETE FROM TypeLayers";
+                await clearCmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            // Insert new assignments
+            using var cmd = _connection.CreateCommand();
+            cmd.Transaction = transaction;
+            cmd.CommandText = "INSERT INTO TypeLayers (TypeId, Layer, Confidence, Reason) VALUES (@typeId, @layer, @confidence, @reason)";
+            var typeIdParam = cmd.Parameters.Add("@typeId", SqliteType.Text);
+            var layerParam = cmd.Parameters.Add("@layer", SqliteType.Text);
+            var confidenceParam = cmd.Parameters.Add("@confidence", SqliteType.Real);
+            var reasonParam = cmd.Parameters.Add("@reason", SqliteType.Text);
+
+            foreach (var assignment in assignments)
+            {
+                typeIdParam.Value = assignment.TypeId;
+                layerParam.Value = assignment.Layer.ToString();
+                confidenceParam.Value = assignment.Confidence;
+                reasonParam.Value = assignment.Reason ?? (object)DBNull.Value;
+                await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            transaction.Commit();
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
+    }
+
+    public async Task<List<LayerAssignment>> GetLayerAssignmentsAsync(CancellationToken cancellationToken = default)
+    {
+        EnsureConnection();
+        var assignments = new List<LayerAssignment>();
+
+        // Check if table exists
+        using var checkCmd = _connection!.CreateCommand();
+        checkCmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='TypeLayers'";
+        var exists = Convert.ToInt64(await checkCmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false)) > 0;
+        if (!exists) return assignments;
+
+        using var cmd = _connection!.CreateCommand();
+        cmd.CommandText = "SELECT TypeId, Layer, Confidence, Reason FROM TypeLayers ORDER BY Layer, Confidence DESC";
+        using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var layer = Enum.TryParse<ArchitecturalLayer>(reader.GetString(1), out var l) ? l : ArchitecturalLayer.Unknown;
+            assignments.Add(new LayerAssignment(
+                reader.GetString(0),
+                layer,
+                reader.GetFloat(2),
+                reader.IsDBNull(3) ? "" : reader.GetString(3)));
+        }
+        return assignments;
+    }
+
+    public async Task<LayerAssignment?> GetLayerForTypeAsync(string typeId, CancellationToken cancellationToken = default)
+    {
+        EnsureConnection();
+
+        // Check if table exists
+        using var checkCmd = _connection!.CreateCommand();
+        checkCmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='TypeLayers'";
+        var exists = Convert.ToInt64(await checkCmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false)) > 0;
+        if (!exists) return null;
+
+        using var cmd = _connection!.CreateCommand();
+        cmd.CommandText = "SELECT TypeId, Layer, Confidence, Reason FROM TypeLayers WHERE TypeId = @typeId";
+        cmd.Parameters.AddWithValue("@typeId", typeId);
+        using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        if (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var layer = Enum.TryParse<ArchitecturalLayer>(reader.GetString(1), out var l) ? l : ArchitecturalLayer.Unknown;
+            return new LayerAssignment(
+                reader.GetString(0),
+                layer,
+                reader.GetFloat(2),
+                reader.IsDBNull(3) ? "" : reader.GetString(3));
+        }
+        return null;
+    }
+
+    public async Task SaveBlastRadiusAsync(Dictionary<string, BlastRadiusInfo> blastRadius, CancellationToken cancellationToken = default)
+    {
+        if (blastRadius.Count == 0) return;
+
+        EnsureConnection();
+        using var transaction = _connection!.BeginTransaction();
+        try
+        {
+            // Update blast radius on existing Metrics rows using INSERT OR REPLACE
+            // This handles both update and insert cases
+            using var cmd = _connection.CreateCommand();
+            cmd.Transaction = transaction;
+            cmd.CommandText = """
+                INSERT INTO Metrics (MethodId, CognitiveComplexity, LinesOfCode, NestingDepth, BlastRadius, BlastDepth)
+                VALUES (@methodId, 0, 0, 0, @blastRadius, @blastDepth)
+                ON CONFLICT(MethodId) DO UPDATE SET
+                    BlastRadius = @blastRadius,
+                    BlastDepth = @blastDepth
+                """;
+
+            var methodIdParam = cmd.Parameters.Add("@methodId", SqliteType.Text);
+            var blastRadiusParam = cmd.Parameters.Add("@blastRadius", SqliteType.Integer);
+            var blastDepthParam = cmd.Parameters.Add("@blastDepth", SqliteType.Integer);
+
+            foreach (var (methodId, info) in blastRadius)
+            {
+                methodIdParam.Value = methodId;
+                blastRadiusParam.Value = info.TransitiveCallers;
+                blastDepthParam.Value = info.Depth;
+                await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            transaction.Commit();
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
+    }
+
     public async Task<List<IntentCluster>> GetClustersAsync(CancellationToken cancellationToken = default)
     {
         EnsureConnection();
@@ -848,15 +994,15 @@ public class StorageService : IStorageService
         return results;
     }
 
-    public async Task<(int CognitiveComplexity, int LinesOfCode, int NestingDepth)?> GetMethodMetricsAsync(string methodId, CancellationToken cancellationToken = default)
+    public async Task<(int CognitiveComplexity, int LinesOfCode, int NestingDepth, int BlastRadius, int BlastDepth)?> GetMethodMetricsAsync(string methodId, CancellationToken cancellationToken = default)
     {
         EnsureConnection();
         using var cmd = _connection!.CreateCommand();
-        cmd.CommandText = "SELECT CognitiveComplexity, LinesOfCode, NestingDepth FROM Metrics WHERE MethodId = @id";
+        cmd.CommandText = "SELECT CognitiveComplexity, LinesOfCode, NestingDepth, BlastRadius, BlastDepth FROM Metrics WHERE MethodId = @id";
         cmd.Parameters.AddWithValue("@id", methodId);
         using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
         if (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-            return (reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2));
+            return (reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2), reader.GetInt32(3), reader.GetInt32(4));
         return null;
     }
 

@@ -1,0 +1,18 @@
+{
+  "items": [
+    {
+      "methodId": "TestNs.OrderService.ProcessOrder(String)",
+      "location": "/test/OrderService.cs:10",
+      "complexity": 25
+    },
+    {
+      "methodId": "TestNs.UserService.DeadMethod()",
+      "location": "/test/UserService.cs:40",
+      "complexity": 2
+    }
+  ],
+  "metadata": {
+    "total": 2,
+    "returned": 2
+  }
+}

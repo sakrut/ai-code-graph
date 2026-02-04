@@ -23,6 +23,9 @@ Thumbs.db
 # AI Code Graph output
 ai-code-graph/
 
+# Local benchmark artifacts (generated)
+benchmark/
+
 # Test results
 TestResults/
 *.trx

@@ -55,6 +55,12 @@ public class AnalyzeCommand : ICommandHandler
             DefaultValueFactory = _ => 384
         };
 
+        var stagesOption = new Option<string>("--stages")
+        {
+            Description = "Analysis stages: core (fast, essential) | full (all features)",
+            DefaultValueFactory = _ => "core"
+        };
+
         var command = new Command("analyze", "Analyze a .NET solution and build the code graph")
         {
             solutionArgument,
@@ -64,7 +70,8 @@ public class AnalyzeCommand : ICommandHandler
             saveBaselineOption,
             embeddingEngineOption,
             embeddingModelOption,
-            embeddingDimensionsOption
+            embeddingDimensionsOption,
+            stagesOption
         };
 
         command.SetAction(async (parseResult, cancellationToken) =>
@@ -77,6 +84,8 @@ public class AnalyzeCommand : ICommandHandler
             var embeddingEngine = parseResult.GetValue(embeddingEngineOption) ?? "hash";
             var embeddingModel = parseResult.GetValue(embeddingModelOption);
             var embeddingDimensions = parseResult.GetValue(embeddingDimensionsOption);
+            var stages = parseResult.GetValue(stagesOption) ?? "core";
+            var isFull = stages.Equals("full", StringComparison.OrdinalIgnoreCase);
             var totalTimer = Stopwatch.StartNew();
 
             try
@@ -98,11 +107,19 @@ public class AnalyzeCommand : ICommandHandler
 
                 await using var storage = new StorageService(dbPath);
                 await AnalysisStageHelpers.StoreResultsStage(storage, extractionResults, edges, metrics, normalized, embeddingResults, cancellationToken);
-                var (clonePairs, clusters) = await AnalysisStageHelpers.DetectDuplicatesStage(storage, normalized, embeddingResults, cancellationToken);
+                var blastRadius = await AnalysisStageHelpers.ComputeBlastRadiusStage(storage, verbose, cancellationToken);
+                var (clonePairs, clusters) = await AnalysisStageHelpers.DetectDuplicatesStage(storage, normalized, embeddingResults, cancellationToken, includeClusters: isFull);
 
                 await storage.SaveMetadataAsync("embedding_engine", embeddingEngine, cancellationToken);
                 await storage.SaveMetadataAsync("embedding_model", embeddingModel ?? (embeddingEngine == "hash" ? "hash-v1" : ""), cancellationToken);
                 await storage.SaveMetadataAsync("embedding_dimensions", embeddingDimensions.ToString(), cancellationToken);
+
+                // Save analysis metadata for staleness detection
+                await storage.SaveMetadataAsync("analyzed_at", DateTimeOffset.UtcNow.ToString("o"), cancellationToken);
+                await storage.SaveMetadataAsync("solution_path", Path.GetFullPath(resolvedPath), cancellationToken);
+                await storage.SaveMetadataAsync("tool_version", typeof(AnalyzeCommand).Assembly.GetName().Version?.ToString() ?? "unknown", cancellationToken);
+                await storage.SaveMetadataAsync("git_commit", GitHelpers.GetCurrentCommitHash() ?? "", cancellationToken);
+                await storage.SaveMetadataAsync("stages", stages, cancellationToken);
 
                 if (saveBaseline)
                     AnalysisStageHelpers.SaveBaselineStage(output, dbPath);

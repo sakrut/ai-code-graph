@@ -56,6 +56,7 @@ public class ContextHandler : IMcpToolHandler
     private static void AppendMethodHeader(List<string> lines, (string Id, string Name, string FullName, string? FilePath, int StartLine) info)
     {
         lines.Add($"Method: {info.FullName}");
+        lines.Add($"Id: {info.Id}");
         if (info.FilePath != null)
             lines.Add($"File: {info.FilePath}:{info.StartLine}");
     }

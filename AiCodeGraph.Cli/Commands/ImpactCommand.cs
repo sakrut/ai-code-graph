@@ -1,5 +1,6 @@
 using System.CommandLine;
 using System.CommandLine.Parsing;
+using AiCodeGraph.Core.Architecture;
 using AiCodeGraph.Core.Storage;
 using AiCodeGraph.Cli.Helpers;
 
@@ -9,38 +10,35 @@ public class ImpactCommand : ICommandHandler
 {
     public Command BuildCommand()
     {
-        var methodArgument = new Argument<string>("method")
+        var methodArgument = new Argument<string?>("method")
         {
-            Description = "Method name or pattern to search for"
+            Description = "Method name or pattern to search for",
+            Arity = ArgumentArity.ZeroOrOne
         };
+
+        var idOption = OutputOptions.CreateMethodIdOption();
 
         var depthOption = new Option<int?>("--depth", "-d")
         {
             Description = "Max traversal depth (unlimited if omitted)"
         };
 
-        var formatOption = new Option<string>("--format", "-f")
-        {
-            Description = "tree|json",
-            DefaultValueFactory = _ => "tree"
-        };
-
-        var dbOption = new Option<string>("--db")
-        {
-            Description = "Path to graph.db",
-            DefaultValueFactory = _ => "./ai-code-graph/graph.db"
-        };
+        var formatOption = OutputOptions.CreateFormatOption(OutputFormat.Compact);
+        var topOption = OutputOptions.CreateTopOption(20);
+        var dbOption = OutputOptions.CreateDbOption();
 
         var command = new Command("impact", "Show transitive impact of changing a method (all callers)")
         {
-            methodArgument, depthOption, formatOption, dbOption
+            methodArgument, idOption, depthOption, formatOption, topOption, dbOption
         };
 
         command.SetAction(async (parseResult, cancellationToken) =>
         {
-            var method = parseResult.GetValue(methodArgument)!;
+            var method = parseResult.GetValue(methodArgument);
+            var methodId = parseResult.GetValue(idOption);
             var maxDepth = parseResult.GetValue(depthOption);
-            var format = parseResult.GetValue(formatOption) ?? "tree";
+            var format = parseResult.GetValue(formatOption) ?? "compact";
+            var top = parseResult.GetValue(topOption);
             var dbPath = parseResult.GetValue(dbOption) ?? "./ai-code-graph/graph.db";
 
             if (!CommandHelpers.ValidateDatabase(dbPath)) return;
@@ -48,26 +46,8 @@ public class ImpactCommand : ICommandHandler
             await using var storage = new StorageService(dbPath);
             await storage.OpenAsync(cancellationToken);
 
-            var matches = await storage.SearchMethodsAsync(method, cancellationToken);
-            if (matches.Count == 0)
-            {
-                Console.Error.WriteLine($"No methods found matching '{method}'.");
-                Environment.ExitCode = 1;
-                return;
-            }
-
-            if (matches.Count > 1 && !matches.Any(m => m.FullName == method))
-            {
-                Console.WriteLine($"Multiple methods match '{method}':");
-                foreach (var m in matches.Take(10))
-                    Console.WriteLine($"  {m.FullName}");
-                if (matches.Count > 10)
-                    Console.WriteLine($"  ... and {matches.Count - 10} more");
-                Console.WriteLine("Please use a more specific name.");
-                return;
-            }
-
-            var targetId = matches.First(m => m.FullName == method || matches.Count == 1).Id;
+            var targetId = await MethodResolver.ResolveAsync(storage, methodId, method, cancellationToken);
+            if (targetId == null) return;
             var targetInfo = await storage.GetMethodInfoAsync(targetId, cancellationToken);
 
             // BFS traversal for transitive callers
@@ -112,18 +92,18 @@ public class ImpactCommand : ICommandHandler
                     entryPoints.Add(id);
             }
 
-            if (format == "json")
+            if (OutputOptions.IsJson(format))
             {
                 var nodeList = new List<object>();
                 foreach (var id in visited)
                 {
                     var info = await storage.GetMethodInfoAsync(id, cancellationToken);
-                    nodeList.Add(new { id, name = info?.FullName ?? id, depth = depthMap.GetValueOrDefault(id), isEntryPoint = entryPoints.Contains(id) });
+                    nodeList.Add(new { methodId = id, name = info?.FullName ?? id, depth = depthMap.GetValueOrDefault(id), isEntryPoint = entryPoints.Contains(id) });
                 }
 
                 var json = System.Text.Json.JsonSerializer.Serialize(new
                 {
-                    target = new { id = targetId, name = targetInfo?.FullName ?? targetId },
+                    target = new { methodId = targetId, name = targetInfo?.FullName ?? targetId },
                     affectedMethods = visited.Count,
                     entryPointCount = entryPoints.Count,
                     maxDepthReached = depthMap.Values.DefaultIfEmpty(0).Max(),
@@ -132,7 +112,28 @@ public class ImpactCommand : ICommandHandler
                 }, new System.Text.Json.JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
                 Console.WriteLine(json);
             }
-            else
+            else if (OutputOptions.IsCompact(format))
+            {
+                Console.WriteLine($"Impact: {targetInfo?.FullName ?? targetId}");
+                Console.WriteLine($"Affected: {visited.Count} methods, {entryPoints.Count} entry points");
+
+                // Flat list of affected methods by depth
+                var affected = visited.Where(id => id != targetId)
+                    .OrderBy(id => depthMap.GetValueOrDefault(id))
+                    .Take(top)
+                    .ToList();
+
+                foreach (var id in affected)
+                {
+                    var info = await storage.GetMethodInfoAsync(id, cancellationToken);
+                    var ep = entryPoints.Contains(id) ? " [entry]" : "";
+                    var d = depthMap.GetValueOrDefault(id);
+                    Console.WriteLine($"<- d{d} {info?.FullName ?? id}{ep}");
+                }
+                if (visited.Count - 1 > top)
+                    Console.WriteLine($"(+{visited.Count - 1 - top} more)");
+            }
+            else // table
             {
                 Console.WriteLine($"Impact analysis for: {targetInfo?.FullName ?? targetId}");
                 Console.WriteLine(new string('-', 60));
@@ -155,6 +156,32 @@ public class ImpactCommand : ICommandHandler
 
                 Console.WriteLine();
                 Console.WriteLine($"Total: {visited.Count} methods affected, {entryPoints.Count} entry points");
+            }
+
+            // Check for protected zones in the blast radius
+            var projectRoot = Path.GetDirectoryName(Path.GetDirectoryName(dbPath)) ?? ".";
+            var zoneManager = ProtectedZoneManager.TryLoadFromProject(projectRoot);
+            if (zoneManager.Zones.Count > 0)
+            {
+                var protectedInBlast = await zoneManager.FilterProtectedAsync(visited, storage, cancellationToken);
+                if (protectedInBlast.Count > 0)
+                {
+                    Console.WriteLine();
+                    Console.WriteLine($"[!] Protected zones affected ({protectedInBlast.Count}):");
+                    foreach (var (protectedId, fullName, zone) in protectedInBlast.Take(10))
+                    {
+                        var levelText = zone.Level switch
+                        {
+                            ProtectionLevel.DoNotModify => "[DO NOT MODIFY]",
+                            ProtectionLevel.RequireApproval => "[REQUIRES APPROVAL]",
+                            ProtectionLevel.Deprecated => "[DEPRECATED]",
+                            _ => $"[{zone.Level}]"
+                        };
+                        Console.WriteLine($"  {levelText} {fullName}");
+                    }
+                    if (protectedInBlast.Count > 10)
+                        Console.WriteLine($"  (+{protectedInBlast.Count - 10} more)");
+                }
             }
         });
 

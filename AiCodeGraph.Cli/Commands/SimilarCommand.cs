@@ -9,39 +9,28 @@ public class SimilarCommand : ICommandHandler
 {
     public Command BuildCommand()
     {
-        var methodArgument = new Argument<string>("method")
+        var methodArgument = new Argument<string?>("method")
         {
-            Description = "Method name to find similar methods for"
+            Description = "Method name to find similar methods for",
+            Arity = ArgumentArity.ZeroOrOne
         };
 
-        var topOption = new Option<int>("--top", "-t")
-        {
-            Description = "Number of results",
-            DefaultValueFactory = _ => 10
-        };
-
-        var formatOption = new Option<string>("--format", "-f")
-        {
-            Description = "table|json",
-            DefaultValueFactory = _ => "table"
-        };
-
-        var dbOption = new Option<string>("--db")
-        {
-            Description = "Path to graph.db",
-            DefaultValueFactory = _ => "./ai-code-graph/graph.db"
-        };
+        var idOption = OutputOptions.CreateMethodIdOption();
+        var topOption = OutputOptions.CreateTopOption(10);
+        var formatOption = OutputOptions.CreateFormatOption(OutputFormat.Compact);
+        var dbOption = OutputOptions.CreateDbOption();
 
         var command = new Command("similar", "Find methods with similar intent")
         {
-            methodArgument, topOption, formatOption, dbOption
+            methodArgument, idOption, topOption, formatOption, dbOption
         };
 
         command.SetAction(async (parseResult, cancellationToken) =>
         {
-            var method = parseResult.GetValue(methodArgument)!;
+            var method = parseResult.GetValue(methodArgument);
+            var methodId = parseResult.GetValue(idOption);
             var top = parseResult.GetValue(topOption);
-            var format = parseResult.GetValue(formatOption) ?? "table";
+            var format = parseResult.GetValue(formatOption) ?? "compact";
             var dbPath = parseResult.GetValue(dbOption) ?? "./ai-code-graph/graph.db";
 
             if (!CommandHelpers.ValidateDatabase(dbPath)) return;
@@ -49,15 +38,8 @@ public class SimilarCommand : ICommandHandler
             await using var storage = new StorageService(dbPath);
             await storage.OpenAsync(cancellationToken);
 
-            var matches = await storage.SearchMethodsAsync(method, cancellationToken);
-            if (matches.Count == 0)
-            {
-                Console.Error.WriteLine($"No methods found matching '{method}'.");
-                Environment.ExitCode = 1;
-                return;
-            }
-
-            var targetId = matches.First().Id;
+            var targetId = await MethodResolver.ResolveAsync(storage, methodId, method, cancellationToken);
+            if (targetId == null) return;
             var allEmbeddings = await storage.GetEmbeddingsAsync(cancellationToken);
 
             if (allEmbeddings.Count == 0)
@@ -67,10 +49,11 @@ public class SimilarCommand : ICommandHandler
                 return;
             }
 
+            var targetInfo = await storage.GetMethodInfoAsync(targetId, cancellationToken);
             var targetEmbedding = allEmbeddings.FirstOrDefault(e => e.MethodId == targetId);
             if (targetEmbedding.Vector == null)
             {
-                Console.Error.WriteLine($"No embedding found for method '{method}'.");
+                Console.Error.WriteLine($"No embedding found for method '{targetId}'.");
                 Environment.ExitCode = 1;
                 return;
             }
@@ -81,19 +64,28 @@ public class SimilarCommand : ICommandHandler
                 .Take(top)
                 .ToList();
 
-            if (format == "json")
+            if (OutputOptions.IsJson(format))
             {
                 var json = System.Text.Json.JsonSerializer.Serialize(new
                 {
-                    query = matches.First().FullName,
-                    results = results.Select(r => new { id = r.Id, score = Math.Round(r.Score, 4) }),
+                    query = new { methodId = targetId, name = targetInfo?.FullName ?? targetId },
+                    items = results.Select(r => new { methodId = r.Id, score = Math.Round(r.Score, 4) }),
                     metadata = new { top }
                 }, new System.Text.Json.JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
                 Console.WriteLine(json);
             }
-            else
+            else if (OutputOptions.IsCompact(format))
             {
-                Console.WriteLine($"Methods similar to: {matches.First().FullName}");
+                Console.WriteLine($"Similar to: {targetInfo?.FullName ?? targetId}");
+                foreach (var (id, score) in results)
+                {
+                    var info = await storage.GetMethodInfoAsync(id, cancellationToken);
+                    Console.WriteLine($"{score:F3} {info?.FullName ?? id}");
+                }
+            }
+            else // table
+            {
+                Console.WriteLine($"Methods similar to: {targetInfo?.FullName ?? targetId}");
                 Console.WriteLine(new string('-', 60));
                 foreach (var (id, score) in results)
                 {

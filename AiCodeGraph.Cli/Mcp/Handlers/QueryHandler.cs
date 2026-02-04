@@ -1,4 +1,6 @@
 using System.Text.Json.Nodes;
+using AiCodeGraph.Core.Architecture;
+using AiCodeGraph.Core.Query;
 using AiCodeGraph.Core.Storage;
 
 namespace AiCodeGraph.Cli.Mcp.Handlers;
@@ -11,11 +13,27 @@ public class QueryHandler : IMcpToolHandler
 
     public IReadOnlyList<string> SupportedTools { get; } = new[]
     {
-        "cg_get_hotspots", "cg_get_callgraph", "cg_get_tree", "cg_dead_code", "cg_get_impact"
+        "cg_query", "cg_get_hotspots", "cg_get_callgraph", "cg_get_tree", "cg_dead_code", "cg_get_impact"
     };
 
     public JsonArray GetToolDefinitions() => new()
     {
+        McpProtocolHelpers.CreateToolDef("cg_query",
+            "Execute a graph query for method retrieval (recommended over search)",
+            new JsonObject
+            {
+                ["type"] = "object",
+                ["properties"] = new JsonObject
+                {
+                    ["seed"] = new JsonObject { ["type"] = "string", ["description"] = "Method pattern, exact ID, namespace, or cluster name (supports wildcards: *Service*, MyApp.* )" },
+                    ["expand"] = new JsonObject { ["type"] = "string", ["description"] = "Expansion direction: none|callers|callees|both", ["default"] = "both" },
+                    ["depth"] = new JsonObject { ["type"] = "integer", ["description"] = "Max traversal depth (1-10)", ["default"] = 3 },
+                    ["rank"] = new JsonObject { ["type"] = "string", ["description"] = "Ranking strategy: blast-radius|complexity|coupling|combined", ["default"] = "blast-radius" },
+                    ["top"] = new JsonObject { ["type"] = "integer", ["description"] = "Max results to return", ["default"] = 20 },
+                    ["exclude_tests"] = new JsonObject { ["type"] = "boolean", ["description"] = "Exclude test methods", ["default"] = true }
+                },
+                ["required"] = new JsonArray { "seed" }
+            }),
         McpProtocolHelpers.CreateToolDef("cg_get_hotspots",
             "Get top complexity hotspots",
             new JsonObject
@@ -59,6 +77,7 @@ public class QueryHandler : IMcpToolHandler
                 ["type"] = "object",
                 ["properties"] = new JsonObject
                 {
+                    ["top"] = new JsonObject { ["type"] = "integer", ["description"] = "Maximum results to return", ["default"] = 20 },
                     ["include_overrides"] = new JsonObject { ["type"] = "boolean", ["description"] = "Include override/abstract methods", ["default"] = false }
                 }
             }),
@@ -80,6 +99,7 @@ public class QueryHandler : IMcpToolHandler
     {
         return toolName switch
         {
+            "cg_query" => ExecuteGraphQuery(args, ct),
             "cg_get_hotspots" => GetHotspots(args, ct),
             "cg_get_callgraph" => GetCallgraph(args, ct),
             "cg_get_tree" => GetTree(args, ct),
@@ -89,19 +109,168 @@ public class QueryHandler : IMcpToolHandler
         };
     }
 
+    private async Task<string> ExecuteGraphQuery(JsonNode? args, CancellationToken ct)
+    {
+        var seed = args?["seed"]?.GetValue<string>();
+        if (string.IsNullOrEmpty(seed))
+            return "Error: 'seed' parameter required";
+
+        var expand = args?["expand"]?.GetValue<string>() ?? "both";
+        var depth = args?["depth"]?.GetValue<int>() ?? 3;
+        var rank = args?["rank"]?.GetValue<string>() ?? "blast-radius";
+        var top = args?["top"]?.GetValue<int>() ?? 20;
+        var excludeTests = args?["exclude_tests"]?.GetValue<bool>() ?? true;
+
+        // Determine if seed is a pattern (contains wildcards) or exact ID
+        var isPattern = seed.Contains('*') || seed.Contains('?');
+
+        var querySeed = isPattern
+            ? new QuerySeed { MethodPattern = seed }
+            : new QuerySeed { MethodId = seed };
+
+        var expandDirection = expand.ToLower() switch
+        {
+            "none" => ExpandDirection.None,
+            "callers" => ExpandDirection.Callers,
+            "callees" => ExpandDirection.Callees,
+            "both" => ExpandDirection.Both,
+            _ => ExpandDirection.Both
+        };
+
+        var rankStrategy = rank.ToLower().Replace("-", "") switch
+        {
+            "blastradius" => RankStrategy.BlastRadius,
+            "complexity" => RankStrategy.Complexity,
+            "coupling" => RankStrategy.Coupling,
+            "combined" => RankStrategy.Combined,
+            _ => RankStrategy.BlastRadius
+        };
+
+        var query = new GraphQuery
+        {
+            Seed = querySeed,
+            Expand = new QueryExpand
+            {
+                Direction = expandDirection,
+                MaxDepth = Math.Max(1, Math.Min(10, depth)),
+                IncludeTransitive = expandDirection != ExpandDirection.None
+            },
+            Filter = excludeTests ? new QueryFilter { ExcludeNamespaces = new List<string> { "*.Tests.*", "*.Test.*", "*Tests", "*Test" } } : null,
+            Rank = new QueryRank
+            {
+                Strategy = rankStrategy,
+                Descending = true
+            },
+            Output = new QueryOutput
+            {
+                MaxResults = top,
+                IncludeMetrics = true,
+                IncludeLocation = true
+            }
+        };
+
+        var traversalEngine = new GraphTraversalEngine(_storage);
+        var executor = new GraphQueryExecutor(_storage, traversalEngine);
+        var result = await executor.ExecuteAsync(query, useCache: true, ct: ct);
+
+        if (!result.Success)
+            return $"Error: {result.Error}";
+
+        // Check for protected zones
+        var zoneManager = new ProtectedZoneManager(); // Try loading from current directory
+        try
+        {
+            zoneManager = ProtectedZoneManager.TryLoadFromProject(Directory.GetCurrentDirectory());
+        }
+        catch { /* ignore errors loading zones */ }
+
+        var protectedMethods = new List<(string FullName, ProtectedZone Zone)>();
+        if (zoneManager.Zones.Count > 0)
+        {
+            foreach (var node in result.Nodes)
+            {
+                var check = zoneManager.CheckProtection(node.FullName);
+                if (check.IsProtected && check.Zone != null)
+                    protectedMethods.Add((node.FullName, check.Zone));
+            }
+        }
+
+        return FormatQueryResult(result, seed, expand, depth, rank, protectedMethods);
+    }
+
+    private static string FormatQueryResult(
+        QueryResult result,
+        string seed,
+        string direction,
+        int depth,
+        string rank,
+        List<(string FullName, ProtectedZone Zone)>? protectedMethods = null)
+    {
+        var lines = new List<string>();
+
+        // Summary line
+        lines.Add($"Query: seed={seed}, direction={direction}, depth={depth}, rank={rank}");
+        lines.Add($"{result.Nodes.Count} results (of {result.TotalMatches} total), ranked by {rank}:");
+        lines.Add("");
+
+        // Compact results: [rank] metrics method location
+        var protectedSet = protectedMethods?.ToDictionary(p => p.FullName, p => p.Zone) ?? new();
+        var index = 1;
+        foreach (var node in result.Nodes)
+        {
+            var br = node.RankScore.HasValue ? $"BR={node.RankScore:F0}" : "";
+            var cc = node.Complexity.HasValue ? $"CC={node.Complexity}" : "";
+            var metrics = string.Join(" ", new[] { br, cc }.Where(s => !string.IsNullOrEmpty(s)));
+
+            var location = node.FilePath != null
+                ? $" {Path.GetFileName(node.FilePath)}:{node.Line}"
+                : "";
+
+            var protectionMarker = protectedSet.ContainsKey(node.FullName) ? " [!]" : "";
+
+            lines.Add($"[{index}] {metrics} {node.FullName}{location}{protectionMarker}");
+            index++;
+        }
+
+        // Add protection zone summary at the end
+        if (protectedMethods != null && protectedMethods.Count > 0)
+        {
+            lines.Add("");
+            lines.Add($"[!] Protected zones affected ({protectedMethods.Count}):");
+            var byLevel = protectedMethods.GroupBy(p => p.Zone.Level).OrderBy(g => g.Key);
+            foreach (var group in byLevel)
+            {
+                var levelText = group.Key switch
+                {
+                    ProtectionLevel.DoNotModify => "DO NOT MODIFY",
+                    ProtectionLevel.RequireApproval => "REQUIRES APPROVAL",
+                    ProtectionLevel.Deprecated => "DEPRECATED",
+                    _ => group.Key.ToString()
+                };
+                lines.Add($"  [{levelText}]: {string.Join(", ", group.Take(3).Select(p => p.Zone.Pattern))}");
+            }
+        }
+
+        return string.Join("\n", lines);
+    }
+
     private async Task<string> GetHotspots(JsonNode? args, CancellationToken ct)
     {
         var top = args?["top"]?.GetValue<int>() ?? 10;
         var threshold = args?["threshold"]?.GetValue<int>();
+        var sortBy = args?["sort"]?.GetValue<string>() ?? "complexity";
 
-        var hotspots = await _storage.GetHotspotsWithThresholdAsync(top, threshold, ct);
+        var hotspots = await _storage.GetHotspotsWithThresholdAsync(top, threshold, sortBy, ct);
         if (hotspots.Count == 0) return "No hotspots found.";
 
-        var lines = new List<string> { $"{"Method",-50} {"CC",4} {"LOC",4} {"Nest",4}" };
+        // Compact output: one line per item with MethodId
+        var lines = new List<string>();
+        var showBlast = sortBy is "blast-radius" or "blast" or "risk";
         foreach (var h in hotspots)
         {
-            var name = h.FullName.Length > 50 ? h.FullName[..47] + "..." : h.FullName;
-            lines.Add($"{name,-50} {h.Complexity,4} {h.Loc,4} {h.Nesting,4}");
+            var location = h.FilePath != null ? $" {Path.GetFileName(h.FilePath)}:{h.StartLine}" : "";
+            var blastInfo = showBlast && h.BlastRadius > 0 ? $" Blast:{h.BlastRadius}" : "";
+            lines.Add($"{h.FullName} CC:{h.Complexity} LOC:{h.Loc} Nest:{h.Nesting}{blastInfo}{location}");
         }
         return string.Join("\n", lines);
     }
@@ -212,19 +381,22 @@ public class QueryHandler : IMcpToolHandler
 
     private async Task<string> GetDeadCode(JsonNode? args, CancellationToken ct)
     {
+        var top = args?["top"]?.GetValue<int>() ?? 20;
         var includeOverrides = args?["include_overrides"]?.GetValue<bool>() ?? false;
 
         var deadCode = await _storage.GetDeadCodeAsync(includeOverrides, ct);
         if (deadCode.Count == 0) return "No dead code detected.";
 
-        var lines = new List<string> { $"Found {deadCode.Count} potentially unreachable methods:", "" };
-        foreach (var m in deadCode.Take(30))
+        var total = deadCode.Count;
+        // Compact output: one line per item
+        var lines = new List<string>();
+        foreach (var m in deadCode.Take(top))
         {
-            var file = m.FilePath != null ? $" ({Path.GetFileName(m.FilePath)}:{m.StartLine})" : "";
-            lines.Add($"  CC={m.Complexity,2} {m.FullName}{file}");
+            var location = m.FilePath != null ? $" {Path.GetFileName(m.FilePath)}:{m.StartLine}" : "";
+            lines.Add($"{m.FullName} - 0 callers{location}");
         }
-        if (deadCode.Count > 30)
-            lines.Add($"\n  ... +{deadCode.Count - 30} more");
+        if (total > top)
+            lines.Add($"(+{total - top} more)");
 
         return string.Join("\n", lines);
     }

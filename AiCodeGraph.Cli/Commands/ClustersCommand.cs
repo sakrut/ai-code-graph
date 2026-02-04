@@ -40,7 +40,16 @@ public class ClustersCommand : ICommandHandler
 
             if (clusters.Count == 0)
             {
-                Console.WriteLine("No clusters found.");
+                var stages = await storage.GetMetadataAsync("stages", cancellationToken);
+                if (stages == "core")
+                {
+                    Console.WriteLine("No clusters found. Clustering is disabled in 'core' mode.");
+                    Console.WriteLine("Re-run: ai-code-graph analyze <solution> --stages full");
+                }
+                else
+                {
+                    Console.WriteLine("No clusters found.");
+                }
                 return;
             }
 

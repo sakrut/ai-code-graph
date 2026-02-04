@@ -16,23 +16,9 @@ public class CouplingCommand : ICommandHandler
             DefaultValueFactory = _ => "namespace"
         };
 
-        var formatOption = new Option<string>("--format", "-f")
-        {
-            Description = "table|json",
-            DefaultValueFactory = _ => "table"
-        };
-
-        var topOption = new Option<int>("--top", "-n")
-        {
-            Description = "Number of results",
-            DefaultValueFactory = _ => 20
-        };
-
-        var dbOption = new Option<string>("--db")
-        {
-            Description = "Path to graph.db",
-            DefaultValueFactory = _ => "./ai-code-graph/graph.db"
-        };
+        var formatOption = OutputOptions.CreateFormatOption(OutputFormat.Compact);
+        var topOption = OutputOptions.CreateTopOption(20);
+        var dbOption = OutputOptions.CreateDbOption();
 
         var command = new Command("coupling", "Show afferent/efferent coupling and instability metrics")
         {
@@ -42,7 +28,7 @@ public class CouplingCommand : ICommandHandler
         command.SetAction(async (parseResult, cancellationToken) =>
         {
             var level = parseResult.GetValue(levelOption) ?? "namespace";
-            var format = parseResult.GetValue(formatOption) ?? "table";
+            var format = parseResult.GetValue(formatOption) ?? "compact";
             var top = parseResult.GetValue(topOption);
             var dbPath = parseResult.GetValue(dbOption) ?? "./ai-code-graph/graph.db";
 
@@ -53,6 +39,7 @@ public class CouplingCommand : ICommandHandler
 
             var analyzer = new CouplingAnalyzer();
             var results = await analyzer.AnalyzeAsync(storage, level, cancellationToken);
+            var total = results.Count;
             results = results.Take(top).ToList();
 
             if (results.Count == 0)
@@ -61,13 +48,11 @@ public class CouplingCommand : ICommandHandler
                 return;
             }
 
-            if (format == "json")
+            if (OutputOptions.IsJson(format))
             {
                 var json = System.Text.Json.JsonSerializer.Serialize(new
                 {
-                    level,
-                    count = results.Count,
-                    metrics = results.Select(r => new
+                    items = results.Select(r => new
                     {
                         name = r.Name,
                         afferentCoupling = r.AfferentCoupling,
@@ -75,11 +60,25 @@ public class CouplingCommand : ICommandHandler
                         instability = Math.Round(r.Instability, 4),
                         abstractness = Math.Round(r.Abstractness, 4),
                         distanceFromMain = Math.Round(r.DistanceFromMain, 4)
-                    })
+                    }),
+                    metadata = new { level, total, returned = results.Count }
                 }, new System.Text.Json.JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
                 Console.WriteLine(json);
             }
-            else
+            else if (OutputOptions.IsCompact(format))
+            {
+                foreach (var r in results)
+                    Console.WriteLine($"{r.Name} Ca:{r.AfferentCoupling} Ce:{r.EfferentCoupling} I:{r.Instability:F2}");
+                if (total > results.Count)
+                    Console.WriteLine($"(+{total - results.Count} more)");
+            }
+            else if (OutputOptions.IsCsv(format))
+            {
+                Console.WriteLine("name,afferentCoupling,efferentCoupling,instability,abstractness,distanceFromMain");
+                foreach (var r in results)
+                    Console.WriteLine($"{OutputHelpers.CsvEscape(r.Name)},{r.AfferentCoupling},{r.EfferentCoupling},{r.Instability:F4},{r.Abstractness:F4},{r.DistanceFromMain:F4}");
+            }
+            else // table
             {
                 Console.WriteLine($"Coupling metrics (level: {level}):\n");
                 Console.WriteLine($"{"Name",-45} {"Ca",4} {"Ce",4} {"I",5} {"A",5} {"D",5}");
