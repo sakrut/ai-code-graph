@@ -78,6 +78,10 @@ Available slash commands (secondary):
 - `/cg:churn` - Change-frequency x complexity hotspots
 - `/cg:dead-code` - Find methods with no callers
 - `/cg:coupling <method>` - Coupling metrics
+- `/cg:diff <refs>` - Methods affected by git changes
+- `/cg:layers` - Architectural layer assignments
+- `/cg:check-deps` - Forbidden dependency detection
+- `/cg:status` - Database status and staleness
 
 To rebuild the graph after significant changes: `ai-code-graph analyze AiCodeGraph.sln`
 
