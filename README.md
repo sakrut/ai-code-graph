@@ -79,6 +79,15 @@ ai-code-graph setup-cursor
 
 Creates `.cursor/mcp.json`, `.cursor/rules/ai-code-graph.mdc`, and `.cursor/skills/ai-code-graph/SKILL.md`.
 
+### Codex
+
+```bash
+# One-command setup
+ai-code-graph setup-codex
+```
+
+Creates `.codex/skills/ai-code-graph/SKILL.md`, `.codex/skills/ai-code-graph/agents/openai.yaml`, `.mcp.json`, and `AGENTS.md` integration guidance.
+
 ### MCP Server
 
 ```bash

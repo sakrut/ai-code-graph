@@ -358,4 +358,167 @@ public class CliCommandTests : TempDirectoryFixture
         Assert.NotNull(servers["ai-code-graph"]);
         Assert.Equal("./inserted/graph.db", servers["ai-code-graph"]!["args"]!.AsArray()[2]!.GetValue<string>());
     }
+
+    [Fact]
+    public async Task SetupCodexCommand_CleanWorkspace_CreatesScaffoldFiles()
+    {
+        var workspace = Path.Combine(TempDir, "workspace-codex-create");
+        Directory.CreateDirectory(workspace);
+
+        var (exitCode, output, error) = await RunCliAsync("setup-codex --db ./codex/graph.db", workingDirectory: workspace);
+
+        Assert.Equal(0, exitCode);
+        Assert.True(string.IsNullOrWhiteSpace(error));
+        Assert.Contains(Path.Combine(".codex", "skills", "ai-code-graph", "SKILL.md"), output);
+        Assert.Contains(Path.Combine(".codex", "skills", "ai-code-graph", "agents", "openai.yaml"), output);
+        Assert.Contains(".mcp.json", output);
+        Assert.Contains("AGENTS.md", output);
+
+        var skillPath = Path.Combine(workspace, ".codex", "skills", "ai-code-graph", "SKILL.md");
+        var metadataPath = Path.Combine(workspace, ".codex", "skills", "ai-code-graph", "agents", "openai.yaml");
+        var mcpPath = Path.Combine(workspace, ".mcp.json");
+        var agentsPath = Path.Combine(workspace, "AGENTS.md");
+
+        Assert.True(File.Exists(skillPath));
+        Assert.True(File.Exists(metadataPath));
+        Assert.True(File.Exists(mcpPath));
+        Assert.True(File.Exists(agentsPath));
+
+        var root = JsonNode.Parse(await File.ReadAllTextAsync(mcpPath))!.AsObject();
+        var args = root["mcpServers"]!["ai-code-graph"]!["args"]!.AsArray();
+        Assert.Equal("mcp", args[0]!.GetValue<string>());
+        Assert.Equal("--db", args[1]!.GetValue<string>());
+        Assert.Equal("./codex/graph.db", args[2]!.GetValue<string>());
+
+        var agentsContent = await File.ReadAllTextAsync(agentsPath);
+        Assert.Contains("Auto-Context: Code Graph Integration", agentsContent);
+        Assert.Contains("./codex/graph.db", agentsContent);
+    }
+
+    [Fact]
+    public async Task SetupCodexCommand_WithExistingServer_UpdatesDbPath()
+    {
+        var workspace = Path.Combine(TempDir, "workspace-codex-update");
+        Directory.CreateDirectory(workspace);
+        Directory.CreateDirectory(Path.Combine(workspace, ".codex", "skills", "ai-code-graph", "agents"));
+
+        var mcpPath = Path.Combine(workspace, ".mcp.json");
+        await File.WriteAllTextAsync(
+            mcpPath,
+            """
+            {
+              "mcpServers": {
+                "ai-code-graph": {
+                  "type": "stdio",
+                  "command": "ai-code-graph",
+                  "args": ["mcp", "--db", "./old/graph.db"]
+                }
+              }
+            }
+            """);
+
+        await File.WriteAllTextAsync(Path.Combine(workspace, ".codex", "skills", "ai-code-graph", "SKILL.md"), "existing");
+        await File.WriteAllTextAsync(Path.Combine(workspace, ".codex", "skills", "ai-code-graph", "agents", "openai.yaml"), "existing");
+        await File.WriteAllTextAsync(Path.Combine(workspace, "AGENTS.md"), "# Agent Instructions\n");
+
+        var (exitCode, output, error) = await RunCliAsync("setup-codex --db ./new/graph.db", workingDirectory: workspace);
+
+        Assert.Equal(0, exitCode);
+        Assert.True(string.IsNullOrWhiteSpace(error));
+        Assert.Contains(".mcp.json (updated)", output);
+
+        var root = JsonNode.Parse(await File.ReadAllTextAsync(mcpPath))!.AsObject();
+        var args = root["mcpServers"]!["ai-code-graph"]!["args"]!.AsArray();
+        Assert.Equal("mcp", args[0]!.GetValue<string>());
+        Assert.Equal("--db", args[1]!.GetValue<string>());
+        Assert.Equal("./new/graph.db", args[2]!.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task SetupCodexCommand_WithMatchingInputs_NoChanges()
+    {
+        var workspace = Path.Combine(TempDir, "workspace-codex-noop");
+        Directory.CreateDirectory(workspace);
+        Directory.CreateDirectory(Path.Combine(workspace, ".codex", "skills", "ai-code-graph", "agents"));
+
+        var mcpPath = Path.Combine(workspace, ".mcp.json");
+        await File.WriteAllTextAsync(
+            mcpPath,
+            """
+            {
+              "mcpServers": {
+                "ai-code-graph": {
+                  "type": "stdio",
+                  "command": "ai-code-graph",
+                  "args": ["mcp", "--db", "./same/graph.db"]
+                }
+              }
+            }
+            """);
+
+        await File.WriteAllTextAsync(Path.Combine(workspace, ".codex", "skills", "ai-code-graph", "SKILL.md"), "existing");
+        await File.WriteAllTextAsync(Path.Combine(workspace, ".codex", "skills", "ai-code-graph", "agents", "openai.yaml"), "existing");
+        await File.WriteAllTextAsync(
+            Path.Combine(workspace, "AGENTS.md"),
+            """
+            # Agent Instructions
+
+            ## Auto-Context: Code Graph Integration
+            already present
+            """);
+
+        var mcpBefore = await File.ReadAllTextAsync(mcpPath);
+        var agentsBefore = await File.ReadAllTextAsync(Path.Combine(workspace, "AGENTS.md"));
+
+        var (exitCode, output, error) = await RunCliAsync("setup-codex --db ./same/graph.db", workingDirectory: workspace);
+
+        var mcpAfter = await File.ReadAllTextAsync(mcpPath);
+        var agentsAfter = await File.ReadAllTextAsync(Path.Combine(workspace, "AGENTS.md"));
+
+        Assert.Equal(0, exitCode);
+        Assert.True(string.IsNullOrWhiteSpace(error));
+        Assert.Contains("Nothing to do.", output);
+        Assert.Equal(mcpBefore, mcpAfter);
+        Assert.Equal(agentsBefore, agentsAfter);
+    }
+
+    [Fact]
+    public async Task SetupCodexCommand_WithOtherServers_PreservesAndAddsAiCodeGraph()
+    {
+        var workspace = Path.Combine(TempDir, "workspace-codex-merge");
+        Directory.CreateDirectory(workspace);
+        Directory.CreateDirectory(Path.Combine(workspace, ".codex", "skills", "ai-code-graph", "agents"));
+
+        var mcpPath = Path.Combine(workspace, ".mcp.json");
+        await File.WriteAllTextAsync(
+            mcpPath,
+            """
+            {
+              "mcpServers": {
+                "other-server": {
+                  "type": "stdio",
+                  "command": "other-tool",
+                  "args": ["run"]
+                }
+              }
+            }
+            """);
+
+        await File.WriteAllTextAsync(Path.Combine(workspace, ".codex", "skills", "ai-code-graph", "SKILL.md"), "existing");
+        await File.WriteAllTextAsync(Path.Combine(workspace, ".codex", "skills", "ai-code-graph", "agents", "openai.yaml"), "existing");
+        await File.WriteAllTextAsync(Path.Combine(workspace, "AGENTS.md"), "# Agent Instructions\n");
+
+        var (exitCode, output, error) = await RunCliAsync("setup-codex --db ./merged/graph.db", workingDirectory: workspace);
+
+        Assert.Equal(0, exitCode);
+        Assert.True(string.IsNullOrWhiteSpace(error));
+        Assert.Contains(".mcp.json (updated)", output);
+        Assert.Contains("AGENTS.md (appended)", output);
+
+        var root = JsonNode.Parse(await File.ReadAllTextAsync(mcpPath))!.AsObject();
+        var servers = root["mcpServers"]!.AsObject();
+        Assert.NotNull(servers["other-server"]);
+        Assert.NotNull(servers["ai-code-graph"]);
+        Assert.Equal("./merged/graph.db", servers["ai-code-graph"]!["args"]!.AsArray()[2]!.GetValue<string>());
+    }
 }
