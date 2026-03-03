@@ -103,9 +103,28 @@ public class SetupCursorCommand : ICommandHandler
                 root["mcpServers"] = servers;
             }
 
-            if (!servers.ContainsKey("ai-code-graph"))
+            var hasServer = servers.ContainsKey("ai-code-graph");
+            var existingServer = hasServer ? servers["ai-code-graph"] : null;
+            var shouldWrite = false;
+
+            if (!hasServer)
             {
                 servers["ai-code-graph"] = serverNode;
+                shouldWrite = true;
+            }
+            else if (existingServer is not JsonObject existingServerObject)
+            {
+                servers["ai-code-graph"] = serverNode;
+                shouldWrite = true;
+            }
+            else if (!JsonNode.DeepEquals(existingServerObject, serverNode))
+            {
+                servers["ai-code-graph"] = serverNode;
+                shouldWrite = true;
+            }
+
+            if (shouldWrite)
+            {
                 File.WriteAllText(mcpPath, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
                 created.Add(mcpPath + " (updated)");
             }
