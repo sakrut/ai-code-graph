@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json.Nodes;
 using AiCodeGraph.Core.Storage;
 using Microsoft.Data.Sqlite;
 
@@ -17,7 +18,7 @@ public class CliCommandTests : TempDirectoryFixture
 
     public CliCommandTests() : base("cli-test") { }
 
-    private async Task<(int ExitCode, string Output, string Error)> RunCliAsync(string args, int timeoutMs = 10000)
+    private async Task<(int ExitCode, string Output, string Error)> RunCliAsync(string args, int timeoutMs = 10000, string? workingDirectory = null)
     {
         var psi = new ProcessStartInfo
         {
@@ -26,7 +27,8 @@ public class CliCommandTests : TempDirectoryFixture
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
-            CreateNoWindow = true
+            CreateNoWindow = true,
+            WorkingDirectory = workingDirectory ?? Directory.GetCurrentDirectory()
         };
 
         using var process = Process.Start(psi)!;
@@ -238,5 +240,122 @@ public class CliCommandTests : TempDirectoryFixture
         var (exitCode, _, error) = await RunCliAsync("hotspots --nonexistent-option");
         Assert.NotEqual(0, exitCode);
         Assert.Contains("Unrecognized", error);
+    }
+
+    [Fact]
+    public async Task SetupCursorCommand_WithExistingServer_UpdatesDbPath()
+    {
+        var workspace = Path.Combine(TempDir, "workspace-update");
+        Directory.CreateDirectory(workspace);
+        Directory.CreateDirectory(Path.Combine(workspace, ".cursor"));
+        Directory.CreateDirectory(Path.Combine(workspace, ".cursor", "rules"));
+        Directory.CreateDirectory(Path.Combine(workspace, ".cursor", "skills", "ai-code-graph"));
+
+        var mcpPath = Path.Combine(workspace, ".cursor", "mcp.json");
+        await File.WriteAllTextAsync(
+            mcpPath,
+            """
+            {
+              "mcpServers": {
+                "ai-code-graph": {
+                  "type": "stdio",
+                  "command": "ai-code-graph",
+                  "args": ["mcp", "--db", "./old/graph.db"]
+                }
+              }
+            }
+            """);
+
+        await File.WriteAllTextAsync(Path.Combine(workspace, ".cursor", "rules", "ai-code-graph.mdc"), "existing");
+        await File.WriteAllTextAsync(Path.Combine(workspace, ".cursor", "skills", "ai-code-graph", "SKILL.md"), "existing");
+
+        var (exitCode, output, error) = await RunCliAsync("setup-cursor --db ./new/graph.db", workingDirectory: workspace);
+
+        Assert.Equal(0, exitCode);
+        Assert.True(string.IsNullOrWhiteSpace(error));
+        Assert.Contains($"{Path.Combine(".cursor", "mcp.json")} (updated)", output);
+
+        var root = JsonNode.Parse(await File.ReadAllTextAsync(mcpPath))!.AsObject();
+        var args = root["mcpServers"]!["ai-code-graph"]!["args"]!.AsArray();
+        Assert.Equal("mcp", args[0]!.GetValue<string>());
+        Assert.Equal("--db", args[1]!.GetValue<string>());
+        Assert.Equal("./new/graph.db", args[2]!.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task SetupCursorCommand_WithMatchingServer_NoChanges()
+    {
+        var workspace = Path.Combine(TempDir, "workspace-noop");
+        Directory.CreateDirectory(workspace);
+        Directory.CreateDirectory(Path.Combine(workspace, ".cursor"));
+        Directory.CreateDirectory(Path.Combine(workspace, ".cursor", "rules"));
+        Directory.CreateDirectory(Path.Combine(workspace, ".cursor", "skills", "ai-code-graph"));
+
+        var mcpPath = Path.Combine(workspace, ".cursor", "mcp.json");
+        await File.WriteAllTextAsync(
+            mcpPath,
+            """
+            {
+              "mcpServers": {
+                "ai-code-graph": {
+                  "type": "stdio",
+                  "command": "ai-code-graph",
+                  "args": ["mcp", "--db", "./same/graph.db"]
+                }
+              }
+            }
+            """);
+
+        await File.WriteAllTextAsync(Path.Combine(workspace, ".cursor", "rules", "ai-code-graph.mdc"), "existing");
+        await File.WriteAllTextAsync(Path.Combine(workspace, ".cursor", "skills", "ai-code-graph", "SKILL.md"), "existing");
+
+        var before = await File.ReadAllTextAsync(mcpPath);
+        var (exitCode, output, error) = await RunCliAsync("setup-cursor --db ./same/graph.db", workingDirectory: workspace);
+        var after = await File.ReadAllTextAsync(mcpPath);
+
+        Assert.Equal(0, exitCode);
+        Assert.True(string.IsNullOrWhiteSpace(error));
+        Assert.Contains("Nothing to do.", output);
+        Assert.Equal(before, after);
+    }
+
+    [Fact]
+    public async Task SetupCursorCommand_WithMissingServer_AddsServerEntry()
+    {
+        var workspace = Path.Combine(TempDir, "workspace-insert");
+        Directory.CreateDirectory(workspace);
+        Directory.CreateDirectory(Path.Combine(workspace, ".cursor"));
+        Directory.CreateDirectory(Path.Combine(workspace, ".cursor", "rules"));
+        Directory.CreateDirectory(Path.Combine(workspace, ".cursor", "skills", "ai-code-graph"));
+
+        var mcpPath = Path.Combine(workspace, ".cursor", "mcp.json");
+        await File.WriteAllTextAsync(
+            mcpPath,
+            """
+            {
+              "mcpServers": {
+                "other-server": {
+                  "type": "stdio",
+                  "command": "other-tool",
+                  "args": ["run"]
+                }
+              }
+            }
+            """);
+
+        await File.WriteAllTextAsync(Path.Combine(workspace, ".cursor", "rules", "ai-code-graph.mdc"), "existing");
+        await File.WriteAllTextAsync(Path.Combine(workspace, ".cursor", "skills", "ai-code-graph", "SKILL.md"), "existing");
+
+        var (exitCode, output, error) = await RunCliAsync("setup-cursor --db ./inserted/graph.db", workingDirectory: workspace);
+
+        Assert.Equal(0, exitCode);
+        Assert.True(string.IsNullOrWhiteSpace(error));
+        Assert.Contains($"{Path.Combine(".cursor", "mcp.json")} (updated)", output);
+
+        var root = JsonNode.Parse(await File.ReadAllTextAsync(mcpPath))!.AsObject();
+        var servers = root["mcpServers"]!.AsObject();
+        Assert.NotNull(servers["other-server"]);
+        Assert.NotNull(servers["ai-code-graph"]);
+        Assert.Equal("./inserted/graph.db", servers["ai-code-graph"]!["args"]!.AsArray()[2]!.GetValue<string>());
     }
 }
