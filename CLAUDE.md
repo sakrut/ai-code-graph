@@ -13,6 +13,13 @@ dotnet test --filter "ClassName"      # Run specific test class
 dotnet pack AiCodeGraph.Cli           # Package as global tool
 ```
 
+## AI Setup Helpers
+
+```bash
+ai-code-graph setup-claude           # Scaffold Claude slash commands + MCP config
+ai-code-graph setup-cursor           # Scaffold Cursor MCP config + rule + project skill
+```
+
 ## Project Structure
 
 - `AiCodeGraph.Cli/` - CLI entry point using System.CommandLine 2.0.2. All commands defined in `Program.cs`.

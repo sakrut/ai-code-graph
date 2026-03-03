@@ -32,6 +32,7 @@ public static class CommandRegistry
             new DiffCommand(),
             new McpCommand(),
             new SetupClaudeCommand(),
+            new SetupCursorCommand(),
             new StatusCommand(),
             new LayersCommand(),
             new QueryCommand(),

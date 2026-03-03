@@ -70,6 +70,15 @@ ai-code-graph setup-claude
 
 Creates slash commands (`/cg:context`, `/cg:hotspots`, etc.) and MCP server config.
 
+### Cursor
+
+```bash
+# One-command setup
+ai-code-graph setup-cursor
+```
+
+Creates `.cursor/mcp.json`, `.cursor/rules/ai-code-graph.mdc`, and `.cursor/skills/ai-code-graph/SKILL.md`.
+
 ### MCP Server
 
 ```bash

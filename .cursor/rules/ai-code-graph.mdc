@@ -1,0 +1,25 @@
+---
+description: AI Code Graph MCP workflow for C# analysis and edits
+alwaysApply: true
+---
+
+# AI Code Graph Integration
+
+If `cg_*` MCP tools are available, use them for code-understanding tasks.
+
+Before editing any method, call `cg_get_context` first (when graph data exists) to review complexity, callers, callees, duplicates, and cluster context.
+
+Primary tools:
+- `cg_get_context`
+- `cg_get_hotspots`
+- `cg_get_callgraph`
+- `cg_get_impact`
+- `cg_query`
+- `cg_dead_code`
+
+Secondary tools:
+- `cg_token_search`, `cg_semantic_search`, `cg_get_similar`
+- `cg_get_duplicates`, `cg_get_clusters`, `cg_export_graph`
+- `cg_churn`, `cg_coupling`, `cg_diff`, `cg_get_drift`, `cg_get_tree`, `cg_analyze`
+
+If the database is missing, run `cg_analyze` first to build `./ai-code-graph/graph.db`.

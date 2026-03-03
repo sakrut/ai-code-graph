@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "ai-code-graph": {
+      "type": "stdio",
+      "command": "ai-code-graph",
+      "args": ["mcp", "--db", "./ai-code-graph/graph.db"]
+    }
+  }
+}
