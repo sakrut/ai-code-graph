@@ -120,9 +120,8 @@ public class SetupCodexCommand : ICommandHandler
                 servers["ai-code-graph"] = serverNode;
                 shouldWrite = true;
             }
-            else if (!JsonNode.DeepEquals(existingServerObject, serverNode))
+            else if (MergeMcpServer(existingServerObject, dbPath))
             {
-                servers["ai-code-graph"] = serverNode;
                 shouldWrite = true;
             }
 
@@ -142,15 +141,32 @@ public class SetupCodexCommand : ICommandHandler
     {
         var agentsPath = Path.Combine(currentDir, "AGENTS.md");
         var snippet = AgentIntegrationContent.GetAgentsMdSnippet(dbPath);
+        const string sectionHeader = "## Auto-Context: Code Graph Integration";
 
         if (File.Exists(agentsPath))
         {
             var existing = File.ReadAllText(agentsPath);
-            if (!existing.Contains("Auto-Context: Code Graph Integration"))
+            var sectionIndex = existing.IndexOf(sectionHeader, StringComparison.Ordinal);
+            if (sectionIndex < 0)
             {
                 File.AppendAllText(agentsPath, snippet);
                 created.Add(agentsPath + " (appended)");
             }
+            else
+            {
+                var replacement = snippet.TrimStart('\r', '\n');
+                var nextHeaderIndex = existing.IndexOf("\n## ", sectionIndex + sectionHeader.Length, StringComparison.Ordinal);
+                var sectionEnd = nextHeaderIndex >= 0 ? nextHeaderIndex + 1 : existing.Length;
+
+                var currentSection = existing[sectionIndex..sectionEnd];
+                if (!string.Equals(currentSection.Trim(), replacement.Trim(), StringComparison.Ordinal))
+                {
+                    var updated = existing[..sectionIndex] + replacement + existing[sectionEnd..];
+                    File.WriteAllText(agentsPath, updated);
+                    created.Add(agentsPath + " (updated)");
+                }
+            }
+
             return;
         }
 
@@ -166,5 +182,84 @@ public class SetupCodexCommand : ICommandHandler
             File.WriteAllText(path, content);
             created.Add(path);
         }
+    }
+
+    private static bool MergeMcpServer(JsonObject existingServerObject, string dbPath)
+    {
+        var changed = false;
+
+        if (existingServerObject["type"] == null)
+        {
+            existingServerObject["type"] = "stdio";
+            changed = true;
+        }
+
+        if (existingServerObject["command"] == null)
+        {
+            existingServerObject["command"] = "ai-code-graph";
+            changed = true;
+        }
+
+        if (existingServerObject["args"] is not JsonArray args)
+        {
+            existingServerObject["args"] = new JsonArray("mcp", "--db", dbPath);
+            return true;
+        }
+
+        var commandIsAiCodeGraph = NodeEqualsString(existingServerObject["command"], "ai-code-graph");
+        var hasMcp = false;
+        for (var i = 0; i < args.Count; i++)
+        {
+            if (NodeEqualsString(args[i], "mcp"))
+            {
+                hasMcp = true;
+                break;
+            }
+        }
+
+        if (commandIsAiCodeGraph && !hasMcp)
+        {
+            args.Insert(0, "mcp");
+            changed = true;
+        }
+
+        var dbFlagIndex = -1;
+        for (var i = 0; i < args.Count; i++)
+        {
+            if (NodeEqualsString(args[i], "--db"))
+            {
+                dbFlagIndex = i;
+                break;
+            }
+        }
+
+        if (dbFlagIndex >= 0)
+        {
+            if (dbFlagIndex + 1 >= args.Count)
+            {
+                args.Add(dbPath);
+                changed = true;
+            }
+            else if (!NodeEqualsString(args[dbFlagIndex + 1], dbPath))
+            {
+                args[dbFlagIndex + 1] = dbPath;
+                changed = true;
+            }
+        }
+        else
+        {
+            args.Add("--db");
+            args.Add(dbPath);
+            changed = true;
+        }
+
+        return changed;
+    }
+
+    private static bool NodeEqualsString(JsonNode? node, string expected)
+    {
+        return node is JsonValue valueNode &&
+               valueNode.TryGetValue<string>(out var value) &&
+               string.Equals(value, expected, StringComparison.Ordinal);
     }
 }
