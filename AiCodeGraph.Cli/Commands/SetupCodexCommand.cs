@@ -5,17 +5,17 @@ using System.Text.Json.Nodes;
 
 namespace AiCodeGraph.Cli.Commands;
 
-public class SetupCursorCommand : ICommandHandler
+public class SetupCodexCommand : ICommandHandler
 {
     public Command BuildCommand()
     {
         var dbOption = new Option<string>("--db")
         {
-            Description = "Path to graph.db used by Cursor MCP integration",
+            Description = "Path to graph.db used by Codex MCP integration",
             DefaultValueFactory = _ => "./ai-code-graph/graph.db"
         };
 
-        var command = new Command("setup-cursor", "Scaffold Cursor MCP config, rules, and skill for AI Code Graph")
+        var command = new Command("setup-codex", "Scaffold Codex MCP config, AGENTS.md guidance, and skill metadata for AI Code Graph")
         {
             dbOption
         };
@@ -24,36 +24,39 @@ public class SetupCursorCommand : ICommandHandler
         {
             var dbPath = parseResult.GetValue(dbOption) ?? "./ai-code-graph/graph.db";
             var created = new List<string>();
+            var currentDir = Directory.GetCurrentDirectory();
 
-            var cursorDir = Path.Combine(Directory.GetCurrentDirectory(), ".cursor");
-            var rulesDir = Path.Combine(cursorDir, "rules");
-            var skillsDir = Path.Combine(cursorDir, "skills", "ai-code-graph");
+            var codexDir = Path.Combine(currentDir, ".codex");
+            var skillDir = Path.Combine(codexDir, "skills", "ai-code-graph");
+            var agentsDir = Path.Combine(skillDir, "agents");
 
-            Directory.CreateDirectory(cursorDir);
-            Directory.CreateDirectory(rulesDir);
-            Directory.CreateDirectory(skillsDir);
+            Directory.CreateDirectory(codexDir);
+            Directory.CreateDirectory(skillDir);
+            Directory.CreateDirectory(agentsDir);
 
-            EnsureCursorMcpConfig(cursorDir, dbPath, created);
-            CreateFileIfMissing(rulesDir, "ai-code-graph.mdc", GetRuleContent(), created);
-            CreateFileIfMissing(skillsDir, "SKILL.md", GetSkillContent(), created);
+            CreateFileIfMissing(skillDir, "SKILL.md", AgentIntegrationContent.GetSharedSkillContent(), created);
+            CreateFileIfMissing(agentsDir, "openai.yaml", AgentIntegrationContent.GetCodexOpenAiYamlContent(), created);
+
+            EnsureMcpConfig(currentDir, dbPath, created);
+            EnsureAgentsMd(currentDir, dbPath, created);
 
             if (created.Count > 0)
             {
-                Console.WriteLine("Cursor integration set up:");
+                Console.WriteLine("Codex integration set up:");
                 foreach (var path in created)
                 {
-                    Console.WriteLine($"  + {Path.GetRelativePath(Directory.GetCurrentDirectory(), path)}");
+                    Console.WriteLine($"  + {Path.GetRelativePath(currentDir, path)}");
                 }
 
                 Console.WriteLine();
                 Console.WriteLine("Next steps:");
-                Console.WriteLine("  1. In Cursor, enable the ai-code-graph MCP server if prompted");
-                Console.WriteLine("  2. Run `ai-code-graph analyze YourSolution.sln` to build graph.db");
+                Console.WriteLine("  1. Run `ai-code-graph analyze YourSolution.sln` to build graph.db");
+                Console.WriteLine("  2. Ensure your Codex client loads `.mcp.json` for MCP server discovery");
                 Console.WriteLine("  3. Ask the agent to use AI Code Graph context before edits");
             }
             else
             {
-                Console.WriteLine("All Cursor integration files already exist. Nothing to do.");
+                Console.WriteLine("All Codex integration files already exist. Nothing to do.");
             }
 
             return Task.CompletedTask;
@@ -62,9 +65,9 @@ public class SetupCursorCommand : ICommandHandler
         return command;
     }
 
-    private static void EnsureCursorMcpConfig(string cursorDir, string dbPath, List<string> created)
+    private static void EnsureMcpConfig(string currentDir, string dbPath, List<string> created)
     {
-        var mcpPath = Path.Combine(cursorDir, "mcp.json");
+        var mcpPath = Path.Combine(currentDir, ".mcp.json");
         var serverNode = new JsonObject
         {
             ["type"] = "stdio",
@@ -92,7 +95,7 @@ public class SetupCursorCommand : ICommandHandler
             var root = JsonNode.Parse(File.ReadAllText(mcpPath)) as JsonObject;
             if (root == null)
             {
-                Console.WriteLine("Warning: .cursor/mcp.json is not a JSON object. Skipping MCP update.");
+                Console.WriteLine("Warning: .mcp.json is not a JSON object. Skipping MCP update.");
                 return;
             }
 
@@ -130,8 +133,45 @@ public class SetupCursorCommand : ICommandHandler
         }
         catch (JsonException)
         {
-            Console.WriteLine("Warning: failed to parse .cursor/mcp.json. Skipping MCP update.");
+            Console.WriteLine("Warning: failed to parse .mcp.json. Skipping MCP update.");
         }
+    }
+
+    private static void EnsureAgentsMd(string currentDir, string dbPath, List<string> created)
+    {
+        var agentsPath = Path.Combine(currentDir, "AGENTS.md");
+        var snippet = AgentIntegrationContent.GetAgentsMdSnippet(dbPath);
+        const string sectionHeader = "## Auto-Context: Code Graph Integration";
+
+        if (File.Exists(agentsPath))
+        {
+            var existing = File.ReadAllText(agentsPath);
+            var sectionIndex = existing.IndexOf(sectionHeader, StringComparison.Ordinal);
+            if (sectionIndex < 0)
+            {
+                File.AppendAllText(agentsPath, snippet);
+                created.Add(agentsPath + " (appended)");
+            }
+            else
+            {
+                var replacement = snippet.TrimStart('\r', '\n');
+                var nextHeaderIndex = existing.IndexOf("\n## ", sectionIndex + sectionHeader.Length, StringComparison.Ordinal);
+                var sectionEnd = nextHeaderIndex >= 0 ? nextHeaderIndex + 1 : existing.Length;
+
+                var currentSection = existing[sectionIndex..sectionEnd];
+                if (!string.Equals(currentSection.Trim(), replacement.Trim(), StringComparison.Ordinal))
+                {
+                    var updated = existing[..sectionIndex] + replacement + existing[sectionEnd..];
+                    File.WriteAllText(agentsPath, updated);
+                    created.Add(agentsPath + " (updated)");
+                }
+            }
+
+            return;
+        }
+
+        File.WriteAllText(agentsPath, $"# Agent Instructions\n{snippet}");
+        created.Add(agentsPath);
     }
 
     private static void CreateFileIfMissing(string dir, string filename, string content, List<string> created)
@@ -143,10 +183,6 @@ public class SetupCursorCommand : ICommandHandler
             created.Add(path);
         }
     }
-
-    private static string GetRuleContent() => AgentIntegrationContent.GetCursorRuleContent();
-
-    private static string GetSkillContent() => AgentIntegrationContent.GetSharedSkillContent();
 
     private static bool MergeMcpServer(JsonObject existingServerObject, string dbPath)
     {

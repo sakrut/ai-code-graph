@@ -33,6 +33,7 @@ public static class CommandRegistry
             new McpCommand(),
             new SetupClaudeCommand(),
             new SetupCursorCommand(),
+            new SetupCodexCommand(),
             new StatusCommand(),
             new LayersCommand(),
             new QueryCommand(),
